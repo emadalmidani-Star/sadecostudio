@@ -11,6 +11,7 @@ import Projects from "./pages/Projects";
 import ProjectEditor from "./pages/ProjectEditor";
 import CompanyProfile from "./pages/CompanyProfile";
 import Exports from "./pages/Exports";
+import Team from "./pages/Team";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/projects/:id" element={<ProjectEditor />} />
               <Route path="/company" element={<CompanyProfile />} />
               <Route path="/exports" element={<Exports />} />
+              <Route path="/team" element={<Team />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
