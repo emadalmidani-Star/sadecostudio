@@ -219,13 +219,48 @@ export default function Exports() {
         <Card className="p-8 border-accent/40">
           <Files className="w-8 h-8 text-accent mb-4" />
           <h2 className="font-serif text-2xl mb-2">Selected Projects Portfolio</h2>
-          <p className="text-muted-foreground text-sm mb-6">Cherry-pick projects below and merge them into a single portfolio PDF.</p>
-          <Button onClick={selectedExport} disabled={busy === "selected" || selected.size === 0}>
+          <p className="text-muted-foreground text-sm mb-6">Cherry-pick projects below, drag to reorder, and merge them into a single portfolio PDF.</p>
+          <Button onClick={selectedExport} disabled={busy === "selected" || selectedOrder.length === 0}>
             {busy === "selected" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
-            Export {selected.size > 0 ? `(${selected.size})` : ""}
+            Export {selectedOrder.length > 0 ? `(${selectedOrder.length})` : ""}
           </Button>
         </Card>
       </div>
+
+      <Card className="p-5 mb-10">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 className="font-serif text-lg mb-1">PDF size & quality</h2>
+            <p className="text-xs text-muted-foreground">{QUALITY_PRESETS[quality].hint}</p>
+          </div>
+          <Select value={quality} onValueChange={(v) => setQuality(v as keyof typeof QUALITY_PRESETS)}>
+            <SelectTrigger className="md:w-64"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(QUALITY_PRESETS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
+
+      {selectedOrder.length > 0 && (
+        <Card className="p-5 mb-10">
+          <h2 className="font-serif text-lg mb-1">Portfolio order</h2>
+          <p className="text-xs text-muted-foreground mb-4">Drag to reorder. Projects appear in this order in the PDF (grouped by category).</p>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={selectedOrder} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2">
+                {selectedOrder.map(id => {
+                  const p = projects.find(x => x.id === id);
+                  if (!p) return null;
+                  return <SortableSelected key={id} id={id} project={p} onRemove={() => toggle(id)} />;
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </Card>
+      )}
 
       {types.length > 0 && (
         <>
