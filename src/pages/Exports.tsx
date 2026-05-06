@@ -47,6 +47,20 @@ export default function Exports() {
     setBusy(null);
   }
 
+  const types = useMemo(
+    () => Array.from(new Set(projects.map(p => p.type).filter(Boolean))).sort(),
+    [projects]
+  );
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return projects.filter(p => {
+      if (typeFilter !== "all" && p.type !== typeFilter) return false;
+      if (!q) return true;
+      return [p.name, p.location, p.client_name, p.type]
+        .filter(Boolean).some((v: string) => v.toLowerCase().includes(q));
+    });
+  }, [projects, query, typeFilter]);
+
   return (
     <div className="p-10 max-w-6xl mx-auto">
       <p className="text-xs tracking-[0.3em] text-accent mb-2">EXPORT</p>
