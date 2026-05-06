@@ -32,9 +32,9 @@ function addCover(doc: jsPDF, company: any, subtitle: string, logo: any) {
     doc.addImage(logo.data, "PNG", (W * 0.38 - w) / 2, H / 2 - h / 2, w, h);
   }
   // right side
-  doc.setTextColor(BRAND.ink); doc.setFont("helvetica", "bold"); doc.setFontSize(48);
+  doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold"); doc.setFontSize(48);
   doc.text(company?.name || "SADECO", W * 0.42, H / 2 - 6);
-  doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.muted);
+  doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.muted);
   doc.text(subtitle.toUpperCase(), W * 0.42, H / 2 + 6, { charSpace: 2 });
   // accent rule
   doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.6); doc.line(W * 0.42, H / 2 + 12, W * 0.42 + 30, H / 2 + 12);
@@ -44,7 +44,7 @@ function addCover(doc: jsPDF, company: any, subtitle: string, logo: any) {
 
 function addPageHeader(doc: jsPDF, company: any) {
   const W = doc.internal.pageSize.getWidth();
-  doc.setTextColor(BRAND.ink); doc.setFontSize(9); doc.setFont("helvetica", "bold");
+  doc.setTextColor(BRAND.ink); doc.setFontSize(9); doc.setFont("Montserrat", "bold");
   doc.text((company?.name || "SADECO").toUpperCase(), 15, 12, { charSpace: 2 });
   doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.4); doc.line(15, 15, W - 15, 15);
 }
@@ -52,15 +52,15 @@ function addPageHeader(doc: jsPDF, company: any) {
 function addPageFooter(doc: jsPDF, company: any, page: number) {
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.2); doc.line(15, H - 12, W - 15, H - 12);
-  doc.setFontSize(8); doc.setTextColor(BRAND.muted); doc.setFont("helvetica", "normal");
+  doc.setFontSize(8); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
   doc.text(company?.website || company?.email || "", 15, H - 7);
   doc.text(String(page), W - 15, H - 7, { align: "right" });
 }
 
 function sectionTitle(doc: jsPDF, label: string, title: string, y: number) {
-  doc.setFontSize(8); doc.setTextColor(BRAND.muted); doc.setFont("helvetica", "normal");
+  doc.setFontSize(8); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
   doc.text(label.toUpperCase(), 15, y, { charSpace: 3 });
-  doc.setFontSize(26); doc.setTextColor(BRAND.ink); doc.setFont("helvetica", "bold");
+  doc.setFontSize(26); doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold");
   doc.text(title, 15, y + 11);
   doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.4); doc.line(15, y + 14, 50, y + 14);
   return y + 22;
@@ -74,9 +74,9 @@ function addThankYou(doc: jsPDF, company: any, logo: any) {
     const ratio = logo.w / logo.h; const w = 50; const h = w / ratio;
     doc.addImage(logo.data, "PNG", (W - w) / 2, H / 2 - h - 30, w, h);
   }
-  doc.setTextColor(BRAND.paper); doc.setFont("helvetica", "bold"); doc.setFontSize(64);
+  doc.setTextColor(BRAND.paper); doc.setFont("Montserrat", "bold"); doc.setFontSize(64);
   doc.text("Thank You", W / 2, H / 2 + 5, { align: "center" });
-  doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor("#bbbbbb");
+  doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor("#bbbbbb");
   doc.text("We look forward to building with you.", W / 2, H / 2 + 18, { align: "center" });
 
   // contact row
@@ -96,19 +96,19 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     doc.addImage(cover.data, "JPEG", 0, 0, halfW, H);
     doc.setFillColor(BRAND.paper); doc.rect(halfW, 0, W - halfW, H, "F");
     const tx = halfW + 12;
-    doc.setFontSize(9); doc.setTextColor(BRAND.muted); doc.setFont("helvetica", "normal");
+    doc.setFontSize(9); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
     doc.text(fmt(p.type).toUpperCase(), tx, 30, { charSpace: 2 });
-    doc.setFontSize(28); doc.setFont("helvetica", "bold"); doc.setTextColor(BRAND.ink);
+    doc.setFontSize(28); doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.ink);
     const lines = doc.splitTextToSize(p.name, W - halfW - 20);
     doc.text(lines, tx, 44);
     doc.setDrawColor(BRAND.ink); doc.line(tx, 44 + lines.length * 10, tx + 25, 44 + lines.length * 10);
-    doc.setFontSize(10); doc.setTextColor(BRAND.muted); doc.setFont("helvetica", "normal");
+    doc.setFontSize(10); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
     doc.text(p.location || "", tx, 44 + lines.length * 10 + 8);
   } else {
     doc.setFillColor(BRAND.ink); doc.rect(0, 0, W, H, "F");
-    doc.setTextColor(BRAND.paper); doc.setFontSize(10); doc.setFont("helvetica", "normal");
+    doc.setTextColor(BRAND.paper); doc.setFontSize(10); doc.setFont("Montserrat", "normal");
     doc.text(fmt(p.type).toUpperCase(), 20, H / 2 - 14, { charSpace: 3 });
-    doc.setFontSize(40); doc.setFont("helvetica", "bold");
+    doc.setFontSize(40); doc.setFont("Montserrat", "bold");
     doc.text(doc.splitTextToSize(p.name, W - 40), 20, H / 2);
   }
   addPageFooter(doc, company, page.n);
@@ -125,25 +125,25 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     ["Status", fmt(p.status)],
     ["Client", p.client_name || "Confidential"],
   ];
-  doc.setFontSize(8); doc.setFont("helvetica", "normal");
+  doc.setFontSize(8); doc.setFont("Montserrat", "normal");
   const colW = (W - 30) / facts.length;
   facts.forEach((f, i) => {
     doc.setTextColor(BRAND.muted); doc.text(f[0].toUpperCase(), 15 + i * colW, y, { charSpace: 1.5 });
-    doc.setTextColor(BRAND.ink); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+    doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold"); doc.setFontSize(11);
     doc.text(f[1], 15 + i * colW, y + 6);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+    doc.setFont("Montserrat", "normal"); doc.setFontSize(8);
   });
   y += 16;
   doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.2); doc.line(15, y, W - 15, y); y += 10;
 
-  doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(BRAND.ink);
+  doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor(BRAND.ink);
   const descLines = doc.splitTextToSize(p.description || "No description available.", W - 30);
   doc.text(descLines, 15, y); y += descLines.length * 5.5 + 8;
 
   if (p.highlights?.length) {
-    doc.setFontSize(9); doc.setTextColor(BRAND.muted); doc.setFont("helvetica", "bold");
+    doc.setFontSize(9); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "bold");
     doc.text("KEY HIGHLIGHTS", 15, y, { charSpace: 3 }); y += 7;
-    doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(BRAND.ink);
+    doc.setFontSize(10); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.ink);
     p.highlights.forEach((h: string) => {
       if (y > H - 25) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
       doc.text(BULLET, 15, y);
@@ -208,13 +208,13 @@ export async function exportFullProfilePDF(company: any, projects: any[]) {
   doc.addPage(); page.n++;
   addPageHeader(doc, company);
   let y = sectionTitle(doc, "Introduction", "About " + (company?.name || "SADECO"), 28);
-  doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.ink);
+  doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.ink);
   const about = doc.splitTextToSize(company?.about || "", W - 30);
   doc.text(about, 15, y); y += about.length * 6 + 10;
 
-  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(BRAND.muted);
+  doc.setFont("Montserrat", "bold"); doc.setFontSize(9); doc.setTextColor(BRAND.muted);
   doc.text("CONTACT", 15, y, { charSpace: 3 }); y += 7;
-  doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(BRAND.ink);
+  doc.setFontSize(10); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.ink);
   [["Phone", company?.phone], ["Email", company?.email], ["Website", company?.website], ["Address", company?.address]]
     .filter(([_, v]) => v).forEach(([k, v]) => {
       doc.setTextColor(BRAND.muted); doc.text(`${k}`, 15, y);
@@ -226,7 +226,7 @@ export async function exportFullProfilePDF(company: any, projects: any[]) {
   doc.addPage(); page.n++;
   addPageHeader(doc, company);
   y = sectionTitle(doc, "Capabilities", "Our Services", 28);
-  doc.setFontSize(13); doc.setFont("helvetica", "normal"); doc.setTextColor(BRAND.ink);
+  doc.setFontSize(13); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.ink);
   (company?.services || []).forEach((s: string) => {
     doc.text(BULLET, 15, y);
     doc.text(s, 22, y); y += 9;
