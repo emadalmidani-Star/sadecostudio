@@ -100,40 +100,86 @@ export default function ProjectEditor() {
     nav("/projects");
   }
 
-  const [uploading, setUploading] = useState(false);
+  const [uploads, setUploads] = useState<UploadItem[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  const [cropQueue, setCropQueue] = useState<File[]>([]);
+  const [skipCrop, setSkipCrop] = useState(false);
+  const coverManuallySet = useRef(false);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  async function uploadFiles(files: File[]) {
+  async function uploadOne(file: File | Blob, name: string) {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setUploads(prev => [...prev, { id, name, progress: 10 }]);
+    const path = `${Date.now()}-${name}`;
+    // Simulated progress (Supabase JS doesn't expose real progress)
+    const tick = setInterval(() => {
+      setUploads(prev => prev.map(u => u.id === id ? { ...u, progress: Math.min(90, u.progress + 10) } : u));
+    }, 200);
+    const { error } = await supabase.storage.from("project-images").upload(path, file, { contentType: (file as any).type || "image/jpeg" });
+    clearInterval(tick);
+    if (error) {
+      setUploads(prev => prev.filter(u => u.id !== id));
+      toast.error(error.message);
+      return null;
+    }
+    const { data } = supabase.storage.from("project-images").getPublicUrl(path);
+    setUploads(prev => prev.map(u => u.id === id ? { ...u, progress: 100 } : u));
+    setTimeout(() => setUploads(prev => prev.filter(u => u.id !== id)), 600);
+    setP((prev: any) => ({
+      ...prev,
+      images: [...(prev.images || []), data.publicUrl],
+      cover_image: coverManuallySet.current ? prev.cover_image : data.publicUrl,
+    }));
+    return data.publicUrl;
+  }
+
+  function queueFiles(files: File[]) {
     const imgs = files.filter(f => f.type.startsWith("image/"));
     if (!imgs.length) return;
-    setUploading(true);
-    const urls: string[] = [];
-    for (const f of imgs) {
-      const path = `${Date.now()}-${f.name}`;
-      const { error } = await supabase.storage.from("project-images").upload(path, f);
-      if (error) { toast.error(error.message); continue; }
-      const { data } = supabase.storage.from("project-images").getPublicUrl(path);
-      urls.push(data.publicUrl);
-    }
-    setP((prev: any) => ({ ...prev, images: [...(prev.images || []), ...urls], cover_image: prev.cover_image || urls[0] }));
-    setUploading(false);
-    if (urls.length) toast.success(`${urls.length} image(s) added`);
+    if (skipCrop) imgs.forEach(f => uploadOne(f, f.name));
+    else setCropQueue(prev => [...prev, ...imgs]);
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    await uploadFiles(Array.from(e.target.files || []));
+    queueFiles(Array.from(e.target.files || []));
     e.target.value = "";
   }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
-    uploadFiles(Array.from(e.dataTransfer.files || []));
+    queueFiles(Array.from(e.dataTransfer.files || []));
+  }
+
+  async function handleCropConfirm(blob: Blob) {
+    const f = cropQueue[0];
+    setCropQueue(prev => prev.slice(1));
+    await uploadOne(blob, f.name.replace(/\.[^.]+$/, "") + ".jpg");
+  }
+  async function handleCropSkip() {
+    const f = cropQueue[0];
+    setCropQueue(prev => prev.slice(1));
+    await uploadOne(f, f.name);
   }
 
   function removeImage(url: string) {
     const next = (p.images || []).filter((u: string) => u !== url);
     setP((prev: any) => ({ ...prev, images: next, cover_image: prev.cover_image === url ? next[0] || null : prev.cover_image }));
+  }
+
+  function handleSetCover(url: string) {
+    coverManuallySet.current = true;
+    set("cover_image", url);
+  }
+
+  function handleDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const imgs: string[] = p.images || [];
+    const oldIdx = imgs.indexOf(active.id as string);
+    const newIdx = imgs.indexOf(over.id as string);
+    if (oldIdx < 0 || newIdx < 0) return;
+    set("images", arrayMove(imgs, oldIdx, newIdx));
   }
 
   async function generateAI() {
