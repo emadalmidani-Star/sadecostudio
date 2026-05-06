@@ -101,21 +101,35 @@ export default function Exports() {
   }
 
   function toggle(id: string) {
-    const n = new Set(selected); n.has(id) ? n.delete(id) : n.add(id); setSelected(n);
+    setSelectedOrder(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+  function onDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setSelectedOrder(prev => {
+      const oldIndex = prev.indexOf(String(active.id));
+      const newIndex = prev.indexOf(String(over.id));
+      if (oldIndex < 0 || newIndex < 0) return prev;
+      return arrayMove(prev, oldIndex, newIndex);
+    });
   }
 
   async function fullProfile() {
     setBusy("full");
+    setPdfCompression(QUALITY_PRESETS[quality]);
     try { await exportFullProfilePDF(company, projects, covers); toast.success("Profile PDF generated"); }
     catch (e: any) { toast.error(e.message); }
     setBusy(null);
   }
 
   async function selectedExport() {
-    if (selected.size === 0) return toast.error("Select at least one project");
+    if (selectedOrder.length === 0) return toast.error("Select at least one project");
     setBusy("selected");
+    setPdfCompression(QUALITY_PRESETS[quality]);
     try {
-      const list = projects.filter(p => selected.has(p.id));
+      const byId = new Map(projects.map(p => [p.id, p]));
+      const list = selectedOrder.map(id => byId.get(id)).filter(Boolean);
       await exportSelectedPDF(company, list, covers);
       toast.success("Portfolio PDF generated");
     } catch (e: any) { toast.error(e.message); }
