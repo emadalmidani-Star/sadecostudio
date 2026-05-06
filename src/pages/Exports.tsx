@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileDown, FileText, Files, Loader2, Search } from "lucide-react";
+import { FileDown, FileText, Files, Loader2, Search, Upload, X } from "lucide-react";
 import { exportFullProfilePDF, exportSelectedPDF } from "@/lib/pdf";
 import { toast } from "sonner";
 
@@ -16,13 +16,19 @@ export default function Exports() {
   const [busy, setBusy] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [covers, setCovers] = useState<Record<string, string>>({});
+  const [uploadingType, setUploadingType] = useState<string | null>(null);
 
   useEffect(() => { (async () => {
-    const [{ data: p }, { data: c }] = await Promise.all([
+    const [{ data: p }, { data: c }, { data: cc }] = await Promise.all([
       supabase.from("projects").select("*").order("updated_at", { ascending: false }),
       supabase.from("company_profile").select("*").single(),
+      supabase.from("category_covers").select("type,image_url"),
     ]);
     setProjects(p || []); setCompany(c);
+    const map: Record<string, string> = {};
+    (cc || []).forEach((r: any) => { if (r.image_url) map[r.type] = r.image_url; });
+    setCovers(map);
   })(); }, []);
 
   function toggle(id: string) {
@@ -31,7 +37,7 @@ export default function Exports() {
 
   async function fullProfile() {
     setBusy("full");
-    try { await exportFullProfilePDF(company, projects); toast.success("Profile PDF generated"); }
+    try { await exportFullProfilePDF(company, projects, covers); toast.success("Profile PDF generated"); }
     catch (e: any) { toast.error(e.message); }
     setBusy(null);
   }
@@ -41,10 +47,37 @@ export default function Exports() {
     setBusy("selected");
     try {
       const list = projects.filter(p => selected.has(p.id));
-      await exportSelectedPDF(company, list);
+      await exportSelectedPDF(company, list, covers);
       toast.success("Portfolio PDF generated");
     } catch (e: any) { toast.error(e.message); }
     setBusy(null);
+  }
+
+  async function uploadCategoryCover(type: string, file: File) {
+    setUploadingType(type);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in");
+      const safe = type.replace(/[^a-z0-9]/gi, "_");
+      const path = `${user.id}/category-${safe}-${Date.now()}-${file.name}`;
+      const { error: upErr } = await supabase.storage.from("project-images").upload(path, file);
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = supabase.storage.from("project-images").getPublicUrl(path);
+      const { error } = await supabase.from("category_covers")
+        .upsert({ user_id: user.id, type, image_url: publicUrl }, { onConflict: "user_id,type" });
+      if (error) throw error;
+      setCovers(prev => ({ ...prev, [type]: publicUrl }));
+      toast.success(`Cover updated for ${type}`);
+    } catch (e: any) { toast.error(e.message); }
+    setUploadingType(null);
+  }
+
+  async function clearCategoryCover(type: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("category_covers").delete().eq("user_id", user.id).eq("type", type);
+    setCovers(prev => { const n = { ...prev }; delete n[type]; return n; });
+    toast.success("Cover removed");
   }
 
   const types = useMemo(
