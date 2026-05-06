@@ -4,11 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { renderTemplatePage, type Template } from "./templateRender";
 
 type Templates = Partial<Record<Template["page_type"], Template>>;
+export type ExportKind = "profile" | "project" | "portfolio";
 
-async function loadTemplates(): Promise<Templates> {
+async function loadTemplates(kind: ExportKind): Promise<Templates> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return {};
-  const { data } = await supabase.from("pdf_templates").select("*").eq("user_id", user.id);
+  const { data: assign } = await supabase.from("export_template_assignments")
+    .select("set_id").eq("user_id", user.id).eq("export_kind", kind).maybeSingle();
+  if (!assign?.set_id) return {};
+  const { data } = await supabase.from("pdf_templates").select("*").eq("set_id", assign.set_id);
   const out: Templates = {};
   (data || []).forEach((r: any) => {
     out[r.page_type as Template["page_type"]] = {
@@ -254,7 +258,7 @@ function groupByType(list: any[]): Array<{ type: string; items: any[] }> {
 
 export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}) {
   const doc = await newDoc();
-  const tpls = await loadTemplates();
+  const tpls = await loadTemplates("portfolio");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
   await addCover(doc, company, `Portfolio - ${list.length} Projects`, logo, tpls.cover);
   const page = { n: 1 };
@@ -273,7 +277,7 @@ export async function exportSelectedPDF(company: any, list: any[], categoryCover
 export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}) {
   const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
-  const tpls = await loadTemplates();
+  const tpls = await loadTemplates("profile");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
   await addCover(doc, company, "Company Profile", logo, tpls.cover);
   const page = { n: 1 };
@@ -322,7 +326,7 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
 
 export async function exportProjectPDF(p: any, company: any) {
   const doc = await newDoc();
-  const tpls = await loadTemplates();
+  const tpls = await loadTemplates("project");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
   await addCover(doc, company, "Project Case Study", logo, tpls.cover);
   const page = { n: 1 };

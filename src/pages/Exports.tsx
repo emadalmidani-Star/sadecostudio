@@ -9,6 +9,13 @@ import { FileDown, FileText, Files, Loader2, Search, Upload, X } from "lucide-re
 import { exportFullProfilePDF, exportSelectedPDF } from "@/lib/pdf";
 import { toast } from "sonner";
 
+type TplSet = { id: string; name: string };
+const KINDS: { key: "profile" | "project" | "portfolio"; label: string }[] = [
+  { key: "profile", label: "Full Company Profile" },
+  { key: "portfolio", label: "Selected Projects Portfolio" },
+  { key: "project", label: "Single Project Case Study" },
+];
+
 export default function Exports() {
   const [projects, setProjects] = useState<any[]>([]);
   const [company, setCompany] = useState<any>(null);
@@ -18,6 +25,8 @@ export default function Exports() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [covers, setCovers] = useState<Record<string, string>>({});
   const [uploadingType, setUploadingType] = useState<string | null>(null);
+  const [sets, setSets] = useState<TplSet[]>([]);
+  const [assignments, setAssignments] = useState<Record<string, string | null>>({});
 
   useEffect(() => { (async () => {
     const [{ data: p }, { data: c }, { data: cc }] = await Promise.all([
@@ -29,7 +38,31 @@ export default function Exports() {
     const map: Record<string, string> = {};
     (cc || []).forEach((r: any) => { if (r.image_url) map[r.type] = r.image_url; });
     setCovers(map);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const [{ data: ts }, { data: ea }] = await Promise.all([
+        supabase.from("template_sets").select("id,name").eq("user_id", user.id).order("created_at"),
+        supabase.from("export_template_assignments").select("export_kind,set_id").eq("user_id", user.id),
+      ]);
+      setSets(ts || []);
+      const a: Record<string, string | null> = {};
+      (ea || []).forEach((r: any) => { a[r.export_kind] = r.set_id; });
+      setAssignments(a);
+    }
   })(); }, []);
+
+  async function setKindAssignment(kind: string, setId: string | null) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setAssignments(prev => ({ ...prev, [kind]: setId }));
+    if (setId === null) {
+      await supabase.from("export_template_assignments").delete().eq("user_id", user.id).eq("export_kind", kind);
+    } else {
+      await supabase.from("export_template_assignments").upsert({
+        user_id: user.id, export_kind: kind, set_id: setId,
+      }, { onConflict: "user_id,export_kind" });
+    }
+  }
 
   function toggle(id: string) {
     const n = new Set(selected); n.has(id) ? n.delete(id) : n.add(id); setSelected(n);
@@ -98,7 +131,29 @@ export default function Exports() {
     <div className="p-10 max-w-6xl mx-auto">
       <p className="text-xs tracking-[0.3em] text-accent mb-2">EXPORT</p>
       <h1 className="font-serif text-5xl mb-2">Generate PDFs</h1>
-      <p className="text-muted-foreground mb-10">Premium client-ready documents in one click.</p>
+      <p className="text-muted-foreground mb-6">Premium client-ready documents in one click.</p>
+
+      <Card className="p-5 mb-8">
+        <h2 className="font-serif text-lg mb-1">Template assignments</h2>
+        <p className="text-xs text-muted-foreground mb-4">Pick which template set each export uses. Manage sets in <a href="/template" className="underline">Template Designer</a>.</p>
+        <div className="grid md:grid-cols-3 gap-3">
+          {KINDS.map(k => (
+            <div key={k.key}>
+              <p className="text-xs text-accent uppercase tracking-wider mb-1">{k.label}</p>
+              <Select
+                value={assignments[k.key] || "__none__"}
+                onValueChange={(v) => setKindAssignment(k.key, v === "__none__" ? null : v)}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Default layout (no template)</SelectItem>
+                  {sets.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       <div className="grid md:grid-cols-2 gap-6 mb-10">
         <Card className="p-8 luxury-gradient text-primary-foreground">
