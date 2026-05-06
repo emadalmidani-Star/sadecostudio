@@ -62,20 +62,35 @@ export default function ProjectEditor() {
     nav("/projects");
   }
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  async function uploadFiles(files: File[]) {
+    const imgs = files.filter(f => f.type.startsWith("image/"));
+    if (!imgs.length) return;
+    setUploading(true);
     const urls: string[] = [];
-    for (const f of files) {
+    for (const f of imgs) {
       const path = `${Date.now()}-${f.name}`;
       const { error } = await supabase.storage.from("project-images").upload(path, f);
       if (error) { toast.error(error.message); continue; }
       const { data } = supabase.storage.from("project-images").getPublicUrl(path);
       urls.push(data.publicUrl);
     }
-    const next = [...(p.images || []), ...urls];
-    setP((prev: any) => ({ ...prev, images: next, cover_image: prev.cover_image || urls[0] }));
-    toast.success(`${urls.length} image(s) added`);
+    setP((prev: any) => ({ ...prev, images: [...(prev.images || []), ...urls], cover_image: prev.cover_image || urls[0] }));
+    setUploading(false);
+    if (urls.length) toast.success(`${urls.length} image(s) added`);
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    await uploadFiles(Array.from(e.target.files || []));
+    e.target.value = "";
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    uploadFiles(Array.from(e.dataTransfer.files || []));
   }
 
   function removeImage(url: string) {
