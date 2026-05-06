@@ -4,11 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { renderTemplatePage, type Template } from "./templateRender";
 
 type Templates = Partial<Record<Template["page_type"], Template>>;
+export type ExportKind = "profile" | "project" | "portfolio";
 
-async function loadTemplates(): Promise<Templates> {
+async function loadTemplates(kind: ExportKind): Promise<Templates> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return {};
-  const { data } = await supabase.from("pdf_templates").select("*").eq("user_id", user.id);
+  const { data: assign } = await supabase.from("export_template_assignments")
+    .select("set_id").eq("user_id", user.id).eq("export_kind", kind).maybeSingle();
+  if (!assign?.set_id) return {};
+  const { data } = await supabase.from("pdf_templates").select("*").eq("set_id", assign.set_id);
   const out: Templates = {};
   (data || []).forEach((r: any) => {
     out[r.page_type as Template["page_type"]] = {
