@@ -59,8 +59,8 @@ async function loadImg(url: string, opts: CompressOpts = CURRENT_COMPRESS): Prom
 function fmt(s?: string | null) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ""; }
 
 async function newDoc() {
-  // Landscape A4
-  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+  // Landscape A4 with built-in PDF stream compression
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape", compress: true });
   await registerMontserrat(doc);
   return doc;
 }
