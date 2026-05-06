@@ -107,6 +107,36 @@ export type Database = {
         }
         Relationships: []
       }
+      pdf_templates: {
+        Row: {
+          background_url: string | null
+          created_at: string
+          id: string
+          page_type: string
+          slots: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          background_url?: string | null
+          created_at?: string
+          id?: string
+          page_type: string
+          slots?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          background_url?: string | null
+          created_at?: string
+          id?: string
+          page_type?: string
+          slots?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
