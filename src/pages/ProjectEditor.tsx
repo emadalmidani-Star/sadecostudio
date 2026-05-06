@@ -16,7 +16,19 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEn
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-const TYPES = ["fit-out", "construction", "interior", "renovation"];
+const TYPES = [
+  "Furniture, Novelties, Home",
+  "Entertainment",
+  "Financial Services",
+  "Supermarket",
+  "Offices & Villas",
+  "F&B Restaurants & Cafe's",
+  "Retail - Fashion & Accessories",
+  "Jewellery",
+  "Spa Salons and Beauty",
+  "Health Care",
+  "Company Profile",
+];
 const TONES = ["luxury", "corporate", "minimal", "technical"];
 
 type UploadItem = { id: string; name: string; progress: number };
