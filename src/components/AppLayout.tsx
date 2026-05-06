@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import logoWhite from "@/assets/sadeco-logo-white.png";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ const links = [
   { to: "/projects", icon: FolderKanban, label: "Projects" },
   { to: "/company", icon: Building2, label: "Company Profile" },
   { to: "/exports", icon: FileText, label: "Export PDFs" },
+  { to: "/template", icon: LayoutTemplate, label: "Template Designer" },
   { to: "/team", icon: Users, label: "Team" },
 ];
 
