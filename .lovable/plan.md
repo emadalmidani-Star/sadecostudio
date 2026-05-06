@@ -1,42 +1,55 @@
-## Goal
-Make the AI-generated project descriptions and highlights genuinely "premium editorial" — specific, brand-aligned, and useful in the PDF — instead of generic marketing fluff.
+## Visual Template Mapper
 
-## What's wrong today
-The `generate-description` edge function uses a short generic system prompt with `gemini-2.5-flash`. Output ends up bland and forgettable, not matching the SADECO brand or the design publication tone (Wallpaper*, AD Middle East) we want for the PDF case studies.
+Goal: let you upload a page-background image (e.g. an exported Canva page) and visually place rectangular "slots" on it for each dynamic field. Saved layouts are then used by the PDF generator instead of the current hard-coded layout.
 
-## Changes
+### What you'll be able to do
+1. Open a new page **Template Designer** (`/template`).
+2. Upload a background image per page type: **Cover**, **Category Divider**, **Project Page**, **Thank You**.
+3. Drag and resize labelled boxes onto the canvas:
+   - Cover: `company_name`, `subtitle`, `date`, `logo`
+   - Divider: `category_title`, `category_image`
+   - Project: `project_title`, `project_type`, `client`, `location`, `area`, `status`, `description`, `highlights`, `cover_image`, `gallery_1..gallery_4`
+   - Thank You: `company_name`, `contact`, `logo`
+4. Each box stores: `x, y, width, height` (as % of page), font size, alignment, and (for text) color.
+5. Save → used automatically next time you export from `/exports`.
 
-### 1. `supabase/functions/generate-description/index.ts` — rewrite
-- **Upgrade model** from `gemini-2.5-flash` → `gemini-2.5-pro` for stronger writing quality and better adherence to constraints.
-- **Pass company context** from the client (name, about, services) so the AI grounds copy in the actual brand, not a generic fit-out firm.
-- **Pass project status** as well as the existing fields.
-- **Stronger system prompt** with explicit brand voice rules:
-  - Reference real construction/design vocabulary (joinery, MEP, fluted oak, book-matched stone, integrated lighting, snagging, handover…)
-  - Ban clichés ("state-of-the-art", "one-stop shop", emojis, hashtags)
-  - British English, third person, varied sentence rhythm
-  - Never invent missing facts (clients, awards, dimensions)
-- **Type-specific guidance** — a small lookup keyed on project type (fit-out, residential, commercial, hospitality, retail, F&B, office, construction) injected into the prompt so a hospitality project reads differently from an office project.
-- **Richer structured output** via tool calling:
-  - `headline` — short editorial headline (≤10 words) capturing the design idea
-  - `description` — 140–180 words, two short paragraphs (intent → materiality → delivery)
-  - `highlights` — exactly 4 concrete, specific highlights (≤18 words each, no repeated openings)
+### UX
+- Left sidebar: list of available field tokens for the current page type. Click a token to add a default-sized box centered on the canvas.
+- Center: the uploaded template image displayed at A4 landscape ratio. Boxes overlay with drag handles (move + 8 resize handles) using `react-rnd`.
+- Right sidebar: properties for selected box (font size, align, bold, color, delete).
+- Top: page-type tabs, "Upload background", "Save", "Reset".
 
-### 2. `src/pages/ProjectEditor.tsx` — minimal update to `generateAI()`
-- Fetch `company_profile` once (or use cached) and pass `company: { name, about, services }` and `status: p.status` in the request body.
-- Store the new `headline` on the project. Two options — pick one:
-  - **Option A (simple):** prepend the headline to the description as a bold first line, no schema change.
-  - **Option B:** add a `headline` column to `projects` and a small input field. *(Recommend A for now to avoid schema churn; can promote later.)*
+### Data model (new table `pdf_templates`)
+```
+id uuid pk
+user_id uuid
+page_type text  -- 'cover' | 'divider' | 'project' | 'thankyou'
+background_url text null
+slots jsonb     -- [{ field, x, y, w, h, fontSize, align, bold, color }]
+updated_at timestamptz
+unique(user_id, page_type)
+```
+RLS: owner-only (same pattern as `category_covers`).
 
-### 3. PDF (no change required)
-The existing PDF layout already shows project name, type, location, description, and highlights. The richer copy will flow through automatically. If we go with Option B later, we can render the headline under the project name on the case-study hero page.
+Background images uploaded to existing `project-images` bucket under `${user.id}/template-${page_type}-...`.
 
-## Technical details
-- Model: `google/gemini-2.5-pro` via Lovable AI Gateway (existing `LOVABLE_API_KEY`).
-- Existing 429 / 402 / generic error handling preserved and surfaced via toasts.
-- Tool-calling response shape extended; client falls back gracefully if `headline` is missing.
-- No database migration needed for Option A.
+### PDF generator changes (`src/lib/pdf.ts`)
+- Add `loadTemplates(userId)` → returns `{ cover, divider, project, thankyou }` records.
+- For each page render: if a template exists, draw `background_url` full-bleed, then iterate `slots` and render the resolved value at the slot's rect (text wraps inside box; images use `cover` fit). If no template, fall back to current layout.
+- Field resolver maps token → value from project/company (e.g. `gallery_1` → `project.images[0]`).
 
-## Out of scope
-- Per-language output (English only for now).
-- Regenerating descriptions in bulk for existing projects.
-- Image-aware generation (using project photos as context).
+### Files to add/change
+- New: `src/pages/TemplateDesigner.tsx` — the editor.
+- New: `src/lib/templateRender.ts` — helpers to draw a templated page in jsPDF.
+- Edit: `src/lib/pdf.ts` — branch into templated rendering when templates exist.
+- Edit: `src/App.tsx` + `src/components/AppLayout.tsx` — add `/template` route + nav link.
+- Edit: `src/pages/Exports.tsx` — small banner: "Using custom template" when one is saved, with link to designer.
+- New migration: create `pdf_templates` table + RLS.
+- Add dependency: `react-rnd` for drag/resize.
+
+### Out of scope (can add later)
+- Multi-page project layouts (will use one project-page template repeated; gallery overflow continues on a second auto-page).
+- Rotated text, curved text, vector shapes.
+- Importing a multi-page PDF as background (only image backgrounds in v1; PNG/JPG export from Canva works fine).
+
+After approval I'll implement the migration, designer page, and PDF integration.

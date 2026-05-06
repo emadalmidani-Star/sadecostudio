@@ -1,5 +1,22 @@
 import jsPDF from "jspdf";
 import { registerMontserrat } from "./pdfFonts";
+import { supabase } from "@/integrations/supabase/client";
+import { renderTemplatePage, type Template } from "./templateRender";
+
+type Templates = Partial<Record<Template["page_type"], Template>>;
+
+async function loadTemplates(): Promise<Templates> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return {};
+  const { data } = await supabase.from("pdf_templates").select("*").eq("user_id", user.id);
+  const out: Templates = {};
+  (data || []).forEach((r: any) => {
+    out[r.page_type as Template["page_type"]] = {
+      page_type: r.page_type, background_url: r.background_url, slots: r.slots || [],
+    };
+  });
+  return out;
+}
 
 // Brand: pure black & white from SADECO logo
 const BRAND = { ink: "#000000", paper: "#ffffff", muted: "#666666", line: "#000000" };
@@ -24,7 +41,8 @@ async function newDoc() {
   return doc;
 }
 
-function addCover(doc: jsPDF, company: any, subtitle: string, logo: any) {
+async function addCover(doc: jsPDF, company: any, subtitle: string, logo: any, tpl?: Template) {
+  if (tpl) { await renderTemplatePage(doc, tpl, { company, subtitle }); return; }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setFillColor(BRAND.paper); doc.rect(0, 0, W, H, "F");
   // black band on the left
@@ -68,8 +86,9 @@ function sectionTitle(doc: jsPDF, label: string, title: string, y: number) {
   return y + 22;
 }
 
-function addThankYou(doc: jsPDF, company: any, logo: any) {
+async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template) {
   doc.addPage();
+  if (tpl) { await renderTemplatePage(doc, tpl, { company }); return; }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setFillColor(BRAND.ink); doc.rect(0, 0, W, H, "F");
   if (logo) {
@@ -87,7 +106,12 @@ function addThankYou(doc: jsPDF, company: any, logo: any) {
   doc.text(parts, W / 2, H - 20, { align: "center" });
 }
 
-async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number }) {
+async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number }, tpl?: Template) {
+  if (tpl) {
+    doc.addPage(); page.n++;
+    await renderTemplatePage(doc, tpl, { project: p, company });
+    return;
+  }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   const cover = p.cover_image ? await loadImg(p.cover_image) : null;
 
@@ -191,18 +215,9 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
   }
 }
 
-export async function exportProjectPDF(p: any, company: any) {
-  const doc = await newDoc();
-  const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
-  addCover(doc, company, "Project Case Study", logo);
-  const page = { n: 1 };
-  await renderProject(doc, p, company, page);
-  addThankYou(doc, company, logo);
-  doc.save(`SADECO-${p.name.replace(/\s+/g, "-")}.pdf`);
-}
-
-async function addCategoryCover(doc: jsPDF, type: string, count: number, image: any) {
+async function addCategoryCover(doc: jsPDF, type: string, count: number, image: any, tpl?: Template, categoryImageUrl?: string) {
   doc.addPage();
+  if (tpl) { await renderTemplatePage(doc, tpl, { category: type, count, categoryImageUrl }); return; }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setFillColor(BRAND.ink); doc.rect(0, 0, W, H, "F");
   if (image) {
@@ -239,26 +254,28 @@ function groupByType(list: any[]): Array<{ type: string; items: any[] }> {
 
 export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}) {
   const doc = await newDoc();
+  const tpls = await loadTemplates();
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
-  addCover(doc, company, `Portfolio - ${list.length} Projects`, logo);
+  await addCover(doc, company, `Portfolio - ${list.length} Projects`, logo, tpls.cover);
   const page = { n: 1 };
   const groups = groupByType(list);
   for (const g of groups) {
     const coverUrl = categoryCovers[g.type] || g.items.find(p => p.cover_image)?.cover_image;
     const img = coverUrl ? await loadImg(coverUrl) : null;
-    await addCategoryCover(doc, g.type, g.items.length, img);
+    await addCategoryCover(doc, g.type, g.items.length, img, tpls.divider, coverUrl);
     page.n++;
-    for (const p of g.items) await renderProject(doc, p, company, page);
+    for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
   }
-  addThankYou(doc, company, logo);
+  await addThankYou(doc, company, logo, tpls.thankyou);
   doc.save(`SADECO-Portfolio.pdf`);
 }
 
 export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}) {
   const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
+  const tpls = await loadTemplates();
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
-  addCover(doc, company, "Company Profile", logo);
+  await addCover(doc, company, "Company Profile", logo, tpls.cover);
   const page = { n: 1 };
 
   // About page
@@ -294,11 +311,22 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   for (const g of groups) {
     const coverUrl = categoryCovers[g.type] || g.items.find(p => p.cover_image)?.cover_image;
     const img = coverUrl ? await loadImg(coverUrl) : null;
-    await addCategoryCover(doc, g.type, g.items.length, img);
+    await addCategoryCover(doc, g.type, g.items.length, img, tpls.divider, coverUrl);
     page.n++;
-    for (const p of g.items) await renderProject(doc, p, company, page);
+    for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
   }
 
-  addThankYou(doc, company, logo);
+  await addThankYou(doc, company, logo, tpls.thankyou);
   doc.save(`SADECO-Company-Profile.pdf`);
+}
+
+export async function exportProjectPDF(p: any, company: any) {
+  const doc = await newDoc();
+  const tpls = await loadTemplates();
+  const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
+  await addCover(doc, company, "Project Case Study", logo, tpls.cover);
+  const page = { n: 1 };
+  await renderProject(doc, p, company, page, tpls.project);
+  await addThankYou(doc, company, logo, tpls.thankyou);
+  doc.save(`SADECO-${p.name.replace(/\s+/g, "-")}.pdf`);
 }
