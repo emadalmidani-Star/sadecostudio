@@ -197,13 +197,24 @@ export default function ProjectEditor() {
   async function generateAI() {
     if (!p.name || !p.type) { toast.error("Add project name and type first"); return; }
     setGenerating(true);
+    const { data: company } = await supabase.from("company_profile")
+      .select("name,about,services").maybeSingle();
     const { data, error } = await supabase.functions.invoke("generate-description", {
-      body: { name: p.name, type: p.type, location: p.location, area: p.area_sqm, client: p.client_name, keywords, tone }
+      body: {
+        name: p.name, type: p.type, location: p.location,
+        area: p.area_sqm, client: p.client_name, status: p.status,
+        keywords, tone,
+        company: company || undefined,
+      }
     });
     setGenerating(false);
     if (error) { toast.error(error.message); return; }
     if ((data as any)?.error) { toast.error((data as any).error); return; }
-    setP((prev: any) => ({ ...prev, description: (data as any).description, highlights: (data as any).highlights }));
+    const d = data as any;
+    const headline = d?.headline?.trim();
+    const body = d?.description || "";
+    const description = headline ? `${headline}\n\n${body}` : body;
+    setP((prev: any) => ({ ...prev, description, highlights: d?.highlights || [] }));
     toast.success("AI content generated — review and save");
   }
 
