@@ -5,9 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileDown, FileText, Files, Loader2, Search, Upload, X } from "lucide-react";
-import { exportFullProfilePDF, exportSelectedPDF } from "@/lib/pdf";
+import { FileDown, FileText, Files, GripVertical, Loader2, Search, Upload, X } from "lucide-react";
+import { exportFullProfilePDF, exportSelectedPDF, setPdfCompression, type CompressOpts } from "@/lib/pdf";
 import { toast } from "sonner";
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, arrayMove, useSortable, verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type TplSet = { id: string; name: string };
 const KINDS: { key: "profile" | "project" | "portfolio"; label: string }[] = [
@@ -15,6 +22,32 @@ const KINDS: { key: "profile" | "project" | "portfolio"; label: string }[] = [
   { key: "portfolio", label: "Selected Projects Portfolio" },
   { key: "project", label: "Single Project Case Study" },
 ];
+
+const QUALITY_PRESETS: Record<string, CompressOpts & { label: string; hint: string }> = {
+  high:    { label: "High quality", hint: "Best visuals, large file. Up to ~50 projects.",  maxDim: 2200, quality: 0.9 },
+  balanced:{ label: "Balanced",     hint: "Good quality, moderate size. ~50-150 projects.", maxDim: 1600, quality: 0.82 },
+  compact: { label: "Compact",      hint: "Smaller file, slight softness. 100+ projects.",  maxDim: 1200, quality: 0.72 },
+  tiny:    { label: "Smallest",     hint: "Email-friendly. 200+ projects.",                 maxDim: 900,  quality: 0.6 },
+};
+
+function SortableSelected({ id, project, onRemove }: { id: string; project: any; onRemove: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 p-3 bg-card border rounded">
+      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground" aria-label="Drag to reorder">
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] text-accent uppercase tracking-wider">{project?.type || "—"}</p>
+        <p className="font-serif truncate">{project?.name}</p>
+      </div>
+      <button onClick={onRemove} className="text-muted-foreground hover:text-destructive" aria-label="Remove">
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
 
 export default function Exports() {
   const [projects, setProjects] = useState<any[]>([]);
