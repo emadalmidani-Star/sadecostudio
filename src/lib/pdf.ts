@@ -1,8 +1,8 @@
 import jsPDF from "jspdf";
+import { registerMontserrat } from "./pdfFonts";
 
 // Brand: pure black & white from SADECO logo
 const BRAND = { ink: "#000000", paper: "#ffffff", muted: "#666666", line: "#000000" };
-// Bullet that renders safely in jsPDF's standard WinAnsi fonts
 const BULLET = "-";
 
 async function loadImg(url: string): Promise<{ data: string; w: number; h: number } | null> {
