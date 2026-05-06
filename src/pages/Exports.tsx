@@ -38,7 +38,31 @@ export default function Exports() {
     const map: Record<string, string> = {};
     (cc || []).forEach((r: any) => { if (r.image_url) map[r.type] = r.image_url; });
     setCovers(map);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const [{ data: ts }, { data: ea }] = await Promise.all([
+        supabase.from("template_sets").select("id,name").eq("user_id", user.id).order("created_at"),
+        supabase.from("export_template_assignments").select("export_kind,set_id").eq("user_id", user.id),
+      ]);
+      setSets(ts || []);
+      const a: Record<string, string | null> = {};
+      (ea || []).forEach((r: any) => { a[r.export_kind] = r.set_id; });
+      setAssignments(a);
+    }
   })(); }, []);
+
+  async function setKindAssignment(kind: string, setId: string | null) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setAssignments(prev => ({ ...prev, [kind]: setId }));
+    if (setId === null) {
+      await supabase.from("export_template_assignments").delete().eq("user_id", user.id).eq("export_kind", kind);
+    } else {
+      await supabase.from("export_template_assignments").upsert({
+        user_id: user.id, export_kind: kind, set_id: setId,
+      }, { onConflict: "user_id,export_kind" });
+    }
+  }
 
   function toggle(id: string) {
     const n = new Set(selected); n.has(id) ? n.delete(id) : n.add(id); setSelected(n);
