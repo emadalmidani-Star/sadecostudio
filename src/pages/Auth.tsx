@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,15 @@ import logo from "@/assets/sadeco-logo-white.png";
 
 export default function Auth() {
   const { user, loading } = useAuth();
-  const [email, setEmail] = useState("");
+  const [params] = useSearchParams();
+  const invitedEmail = params.get("invite") || "";
+  const [email, setEmail] = useState(invitedEmail);
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState(invitedEmail ? "signup" : "signin");
+
+  useEffect(() => { if (invitedEmail) setEmail(invitedEmail); }, [invitedEmail]);
 
   if (loading) return null;
   if (user) return <Navigate to="/" replace />;
@@ -51,7 +56,12 @@ export default function Auth() {
         <div className="w-full max-w-md">
           <h2 className="font-serif text-3xl mb-2">Internal Access</h2>
           <p className="text-muted-foreground mb-8 text-sm">SADECO team members only</p>
-          <Tabs defaultValue="signin">
+          {invitedEmail && (
+            <div className="mb-4 p-3 rounded-md bg-accent/10 border border-accent/30 text-xs text-accent">
+              You've been invited. Create your account with <strong>{invitedEmail}</strong> to receive your assigned role.
+            </div>
+          )}
+          <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="grid grid-cols-2 w-full mb-6">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Create Account</TabsTrigger>
