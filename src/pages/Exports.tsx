@@ -122,6 +122,46 @@ export default function Exports() {
         </Card>
       </div>
 
+      {types.length > 0 && (
+        <>
+          <h2 className="font-serif text-2xl mb-2">Category covers</h2>
+          <p className="text-muted-foreground text-sm mb-4">Each project type gets its own divider page in the PDF. Upload a custom cover image per category, or we'll auto-pick from a project in that category.</p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+            {types.map(t => (
+              <Card key={t} className="overflow-hidden">
+                <div className="aspect-[16/9] bg-muted relative">
+                  {covers[t] ? (
+                    <img src={covers[t]} className="w-full h-full object-cover" alt={`${t} cover`} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">Auto from first project</div>
+                  )}
+                  {covers[t] && (
+                    <button
+                      onClick={() => clearCategoryCover(t)}
+                      className="absolute top-2 right-2 bg-background/90 rounded p-1 hover:bg-background"
+                      aria-label="Remove cover"
+                    ><X className="w-3.5 h-3.5" /></button>
+                  )}
+                </div>
+                <div className="p-3 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs text-accent uppercase tracking-wider">Category</p>
+                    <p className="font-serif truncate">{t}</p>
+                  </div>
+                  <label className="cursor-pointer shrink-0">
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCategoryCover(t, f); e.target.value = ""; }} />
+                    <span className="inline-flex items-center px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90">
+                      {uploadingType === t ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Upload className="w-3.5 h-3.5 mr-1" />{covers[t] ? "Change" : "Upload"}</>}
+                    </span>
+                  </label>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
       <h2 className="font-serif text-2xl mb-4">Pick projects for portfolio</h2>
 
       <div className="flex flex-col md:flex-row gap-3 mb-6">
