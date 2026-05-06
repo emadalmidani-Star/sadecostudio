@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,13 +6,51 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Sparkles, Upload, X, FileDown, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Sparkles, Upload, X, FileDown, Trash2, Loader2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { exportProjectPDF } from "@/lib/pdf";
+import ImageCropDialog from "@/components/ImageCropDialog";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const TYPES = ["fit-out", "construction", "interior", "renovation"];
 const TONES = ["luxury", "corporate", "minimal", "technical"];
+
+type UploadItem = { id: string; name: string; progress: number };
+
+function SortableImage({ url, isCover, onSetCover, onRemove }: {
+  url: string; isCover: boolean; onSetCover: () => void; onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: url });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
+      className="relative group aspect-square rounded overflow-hidden border border-border"
+    >
+      <img src={url} className="w-full h-full object-cover pointer-events-none" />
+      {isCover && (
+        <span className="absolute top-2 left-2 bg-accent text-accent-foreground text-[10px] font-semibold tracking-wider px-2 py-1 rounded">COVER</span>
+      )}
+      <button
+        {...attributes}
+        {...listeners}
+        className="absolute top-2 right-2 bg-background/80 hover:bg-background p-1 rounded cursor-grab active:cursor-grabbing"
+        aria-label="Drag to reorder"
+        type="button"
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-center gap-2 p-3">
+        <Button size="sm" variant="secondary" onClick={onSetCover}>{isCover ? "Cover ✓" : "Set Cover"}</Button>
+        <Button size="sm" variant="destructive" onClick={onRemove}>Remove</Button>
+      </div>
+    </div>
+  );
+}
 
 export default function ProjectEditor() {
   const { id } = useParams();
