@@ -254,7 +254,7 @@ export async function exportSelectedPDF(company: any, list: any[], categoryCover
   doc.save(`SADECO-Portfolio.pdf`);
 }
 
-export async function exportFullProfilePDF(company: any, projects: any[]) {
+export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}) {
   const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
@@ -290,7 +290,14 @@ export async function exportFullProfilePDF(company: any, projects: any[]) {
   });
   addPageFooter(doc, company, page.n);
 
-  for (const p of projects) await renderProject(doc, p, company, page);
+  const groups = groupByType(projects);
+  for (const g of groups) {
+    const coverUrl = categoryCovers[g.type] || g.items.find(p => p.cover_image)?.cover_image;
+    const img = coverUrl ? await loadImg(coverUrl) : null;
+    await addCategoryCover(doc, g.type, g.items.length, img);
+    page.n++;
+    for (const p of g.items) await renderProject(doc, p, company, page);
+  }
 
   addThankYou(doc, company, logo);
   doc.save(`SADECO-Company-Profile.pdf`);
