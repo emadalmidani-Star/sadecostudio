@@ -264,16 +264,16 @@ async function addCategoryCover(doc: jsPDF, type: string, count: number, image: 
   doc.text(`${count} project${count === 1 ? "" : "s"}`, 20, H - 18);
 }
 
-function groupByType(list: any[]): Array<{ type: string; items: any[] }> {
+function groupByType(list: any[], preserveOrder = false): Array<{ type: string; items: any[] }> {
   const map = new Map<string, any[]>();
   for (const p of list) {
     const t = (p.type || "Uncategorized").toString();
     if (!map.has(t)) map.set(t, []);
     map.get(t)!.push(p);
   }
-  return Array.from(map.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([type, items]) => ({ type, items }));
+  const entries = Array.from(map.entries());
+  if (!preserveOrder) entries.sort((a, b) => a[0].localeCompare(b[0]));
+  return entries.map(([type, items]) => ({ type, items }));
 }
 
 export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}) {
@@ -282,7 +282,7 @@ export async function exportSelectedPDF(company: any, list: any[], categoryCover
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
   await addCover(doc, company, `Portfolio - ${list.length} Projects`, logo, tpls.cover);
   const page = { n: 1 };
-  const groups = groupByType(list);
+  const groups = groupByType(list, true);
   for (const g of groups) {
     const coverUrl = categoryCovers[g.type] || g.items.find(p => p.cover_image)?.cover_image;
     const img = coverUrl ? await loadImg(coverUrl) : null;
