@@ -225,8 +225,9 @@ export async function exportProjectPDF(p: any, company: any) {
   doc.save(`SADECO-${p.name.replace(/\s+/g, "-")}.pdf`);
 }
 
-async function addCategoryCover(doc: jsPDF, type: string, count: number, image: any) {
+async function addCategoryCover(doc: jsPDF, type: string, count: number, image: any, tpl?: Template, categoryImageUrl?: string) {
   doc.addPage();
+  if (tpl) { await renderTemplatePage(doc, tpl, { category: type, count, categoryImageUrl }); return; }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setFillColor(BRAND.ink); doc.rect(0, 0, W, H, "F");
   if (image) {
@@ -263,26 +264,28 @@ function groupByType(list: any[]): Array<{ type: string; items: any[] }> {
 
 export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}) {
   const doc = await newDoc();
+  const tpls = await loadTemplates();
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
-  addCover(doc, company, `Portfolio - ${list.length} Projects`, logo);
+  await addCover(doc, company, `Portfolio - ${list.length} Projects`, logo, tpls.cover);
   const page = { n: 1 };
   const groups = groupByType(list);
   for (const g of groups) {
     const coverUrl = categoryCovers[g.type] || g.items.find(p => p.cover_image)?.cover_image;
     const img = coverUrl ? await loadImg(coverUrl) : null;
-    await addCategoryCover(doc, g.type, g.items.length, img);
+    await addCategoryCover(doc, g.type, g.items.length, img, tpls.divider, coverUrl);
     page.n++;
-    for (const p of g.items) await renderProject(doc, p, company, page);
+    for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
   }
-  addThankYou(doc, company, logo);
+  await addThankYou(doc, company, logo, tpls.thankyou);
   doc.save(`SADECO-Portfolio.pdf`);
 }
 
 export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}) {
   const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
+  const tpls = await loadTemplates();
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
-  addCover(doc, company, "Company Profile", logo);
+  await addCover(doc, company, "Company Profile", logo, tpls.cover);
   const page = { n: 1 };
 
   // About page
@@ -318,11 +321,22 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   for (const g of groups) {
     const coverUrl = categoryCovers[g.type] || g.items.find(p => p.cover_image)?.cover_image;
     const img = coverUrl ? await loadImg(coverUrl) : null;
-    await addCategoryCover(doc, g.type, g.items.length, img);
+    await addCategoryCover(doc, g.type, g.items.length, img, tpls.divider, coverUrl);
     page.n++;
-    for (const p of g.items) await renderProject(doc, p, company, page);
+    for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
   }
 
-  addThankYou(doc, company, logo);
+  await addThankYou(doc, company, logo, tpls.thankyou);
   doc.save(`SADECO-Company-Profile.pdf`);
+}
+
+export async function exportProjectPDF(p: any, company: any) {
+  const doc = await newDoc();
+  const tpls = await loadTemplates();
+  const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
+  await addCover(doc, company, "Project Case Study", logo, tpls.cover);
+  const page = { n: 1 };
+  await renderProject(doc, p, company, page, tpls.project);
+  await addThankYou(doc, company, logo, tpls.thankyou);
+  doc.save(`SADECO-${p.name.replace(/\s+/g, "-")}.pdf`);
 }
