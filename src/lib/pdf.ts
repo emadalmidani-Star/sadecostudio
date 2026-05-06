@@ -41,7 +41,8 @@ async function newDoc() {
   return doc;
 }
 
-function addCover(doc: jsPDF, company: any, subtitle: string, logo: any) {
+async function addCover(doc: jsPDF, company: any, subtitle: string, logo: any, tpl?: Template) {
+  if (tpl) { await renderTemplatePage(doc, tpl, { company, subtitle }); return; }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setFillColor(BRAND.paper); doc.rect(0, 0, W, H, "F");
   // black band on the left
@@ -85,8 +86,9 @@ function sectionTitle(doc: jsPDF, label: string, title: string, y: number) {
   return y + 22;
 }
 
-function addThankYou(doc: jsPDF, company: any, logo: any) {
+async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template) {
   doc.addPage();
+  if (tpl) { await renderTemplatePage(doc, tpl, { company }); return; }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setFillColor(BRAND.ink); doc.rect(0, 0, W, H, "F");
   if (logo) {
@@ -104,7 +106,12 @@ function addThankYou(doc: jsPDF, company: any, logo: any) {
   doc.text(parts, W / 2, H - 20, { align: "center" });
 }
 
-async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number }) {
+async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number }, tpl?: Template) {
+  if (tpl) {
+    doc.addPage(); page.n++;
+    await renderTemplatePage(doc, tpl, { project: p, company });
+    return;
+  }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   const cover = p.cover_image ? await loadImg(p.cover_image) : null;
 
