@@ -205,21 +205,31 @@ export default function ProjectEditor() {
               <span className="inline-flex items-center px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:opacity-90"><Upload className="w-4 h-4 mr-2" />Upload Images</span>
             </label>
           </div>
-          {(p.images || []).length === 0 ? (
-            <div className="border-2 border-dashed rounded p-12 text-center text-muted-foreground">No images yet</div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {p.images.map((url: string) => (
-                <div key={url} className="relative group aspect-square rounded overflow-hidden">
-                  <img src={url} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => set("cover_image", url)}>{p.cover_image === url ? "Cover ✓" : "Set Cover"}</Button>
-                    <Button size="sm" variant="destructive" onClick={() => removeImage(url)}>Remove</Button>
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            className={`rounded transition-colors ${dragOver ? "ring-2 ring-accent bg-accent/5" : ""}`}
+          >
+            {(p.images || []).length === 0 ? (
+              <div className="border-2 border-dashed rounded p-12 text-center text-muted-foreground">
+                {uploading ? "Uploading…" : dragOver ? "Drop images to upload" : "Drag & drop images here, or click Upload Images"}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {p.images.map((url: string) => (
+                  <div key={url} className="relative group aspect-square rounded overflow-hidden">
+                    <img src={url} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                      <Button size="sm" variant="secondary" onClick={() => set("cover_image", url)}>{p.cover_image === url ? "Cover ✓" : "Set Cover"}</Button>
+                      <Button size="sm" variant="destructive" onClick={() => removeImage(url)}>Remove</Button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+                {dragOver && <div className="col-span-full text-center text-sm text-accent py-4">Drop to add more images</div>}
+              </div>
+            )}
+          </div>
         </Card>
       </div>
     </div>
