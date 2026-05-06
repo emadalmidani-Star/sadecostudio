@@ -201,12 +201,55 @@ export async function exportProjectPDF(p: any, company: any) {
   doc.save(`SADECO-${p.name.replace(/\s+/g, "-")}.pdf`);
 }
 
-export async function exportSelectedPDF(company: any, list: any[]) {
+async function addCategoryCover(doc: jsPDF, type: string, count: number, image: any) {
+  doc.addPage();
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  doc.setFillColor(BRAND.ink); doc.rect(0, 0, W, H, "F");
+  if (image) {
+    const ar = image.w / image.h;
+    const slotAr = W / H;
+    let iw = W, ih = H;
+    if (ar > slotAr) { ih = W / ar; } else { iw = H * ar; }
+    doc.addImage(image.data, "JPEG", (W - iw) / 2, (H - ih) / 2, iw, ih);
+    // dark overlay band on bottom
+    doc.setFillColor(BRAND.ink);
+    (doc as any).setGState && (doc as any).setGState(new (doc as any).GState({ opacity: 0.55 }));
+    doc.rect(0, H * 0.55, W, H * 0.45, "F");
+    (doc as any).setGState && (doc as any).setGState(new (doc as any).GState({ opacity: 1 }));
+  }
+  doc.setTextColor(BRAND.paper); doc.setFont("Montserrat", "normal"); doc.setFontSize(10);
+  doc.text("CATEGORY", 20, H - 50, { charSpace: 3 });
+  doc.setFont("Montserrat", "bold"); doc.setFontSize(56);
+  doc.text(fmt(type) || "Projects", 20, H - 28);
+  doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor("#cccccc");
+  doc.text(`${count} project${count === 1 ? "" : "s"}`, 20, H - 18);
+}
+
+function groupByType(list: any[]): Array<{ type: string; items: any[] }> {
+  const map = new Map<string, any[]>();
+  for (const p of list) {
+    const t = (p.type || "Uncategorized").toString();
+    if (!map.has(t)) map.set(t, []);
+    map.get(t)!.push(p);
+  }
+  return Array.from(map.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([type, items]) => ({ type, items }));
+}
+
+export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}) {
   const doc = await newDoc();
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
   addCover(doc, company, `Portfolio - ${list.length} Projects`, logo);
   const page = { n: 1 };
-  for (const p of list) await renderProject(doc, p, company, page);
+  const groups = groupByType(list);
+  for (const g of groups) {
+    const coverUrl = categoryCovers[g.type] || g.items.find(p => p.cover_image)?.cover_image;
+    const img = coverUrl ? await loadImg(coverUrl) : null;
+    await addCategoryCover(doc, g.type, g.items.length, img);
+    page.n++;
+    for (const p of g.items) await renderProject(doc, p, company, page);
+  }
   addThankYou(doc, company, logo);
   doc.save(`SADECO-Portfolio.pdf`);
 }
