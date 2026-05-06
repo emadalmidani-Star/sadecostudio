@@ -1,20 +1,31 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Projects() {
   const [projects, setProjects] = useState<any[]>([]);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "ongoing" | "completed">("all");
+  const nav = useNavigate();
 
   useEffect(() => { load(); }, []);
   async function load() {
     const { data } = await supabase.from("projects").select("*").order("updated_at", { ascending: false });
     setProjects(data || []);
+  }
+
+  async function handleDelete(e: React.MouseEvent, id: string, name: string) {
+    e.preventDefault(); e.stopPropagation();
+    if (!confirm(`Delete "${name}" permanently?`)) return;
+    const { error } = await supabase.from("projects").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Project deleted");
+    load();
   }
 
   const filtered = projects.filter(p =>
@@ -63,6 +74,16 @@ export default function Projects() {
                   ) : <div className="w-full h-full luxury-gradient" />}
                   <div className="absolute top-3 right-3 px-2 py-1 text-xs bg-background/90 backdrop-blur rounded">
                     {p.status === "completed" ? "Completed" : "Ongoing"}
+                  </div>
+                  <div className="absolute top-3 left-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button size="icon" variant="secondary" className="h-8 w-8"
+                      onClick={(e) => { e.preventDefault(); nav(`/projects/${p.id}`); }}>
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button size="icon" variant="destructive" className="h-8 w-8"
+                      onClick={(e) => handleDelete(e, p.id, p.name)}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
                   </div>
                 </div>
                 <div className="p-5">
