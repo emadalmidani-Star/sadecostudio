@@ -95,7 +95,13 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
   doc.addPage(); page.n++;
   if (cover) {
     const halfW = W * 0.6;
-    doc.addImage(cover.data, "JPEG", 0, 0, halfW, H);
+    // letterbox to preserve aspect ratio (no distortion)
+    doc.setFillColor(BRAND.ink); doc.rect(0, 0, halfW, H, "F");
+    const ar = cover.w / cover.h;
+    const slotAr = halfW / H;
+    let iw = halfW, ih = H;
+    if (ar > slotAr) { ih = halfW / ar; } else { iw = H * ar; }
+    doc.addImage(cover.data, "JPEG", (halfW - iw) / 2, (H - ih) / 2, iw, ih);
     doc.setFillColor(BRAND.paper); doc.rect(halfW, 0, W - halfW, H, "F");
     const tx = halfW + 12;
     doc.setFontSize(9); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
@@ -170,7 +176,13 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
         addPageFooter(doc, company, page.n);
         doc.addPage(); page.n++; addPageHeader(doc, company); yy = 28; x = 15; col = 0;
       }
-      doc.addImage(img.data, "JPEG", x, yy, imgW, imgH);
+      // fit image into slot preserving aspect ratio
+      const ar = img.w / img.h;
+      const slotAr = imgW / imgH;
+      let iw = imgW, ih = imgH;
+      if (ar > slotAr) { ih = imgW / ar; } else { iw = imgH * ar; }
+      doc.setFillColor("#f2f2f2"); doc.rect(x, yy, imgW, imgH, "F");
+      doc.addImage(img.data, "JPEG", x + (imgW - iw) / 2, yy + (imgH - ih) / 2, iw, ih);
       col++;
       if (col >= cols) { col = 0; x = 15; yy += imgH + gap; }
       else { x += imgW + gap; }

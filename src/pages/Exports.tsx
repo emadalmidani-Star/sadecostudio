@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileDown, FileText, Files, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileDown, FileText, Files, Loader2, Search } from "lucide-react";
 import { exportFullProfilePDF, exportSelectedPDF } from "@/lib/pdf";
 import { toast } from "sonner";
 
@@ -12,6 +14,8 @@ export default function Exports() {
   const [company, setCompany] = useState<any>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   useEffect(() => { (async () => {
     const [{ data: p }, { data: c }] = await Promise.all([
@@ -43,6 +47,20 @@ export default function Exports() {
     setBusy(null);
   }
 
+  const types = useMemo(
+    () => Array.from(new Set(projects.map(p => p.type).filter(Boolean))).sort(),
+    [projects]
+  );
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return projects.filter(p => {
+      if (typeFilter !== "all" && p.type !== typeFilter) return false;
+      if (!q) return true;
+      return [p.name, p.location, p.client_name, p.type]
+        .filter(Boolean).some((v: string) => v.toLowerCase().includes(q));
+    });
+  }, [projects, query, typeFilter]);
+
   return (
     <div className="p-10 max-w-6xl mx-auto">
       <p className="text-xs tracking-[0.3em] text-accent mb-2">EXPORT</p>
@@ -72,8 +90,28 @@ export default function Exports() {
       </div>
 
       <h2 className="font-serif text-2xl mb-4">Pick projects for portfolio</h2>
+
+      <div className="flex flex-col md:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search projects by name, location or client..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="md:w-64"><SelectValue placeholder="All types" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All types</SelectItem>
+            {types.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {projects.map(p => (
+        {filtered.map(p => (
           <Card key={p.id} className={`p-4 cursor-pointer transition-all ${selected.has(p.id) ? "ring-2 ring-accent" : ""}`} onClick={() => toggle(p.id)}>
             <div className="flex items-start gap-3">
               <Checkbox checked={selected.has(p.id)} className="mt-1" />
@@ -85,6 +123,9 @@ export default function Exports() {
             </div>
           </Card>
         ))}
+        {filtered.length === 0 && (
+          <p className="text-muted-foreground col-span-full text-center py-10">No projects match your search.</p>
+        )}
       </div>
     </div>
   );
