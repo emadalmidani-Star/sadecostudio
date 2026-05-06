@@ -26,21 +26,41 @@ async function loadTemplates(kind: ExportKind): Promise<Templates> {
 const BRAND = { ink: "#000000", paper: "#ffffff", muted: "#666666", line: "#000000" };
 const BULLET = "-";
 
-async function loadImg(url: string): Promise<{ data: string; w: number; h: number } | null> {
+export type CompressOpts = { maxDim: number; quality: number };
+let CURRENT_COMPRESS: CompressOpts = { maxDim: 1600, quality: 0.82 };
+export function setPdfCompression(opts: CompressOpts) { CURRENT_COMPRESS = opts; }
+
+async function loadImg(url: string, opts: CompressOpts = CURRENT_COMPRESS): Promise<{ data: string; w: number; h: number } | null> {
   try {
     const res = await fetch(url, { mode: "cors" });
     const blob = await res.blob();
-    const data = await new Promise<string>((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(blob); });
-    const dim = await new Promise<{ w: number; h: number }>((r) => { const i = new Image(); i.onload = () => r({ w: i.width, h: i.height }); i.onerror = () => r({ w: 1, h: 1 }); i.src = data; });
-    return { data, ...dim };
+    const rawData = await new Promise<string>((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(blob); });
+    const img = await new Promise<HTMLImageElement | null>((r) => {
+      const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = rawData;
+    });
+    if (!img) return { data: rawData, w: 1, h: 1 };
+    const { maxDim, quality } = opts;
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    // Skip recompression for tiny logos (PNGs we want crisp)
+    if (scale === 1 && blob.size < 120 * 1024) return { data: rawData, w: img.width, h: img.height };
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return { data: rawData, w: img.width, h: img.height };
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    const data = canvas.toDataURL("image/jpeg", quality);
+    return { data, w, h };
   } catch { return null; }
 }
 
 function fmt(s?: string | null) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ""; }
 
 async function newDoc() {
-  // Landscape A4
-  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+  // Landscape A4 with built-in PDF stream compression
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape", compress: true });
   await registerMontserrat(doc);
   return doc;
 }
@@ -244,16 +264,16 @@ async function addCategoryCover(doc: jsPDF, type: string, count: number, image: 
   doc.text(`${count} project${count === 1 ? "" : "s"}`, 20, H - 18);
 }
 
-function groupByType(list: any[]): Array<{ type: string; items: any[] }> {
+function groupByType(list: any[], preserveOrder = false): Array<{ type: string; items: any[] }> {
   const map = new Map<string, any[]>();
   for (const p of list) {
     const t = (p.type || "Uncategorized").toString();
     if (!map.has(t)) map.set(t, []);
     map.get(t)!.push(p);
   }
-  return Array.from(map.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([type, items]) => ({ type, items }));
+  const entries = Array.from(map.entries());
+  if (!preserveOrder) entries.sort((a, b) => a[0].localeCompare(b[0]));
+  return entries.map(([type, items]) => ({ type, items }));
 }
 
 export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}) {
@@ -262,7 +282,7 @@ export async function exportSelectedPDF(company: any, list: any[], categoryCover
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
   await addCover(doc, company, `Portfolio - ${list.length} Projects`, logo, tpls.cover);
   const page = { n: 1 };
-  const groups = groupByType(list);
+  const groups = groupByType(list, true);
   for (const g of groups) {
     const coverUrl = categoryCovers[g.type] || g.items.find(p => p.cover_image)?.cover_image;
     const img = coverUrl ? await loadImg(coverUrl) : null;

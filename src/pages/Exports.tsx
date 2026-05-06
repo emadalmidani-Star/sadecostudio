@@ -5,9 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileDown, FileText, Files, Loader2, Search, Upload, X } from "lucide-react";
-import { exportFullProfilePDF, exportSelectedPDF } from "@/lib/pdf";
+import { FileDown, FileText, Files, GripVertical, Loader2, Search, Upload, X } from "lucide-react";
+import { exportFullProfilePDF, exportSelectedPDF, setPdfCompression, type CompressOpts } from "@/lib/pdf";
 import { toast } from "sonner";
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, arrayMove, useSortable, verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type TplSet = { id: string; name: string };
 const KINDS: { key: "profile" | "project" | "portfolio"; label: string }[] = [
@@ -16,10 +23,36 @@ const KINDS: { key: "profile" | "project" | "portfolio"; label: string }[] = [
   { key: "project", label: "Single Project Case Study" },
 ];
 
+const QUALITY_PRESETS: Record<string, CompressOpts & { label: string; hint: string }> = {
+  high:    { label: "High quality", hint: "Best visuals, large file. Up to ~50 projects.",  maxDim: 2200, quality: 0.9 },
+  balanced:{ label: "Balanced",     hint: "Good quality, moderate size. ~50-150 projects.", maxDim: 1600, quality: 0.82 },
+  compact: { label: "Compact",      hint: "Smaller file, slight softness. 100+ projects.",  maxDim: 1200, quality: 0.72 },
+  tiny:    { label: "Smallest",     hint: "Email-friendly. 200+ projects.",                 maxDim: 900,  quality: 0.6 },
+};
+
+function SortableSelected({ id, project, onRemove }: { id: string; project: any; onRemove: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 p-3 bg-card border rounded">
+      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground" aria-label="Drag to reorder">
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] text-accent uppercase tracking-wider">{project?.type || "—"}</p>
+        <p className="font-serif truncate">{project?.name}</p>
+      </div>
+      <button onClick={onRemove} className="text-muted-foreground hover:text-destructive" aria-label="Remove">
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
 export default function Exports() {
   const [projects, setProjects] = useState<any[]>([]);
   const [company, setCompany] = useState<any>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selectedOrder, setSelectedOrder] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -27,6 +60,9 @@ export default function Exports() {
   const [uploadingType, setUploadingType] = useState<string | null>(null);
   const [sets, setSets] = useState<TplSet[]>([]);
   const [assignments, setAssignments] = useState<Record<string, string | null>>({});
+  const [quality, setQuality] = useState<keyof typeof QUALITY_PRESETS>("balanced");
+  const selected = useMemo(() => new Set(selectedOrder), [selectedOrder]);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   useEffect(() => { (async () => {
     const [{ data: p }, { data: c }, { data: cc }] = await Promise.all([
@@ -65,21 +101,35 @@ export default function Exports() {
   }
 
   function toggle(id: string) {
-    const n = new Set(selected); n.has(id) ? n.delete(id) : n.add(id); setSelected(n);
+    setSelectedOrder(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+  function onDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setSelectedOrder(prev => {
+      const oldIndex = prev.indexOf(String(active.id));
+      const newIndex = prev.indexOf(String(over.id));
+      if (oldIndex < 0 || newIndex < 0) return prev;
+      return arrayMove(prev, oldIndex, newIndex);
+    });
   }
 
   async function fullProfile() {
     setBusy("full");
+    setPdfCompression(QUALITY_PRESETS[quality]);
     try { await exportFullProfilePDF(company, projects, covers); toast.success("Profile PDF generated"); }
     catch (e: any) { toast.error(e.message); }
     setBusy(null);
   }
 
   async function selectedExport() {
-    if (selected.size === 0) return toast.error("Select at least one project");
+    if (selectedOrder.length === 0) return toast.error("Select at least one project");
     setBusy("selected");
+    setPdfCompression(QUALITY_PRESETS[quality]);
     try {
-      const list = projects.filter(p => selected.has(p.id));
+      const byId = new Map(projects.map(p => [p.id, p]));
+      const list = selectedOrder.map(id => byId.get(id)).filter(Boolean);
       await exportSelectedPDF(company, list, covers);
       toast.success("Portfolio PDF generated");
     } catch (e: any) { toast.error(e.message); }
@@ -169,13 +219,48 @@ export default function Exports() {
         <Card className="p-8 border-accent/40">
           <Files className="w-8 h-8 text-accent mb-4" />
           <h2 className="font-serif text-2xl mb-2">Selected Projects Portfolio</h2>
-          <p className="text-muted-foreground text-sm mb-6">Cherry-pick projects below and merge them into a single portfolio PDF.</p>
-          <Button onClick={selectedExport} disabled={busy === "selected" || selected.size === 0}>
+          <p className="text-muted-foreground text-sm mb-6">Cherry-pick projects below, drag to reorder, and merge them into a single portfolio PDF.</p>
+          <Button onClick={selectedExport} disabled={busy === "selected" || selectedOrder.length === 0}>
             {busy === "selected" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
-            Export {selected.size > 0 ? `(${selected.size})` : ""}
+            Export {selectedOrder.length > 0 ? `(${selectedOrder.length})` : ""}
           </Button>
         </Card>
       </div>
+
+      <Card className="p-5 mb-10">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 className="font-serif text-lg mb-1">PDF size & quality</h2>
+            <p className="text-xs text-muted-foreground">{QUALITY_PRESETS[quality].hint}</p>
+          </div>
+          <Select value={quality} onValueChange={(v) => setQuality(v as keyof typeof QUALITY_PRESETS)}>
+            <SelectTrigger className="md:w-64"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(QUALITY_PRESETS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
+
+      {selectedOrder.length > 0 && (
+        <Card className="p-5 mb-10">
+          <h2 className="font-serif text-lg mb-1">Portfolio order</h2>
+          <p className="text-xs text-muted-foreground mb-4">Drag to reorder. Projects appear in this order in the PDF (grouped by category).</p>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={selectedOrder} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2">
+                {selectedOrder.map(id => {
+                  const p = projects.find(x => x.id === id);
+                  if (!p) return null;
+                  return <SortableSelected key={id} id={id} project={p} onRemove={() => toggle(id)} />;
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </Card>
+      )}
 
       {types.length > 0 && (
         <>
