@@ -9,6 +9,13 @@ import { FileDown, FileText, Files, Loader2, Search, Upload, X } from "lucide-re
 import { exportFullProfilePDF, exportSelectedPDF } from "@/lib/pdf";
 import { toast } from "sonner";
 
+type TplSet = { id: string; name: string };
+const KINDS: { key: "profile" | "project" | "portfolio"; label: string }[] = [
+  { key: "profile", label: "Full Company Profile" },
+  { key: "portfolio", label: "Selected Projects Portfolio" },
+  { key: "project", label: "Single Project Case Study" },
+];
+
 export default function Exports() {
   const [projects, setProjects] = useState<any[]>([]);
   const [company, setCompany] = useState<any>(null);
@@ -18,6 +25,8 @@ export default function Exports() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [covers, setCovers] = useState<Record<string, string>>({});
   const [uploadingType, setUploadingType] = useState<string | null>(null);
+  const [sets, setSets] = useState<TplSet[]>([]);
+  const [assignments, setAssignments] = useState<Record<string, string | null>>({});
 
   useEffect(() => { (async () => {
     const [{ data: p }, { data: c }, { data: cc }] = await Promise.all([
