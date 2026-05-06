@@ -1,5 +1,22 @@
 import jsPDF from "jspdf";
 import { registerMontserrat } from "./pdfFonts";
+import { supabase } from "@/integrations/supabase/client";
+import { renderTemplatePage, type Template } from "./templateRender";
+
+type Templates = Partial<Record<Template["page_type"], Template>>;
+
+async function loadTemplates(): Promise<Templates> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return {};
+  const { data } = await supabase.from("pdf_templates").select("*").eq("user_id", user.id);
+  const out: Templates = {};
+  (data || []).forEach((r: any) => {
+    out[r.page_type as Template["page_type"]] = {
+      page_type: r.page_type, background_url: r.background_url, slots: r.slots || [],
+    };
+  });
+  return out;
+}
 
 // Brand: pure black & white from SADECO logo
 const BRAND = { ink: "#000000", paper: "#ffffff", muted: "#666666", line: "#000000" };
