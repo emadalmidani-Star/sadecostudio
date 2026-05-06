@@ -258,7 +258,7 @@ function groupByType(list: any[]): Array<{ type: string; items: any[] }> {
 
 export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}) {
   const doc = await newDoc();
-  const tpls = await loadTemplates(__KIND__);
+  const tpls = await loadTemplates("portfolio");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
   await addCover(doc, company, `Portfolio - ${list.length} Projects`, logo, tpls.cover);
   const page = { n: 1 };
@@ -277,7 +277,7 @@ export async function exportSelectedPDF(company: any, list: any[], categoryCover
 export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}) {
   const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
-  const tpls = await loadTemplates(__KIND__);
+  const tpls = await loadTemplates("profile");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
   await addCover(doc, company, "Company Profile", logo, tpls.cover);
   const page = { n: 1 };
@@ -326,7 +326,7 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
 
 export async function exportProjectPDF(p: any, company: any) {
   const doc = await newDoc();
-  const tpls = await loadTemplates(__KIND__);
+  const tpls = await loadTemplates("project");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
   await addCover(doc, company, "Project Case Study", logo, tpls.cover);
   const page = { n: 1 };
