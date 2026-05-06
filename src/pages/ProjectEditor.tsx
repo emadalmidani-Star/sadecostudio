@@ -282,13 +282,37 @@ export default function ProjectEditor() {
         </Card>
 
         <Card className="p-6 lg:col-span-3">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-serif text-xl">Image Gallery</h2>
-            <label className="cursor-pointer">
-              <input type="file" multiple accept="image/*" className="hidden" onChange={handleUpload} />
-              <span className="inline-flex items-center px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:opacity-90"><Upload className="w-4 h-4 mr-2" />Upload Images</span>
-            </label>
+          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+            <div>
+              <h2 className="font-serif text-xl">Image Gallery</h2>
+              <p className="text-xs text-muted-foreground mt-1">Drag tiles to reorder. Drop files to upload.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                <input type="checkbox" checked={skipCrop} onChange={e => setSkipCrop(e.target.checked)} />
+                Skip crop
+              </label>
+              <label className="cursor-pointer">
+                <input type="file" multiple accept="image/*" className="hidden" onChange={handleUpload} />
+                <span className="inline-flex items-center px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:opacity-90"><Upload className="w-4 h-4 mr-2" />Upload Images</span>
+              </label>
+            </div>
           </div>
+
+          {uploads.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {uploads.map(u => (
+                <div key={u.id} className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span className="truncate mr-2">{u.name}</span>
+                    <span>{u.progress}%</span>
+                  </div>
+                  <Progress value={u.progress} className="h-1.5" />
+                </div>
+              ))}
+            </div>
+          )}
+
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
@@ -297,25 +321,35 @@ export default function ProjectEditor() {
           >
             {(p.images || []).length === 0 ? (
               <div className="border-2 border-dashed rounded p-12 text-center text-muted-foreground">
-                {uploading ? "Uploading…" : dragOver ? "Drop images to upload" : "Drag & drop images here, or click Upload Images"}
+                {dragOver ? "Drop images to upload" : "Drag & drop images here, or click Upload Images"}
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {p.images.map((url: string) => (
-                  <div key={url} className="relative group aspect-square rounded overflow-hidden">
-                    <img src={url} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                      <Button size="sm" variant="secondary" onClick={() => set("cover_image", url)}>{p.cover_image === url ? "Cover ✓" : "Set Cover"}</Button>
-                      <Button size="sm" variant="destructive" onClick={() => removeImage(url)}>Remove</Button>
-                    </div>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={p.images} strategy={rectSortingStrategy}>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {p.images.map((url: string) => (
+                      <SortableImage
+                        key={url}
+                        url={url}
+                        isCover={p.cover_image === url}
+                        onSetCover={() => handleSetCover(url)}
+                        onRemove={() => removeImage(url)}
+                      />
+                    ))}
                   </div>
-                ))}
-                {dragOver && <div className="col-span-full text-center text-sm text-accent py-4">Drop to add more images</div>}
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
           </div>
         </Card>
       </div>
+
+      <ImageCropDialog
+        file={cropQueue[0] || null}
+        onCancel={() => setCropQueue([])}
+        onConfirm={handleCropConfirm}
+        onSkip={handleCropSkip}
+      />
     </div>
   );
 }
