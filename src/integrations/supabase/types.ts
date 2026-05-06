@@ -80,6 +80,35 @@ export type Database = {
         }
         Relationships: []
       }
+      export_template_assignments: {
+        Row: {
+          export_kind: string
+          set_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          export_kind: string
+          set_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          export_kind?: string
+          set_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "export_template_assignments_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "template_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           accepted: boolean
@@ -113,6 +142,7 @@ export type Database = {
           created_at: string
           id: string
           page_type: string
+          set_id: string | null
           slots: Json
           updated_at: string
           user_id: string
@@ -122,6 +152,7 @@ export type Database = {
           created_at?: string
           id?: string
           page_type: string
+          set_id?: string | null
           slots?: Json
           updated_at?: string
           user_id: string
@@ -131,6 +162,7 @@ export type Database = {
           created_at?: string
           id?: string
           page_type?: string
+          set_id?: string | null
           slots?: Json
           updated_at?: string
           user_id?: string
@@ -206,6 +238,71 @@ export type Database = {
           status?: string
           type?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      template_pages: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          page_index: number
+          role: string | null
+          set_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          page_index?: number
+          role?: string | null
+          set_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          page_index?: number
+          role?: string | null
+          set_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_pages_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "template_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_sets: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          scope: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          scope?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          scope?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
