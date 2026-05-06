@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,13 +6,51 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Sparkles, Upload, X, FileDown, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Sparkles, Upload, X, FileDown, Trash2, Loader2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { exportProjectPDF } from "@/lib/pdf";
+import ImageCropDialog from "@/components/ImageCropDialog";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const TYPES = ["fit-out", "construction", "interior", "renovation"];
 const TONES = ["luxury", "corporate", "minimal", "technical"];
+
+type UploadItem = { id: string; name: string; progress: number };
+
+function SortableImage({ url, isCover, onSetCover, onRemove }: {
+  url: string; isCover: boolean; onSetCover: () => void; onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: url });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
+      className="relative group aspect-square rounded overflow-hidden border border-border"
+    >
+      <img src={url} className="w-full h-full object-cover pointer-events-none" />
+      {isCover && (
+        <span className="absolute top-2 left-2 bg-accent text-accent-foreground text-[10px] font-semibold tracking-wider px-2 py-1 rounded">COVER</span>
+      )}
+      <button
+        {...attributes}
+        {...listeners}
+        className="absolute top-2 right-2 bg-background/80 hover:bg-background p-1 rounded cursor-grab active:cursor-grabbing"
+        aria-label="Drag to reorder"
+        type="button"
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-center gap-2 p-3">
+        <Button size="sm" variant="secondary" onClick={onSetCover}>{isCover ? "Cover ✓" : "Set Cover"}</Button>
+        <Button size="sm" variant="destructive" onClick={onRemove}>Remove</Button>
+      </div>
+    </div>
+  );
+}
 
 export default function ProjectEditor() {
   const { id } = useParams();
@@ -32,7 +70,7 @@ export default function ProjectEditor() {
   useEffect(() => { if (!isNew) (async () => {
     const { data, error } = await supabase.from("projects").select("*").eq("id", id).maybeSingle();
     if (error || !data) { toast.error("Project not found"); nav("/projects"); return; }
-    setP(data); setLoading(false);
+    setP(data); if (data.cover_image) coverManuallySet.current = true; setLoading(false);
   })(); }, [id]);
 
   function set<K extends string>(k: K, v: any) { setP((prev: any) => ({ ...prev, [k]: v })); }
@@ -62,40 +100,86 @@ export default function ProjectEditor() {
     nav("/projects");
   }
 
-  const [uploading, setUploading] = useState(false);
+  const [uploads, setUploads] = useState<UploadItem[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  const [cropQueue, setCropQueue] = useState<File[]>([]);
+  const [skipCrop, setSkipCrop] = useState(false);
+  const coverManuallySet = useRef(false);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  async function uploadFiles(files: File[]) {
+  async function uploadOne(file: File | Blob, name: string) {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setUploads(prev => [...prev, { id, name, progress: 10 }]);
+    const path = `${Date.now()}-${name}`;
+    // Simulated progress (Supabase JS doesn't expose real progress)
+    const tick = setInterval(() => {
+      setUploads(prev => prev.map(u => u.id === id ? { ...u, progress: Math.min(90, u.progress + 10) } : u));
+    }, 200);
+    const { error } = await supabase.storage.from("project-images").upload(path, file, { contentType: (file as any).type || "image/jpeg" });
+    clearInterval(tick);
+    if (error) {
+      setUploads(prev => prev.filter(u => u.id !== id));
+      toast.error(error.message);
+      return null;
+    }
+    const { data } = supabase.storage.from("project-images").getPublicUrl(path);
+    setUploads(prev => prev.map(u => u.id === id ? { ...u, progress: 100 } : u));
+    setTimeout(() => setUploads(prev => prev.filter(u => u.id !== id)), 600);
+    setP((prev: any) => ({
+      ...prev,
+      images: [...(prev.images || []), data.publicUrl],
+      cover_image: coverManuallySet.current ? prev.cover_image : data.publicUrl,
+    }));
+    return data.publicUrl;
+  }
+
+  function queueFiles(files: File[]) {
     const imgs = files.filter(f => f.type.startsWith("image/"));
     if (!imgs.length) return;
-    setUploading(true);
-    const urls: string[] = [];
-    for (const f of imgs) {
-      const path = `${Date.now()}-${f.name}`;
-      const { error } = await supabase.storage.from("project-images").upload(path, f);
-      if (error) { toast.error(error.message); continue; }
-      const { data } = supabase.storage.from("project-images").getPublicUrl(path);
-      urls.push(data.publicUrl);
-    }
-    setP((prev: any) => ({ ...prev, images: [...(prev.images || []), ...urls], cover_image: prev.cover_image || urls[0] }));
-    setUploading(false);
-    if (urls.length) toast.success(`${urls.length} image(s) added`);
+    if (skipCrop) imgs.forEach(f => uploadOne(f, f.name));
+    else setCropQueue(prev => [...prev, ...imgs]);
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    await uploadFiles(Array.from(e.target.files || []));
+    queueFiles(Array.from(e.target.files || []));
     e.target.value = "";
   }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
-    uploadFiles(Array.from(e.dataTransfer.files || []));
+    queueFiles(Array.from(e.dataTransfer.files || []));
+  }
+
+  async function handleCropConfirm(blob: Blob) {
+    const f = cropQueue[0];
+    setCropQueue(prev => prev.slice(1));
+    await uploadOne(blob, f.name.replace(/\.[^.]+$/, "") + ".jpg");
+  }
+  async function handleCropSkip() {
+    const f = cropQueue[0];
+    setCropQueue(prev => prev.slice(1));
+    await uploadOne(f, f.name);
   }
 
   function removeImage(url: string) {
     const next = (p.images || []).filter((u: string) => u !== url);
     setP((prev: any) => ({ ...prev, images: next, cover_image: prev.cover_image === url ? next[0] || null : prev.cover_image }));
+  }
+
+  function handleSetCover(url: string) {
+    coverManuallySet.current = true;
+    set("cover_image", url);
+  }
+
+  function handleDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const imgs: string[] = p.images || [];
+    const oldIdx = imgs.indexOf(active.id as string);
+    const newIdx = imgs.indexOf(over.id as string);
+    if (oldIdx < 0 || newIdx < 0) return;
+    set("images", arrayMove(imgs, oldIdx, newIdx));
   }
 
   async function generateAI() {
@@ -198,13 +282,37 @@ export default function ProjectEditor() {
         </Card>
 
         <Card className="p-6 lg:col-span-3">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-serif text-xl">Image Gallery</h2>
-            <label className="cursor-pointer">
-              <input type="file" multiple accept="image/*" className="hidden" onChange={handleUpload} />
-              <span className="inline-flex items-center px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:opacity-90"><Upload className="w-4 h-4 mr-2" />Upload Images</span>
-            </label>
+          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+            <div>
+              <h2 className="font-serif text-xl">Image Gallery</h2>
+              <p className="text-xs text-muted-foreground mt-1">Drag tiles to reorder. Drop files to upload.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                <input type="checkbox" checked={skipCrop} onChange={e => setSkipCrop(e.target.checked)} />
+                Skip crop
+              </label>
+              <label className="cursor-pointer">
+                <input type="file" multiple accept="image/*" className="hidden" onChange={handleUpload} />
+                <span className="inline-flex items-center px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:opacity-90"><Upload className="w-4 h-4 mr-2" />Upload Images</span>
+              </label>
+            </div>
           </div>
+
+          {uploads.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {uploads.map(u => (
+                <div key={u.id} className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span className="truncate mr-2">{u.name}</span>
+                    <span>{u.progress}%</span>
+                  </div>
+                  <Progress value={u.progress} className="h-1.5" />
+                </div>
+              ))}
+            </div>
+          )}
+
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
@@ -213,25 +321,35 @@ export default function ProjectEditor() {
           >
             {(p.images || []).length === 0 ? (
               <div className="border-2 border-dashed rounded p-12 text-center text-muted-foreground">
-                {uploading ? "Uploading…" : dragOver ? "Drop images to upload" : "Drag & drop images here, or click Upload Images"}
+                {dragOver ? "Drop images to upload" : "Drag & drop images here, or click Upload Images"}
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {p.images.map((url: string) => (
-                  <div key={url} className="relative group aspect-square rounded overflow-hidden">
-                    <img src={url} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                      <Button size="sm" variant="secondary" onClick={() => set("cover_image", url)}>{p.cover_image === url ? "Cover ✓" : "Set Cover"}</Button>
-                      <Button size="sm" variant="destructive" onClick={() => removeImage(url)}>Remove</Button>
-                    </div>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={p.images} strategy={rectSortingStrategy}>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {p.images.map((url: string) => (
+                      <SortableImage
+                        key={url}
+                        url={url}
+                        isCover={p.cover_image === url}
+                        onSetCover={() => handleSetCover(url)}
+                        onRemove={() => removeImage(url)}
+                      />
+                    ))}
                   </div>
-                ))}
-                {dragOver && <div className="col-span-full text-center text-sm text-accent py-4">Drop to add more images</div>}
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
           </div>
         </Card>
       </div>
+
+      <ImageCropDialog
+        file={cropQueue[0] || null}
+        onCancel={() => setCropQueue([])}
+        onConfirm={handleCropConfirm}
+        onSkip={handleCropSkip}
+      />
     </div>
   );
 }
