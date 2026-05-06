@@ -180,7 +180,7 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
 }
 
 export async function exportProjectPDF(p: any, company: any) {
-  const doc = newDoc();
+  const doc = await newDoc();
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
   addCover(doc, company, "Project Case Study", logo);
   const page = { n: 1 };
@@ -190,7 +190,7 @@ export async function exportProjectPDF(p: any, company: any) {
 }
 
 export async function exportSelectedPDF(company: any, list: any[]) {
-  const doc = newDoc();
+  const doc = await newDoc();
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
   addCover(doc, company, `Portfolio - ${list.length} Projects`, logo);
   const page = { n: 1 };
@@ -200,7 +200,7 @@ export async function exportSelectedPDF(company: any, list: any[]) {
 }
 
 export async function exportFullProfilePDF(company: any, projects: any[]) {
-  const doc = newDoc();
+  const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
   addCover(doc, company, "Company Profile", logo);
