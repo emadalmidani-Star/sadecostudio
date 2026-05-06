@@ -52,7 +52,7 @@ function SortableSelected({ id, project, onRemove }: { id: string; project: any;
 export default function Exports() {
   const [projects, setProjects] = useState<any[]>([]);
   const [company, setCompany] = useState<any>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selectedOrder, setSelectedOrder] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -60,6 +60,9 @@ export default function Exports() {
   const [uploadingType, setUploadingType] = useState<string | null>(null);
   const [sets, setSets] = useState<TplSet[]>([]);
   const [assignments, setAssignments] = useState<Record<string, string | null>>({});
+  const [quality, setQuality] = useState<keyof typeof QUALITY_PRESETS>("balanced");
+  const selected = useMemo(() => new Set(selectedOrder), [selectedOrder]);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   useEffect(() => { (async () => {
     const [{ data: p }, { data: c }, { data: cc }] = await Promise.all([
