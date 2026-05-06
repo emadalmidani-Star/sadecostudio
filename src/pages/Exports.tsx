@@ -76,8 +76,28 @@ export default function Exports() {
       </div>
 
       <h2 className="font-serif text-2xl mb-4">Pick projects for portfolio</h2>
+
+      <div className="flex flex-col md:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search projects by name, location or client..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="md:w-64"><SelectValue placeholder="All types" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All types</SelectItem>
+            {types.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {projects.map(p => (
+        {filtered.map(p => (
           <Card key={p.id} className={`p-4 cursor-pointer transition-all ${selected.has(p.id) ? "ring-2 ring-accent" : ""}`} onClick={() => toggle(p.id)}>
             <div className="flex items-start gap-3">
               <Checkbox checked={selected.has(p.id)} className="mt-1" />
@@ -89,6 +109,9 @@ export default function Exports() {
             </div>
           </Card>
         ))}
+        {filtered.length === 0 && (
+          <p className="text-muted-foreground col-span-full text-center py-10">No projects match your search.</p>
+        )}
       </div>
     </div>
   );
