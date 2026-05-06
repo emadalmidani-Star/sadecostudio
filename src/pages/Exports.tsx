@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileDown, FileText, Files, Loader2, Search } from "lucide-react";
+import { FileDown, FileText, Files, Loader2, Search, Upload, X } from "lucide-react";
 import { exportFullProfilePDF, exportSelectedPDF } from "@/lib/pdf";
 import { toast } from "sonner";
 
@@ -16,13 +16,19 @@ export default function Exports() {
   const [busy, setBusy] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [covers, setCovers] = useState<Record<string, string>>({});
+  const [uploadingType, setUploadingType] = useState<string | null>(null);
 
   useEffect(() => { (async () => {
-    const [{ data: p }, { data: c }] = await Promise.all([
+    const [{ data: p }, { data: c }, { data: cc }] = await Promise.all([
       supabase.from("projects").select("*").order("updated_at", { ascending: false }),
       supabase.from("company_profile").select("*").single(),
+      supabase.from("category_covers").select("type,image_url"),
     ]);
     setProjects(p || []); setCompany(c);
+    const map: Record<string, string> = {};
+    (cc || []).forEach((r: any) => { if (r.image_url) map[r.type] = r.image_url; });
+    setCovers(map);
   })(); }, []);
 
   function toggle(id: string) {
@@ -31,7 +37,7 @@ export default function Exports() {
 
   async function fullProfile() {
     setBusy("full");
-    try { await exportFullProfilePDF(company, projects); toast.success("Profile PDF generated"); }
+    try { await exportFullProfilePDF(company, projects, covers); toast.success("Profile PDF generated"); }
     catch (e: any) { toast.error(e.message); }
     setBusy(null);
   }
@@ -41,10 +47,37 @@ export default function Exports() {
     setBusy("selected");
     try {
       const list = projects.filter(p => selected.has(p.id));
-      await exportSelectedPDF(company, list);
+      await exportSelectedPDF(company, list, covers);
       toast.success("Portfolio PDF generated");
     } catch (e: any) { toast.error(e.message); }
     setBusy(null);
+  }
+
+  async function uploadCategoryCover(type: string, file: File) {
+    setUploadingType(type);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in");
+      const safe = type.replace(/[^a-z0-9]/gi, "_");
+      const path = `${user.id}/category-${safe}-${Date.now()}-${file.name}`;
+      const { error: upErr } = await supabase.storage.from("project-images").upload(path, file);
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = supabase.storage.from("project-images").getPublicUrl(path);
+      const { error } = await supabase.from("category_covers")
+        .upsert({ user_id: user.id, type, image_url: publicUrl }, { onConflict: "user_id,type" });
+      if (error) throw error;
+      setCovers(prev => ({ ...prev, [type]: publicUrl }));
+      toast.success(`Cover updated for ${type}`);
+    } catch (e: any) { toast.error(e.message); }
+    setUploadingType(null);
+  }
+
+  async function clearCategoryCover(type: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("category_covers").delete().eq("user_id", user.id).eq("type", type);
+    setCovers(prev => { const n = { ...prev }; delete n[type]; return n; });
+    toast.success("Cover removed");
   }
 
   const types = useMemo(
@@ -88,6 +121,46 @@ export default function Exports() {
           </Button>
         </Card>
       </div>
+
+      {types.length > 0 && (
+        <>
+          <h2 className="font-serif text-2xl mb-2">Category covers</h2>
+          <p className="text-muted-foreground text-sm mb-4">Each project type gets its own divider page in the PDF. Upload a custom cover image per category, or we'll auto-pick from a project in that category.</p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+            {types.map(t => (
+              <Card key={t} className="overflow-hidden">
+                <div className="aspect-[16/9] bg-muted relative">
+                  {covers[t] ? (
+                    <img src={covers[t]} className="w-full h-full object-cover" alt={`${t} cover`} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">Auto from first project</div>
+                  )}
+                  {covers[t] && (
+                    <button
+                      onClick={() => clearCategoryCover(t)}
+                      className="absolute top-2 right-2 bg-background/90 rounded p-1 hover:bg-background"
+                      aria-label="Remove cover"
+                    ><X className="w-3.5 h-3.5" /></button>
+                  )}
+                </div>
+                <div className="p-3 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs text-accent uppercase tracking-wider">Category</p>
+                    <p className="font-serif truncate">{t}</p>
+                  </div>
+                  <label className="cursor-pointer shrink-0">
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCategoryCover(t, f); e.target.value = ""; }} />
+                    <span className="inline-flex items-center px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90">
+                      {uploadingType === t ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Upload className="w-3.5 h-3.5 mr-1" />{covers[t] ? "Change" : "Upload"}</>}
+                    </span>
+                  </label>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
 
       <h2 className="font-serif text-2xl mb-4">Pick projects for portfolio</h2>
 

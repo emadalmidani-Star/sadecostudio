@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      category_covers: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       company_profile: {
         Row: {
           about: string | null
