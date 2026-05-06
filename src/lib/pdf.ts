@@ -215,16 +215,6 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
   }
 }
 
-export async function exportProjectPDF(p: any, company: any) {
-  const doc = await newDoc();
-  const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
-  addCover(doc, company, "Project Case Study", logo);
-  const page = { n: 1 };
-  await renderProject(doc, p, company, page);
-  addThankYou(doc, company, logo);
-  doc.save(`SADECO-${p.name.replace(/\s+/g, "-")}.pdf`);
-}
-
 async function addCategoryCover(doc: jsPDF, type: string, count: number, image: any, tpl?: Template, categoryImageUrl?: string) {
   doc.addPage();
   if (tpl) { await renderTemplatePage(doc, tpl, { category: type, count, categoryImageUrl }); return; }
