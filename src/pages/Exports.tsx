@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileDown, FileText, Files, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileDown, FileText, Files, Loader2, Search } from "lucide-react";
 import { exportFullProfilePDF, exportSelectedPDF } from "@/lib/pdf";
 import { toast } from "sonner";
 
@@ -12,6 +14,8 @@ export default function Exports() {
   const [company, setCompany] = useState<any>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   useEffect(() => { (async () => {
     const [{ data: p }, { data: c }] = await Promise.all([
