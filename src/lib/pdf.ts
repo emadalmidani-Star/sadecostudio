@@ -95,7 +95,13 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
   doc.addPage(); page.n++;
   if (cover) {
     const halfW = W * 0.6;
-    doc.addImage(cover.data, "JPEG", 0, 0, halfW, H);
+    // letterbox to preserve aspect ratio (no distortion)
+    doc.setFillColor(BRAND.ink); doc.rect(0, 0, halfW, H, "F");
+    const ar = cover.w / cover.h;
+    const slotAr = halfW / H;
+    let iw = halfW, ih = H;
+    if (ar > slotAr) { ih = halfW / ar; } else { iw = H * ar; }
+    doc.addImage(cover.data, "JPEG", (halfW - iw) / 2, (H - ih) / 2, iw, ih);
     doc.setFillColor(BRAND.paper); doc.rect(halfW, 0, W - halfW, H, "F");
     const tx = halfW + 12;
     doc.setFontSize(9); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
