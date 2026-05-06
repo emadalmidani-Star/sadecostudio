@@ -176,7 +176,13 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
         addPageFooter(doc, company, page.n);
         doc.addPage(); page.n++; addPageHeader(doc, company); yy = 28; x = 15; col = 0;
       }
-      doc.addImage(img.data, "JPEG", x, yy, imgW, imgH);
+      // fit image into slot preserving aspect ratio
+      const ar = img.w / img.h;
+      const slotAr = imgW / imgH;
+      let iw = imgW, ih = imgH;
+      if (ar > slotAr) { ih = imgW / ar; } else { iw = imgH * ar; }
+      doc.setFillColor("#f2f2f2"); doc.rect(x, yy, imgW, imgH, "F");
+      doc.addImage(img.data, "JPEG", x + (imgW - iw) / 2, yy + (imgH - ih) / 2, iw, ih);
       col++;
       if (col >= cols) { col = 0; x = 15; yy += imgH + gap; }
       else { x += imgW + gap; }
