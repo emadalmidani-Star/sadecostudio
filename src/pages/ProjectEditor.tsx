@@ -70,7 +70,7 @@ export default function ProjectEditor() {
   useEffect(() => { if (!isNew) (async () => {
     const { data, error } = await supabase.from("projects").select("*").eq("id", id).maybeSingle();
     if (error || !data) { toast.error("Project not found"); nav("/projects"); return; }
-    setP(data); setLoading(false);
+    setP(data); if (data.cover_image) coverManuallySet.current = true; setLoading(false);
   })(); }, [id]);
 
   function set<K extends string>(k: K, v: any) { setP((prev: any) => ({ ...prev, [k]: v })); }
