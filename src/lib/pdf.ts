@@ -17,9 +17,11 @@ async function loadImg(url: string): Promise<{ data: string; w: number; h: numbe
 
 function fmt(s?: string | null) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ""; }
 
-function newDoc() {
+async function newDoc() {
   // Landscape A4
-  return new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+  await registerMontserrat(doc);
+  return doc;
 }
 
 function addCover(doc: jsPDF, company: any, subtitle: string, logo: any) {
