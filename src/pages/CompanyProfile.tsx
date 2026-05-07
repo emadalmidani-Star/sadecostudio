@@ -36,6 +36,8 @@ export default function CompanyProfile() {
     const { error } = await supabase.from("company_profile").update({
       name: c.name, logo_url: c.logo_url, about: c.about, phone: c.phone,
       email: c.email, website: c.website, address: c.address, services: c.services,
+      linkedin_url: c.linkedin_url, facebook_url: c.facebook_url,
+      instagram_url: c.instagram_url, youtube_url: c.youtube_url,
     }).eq("id", c.id);
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -82,6 +84,17 @@ export default function CompanyProfile() {
             <div><Label>Email</Label><Input value={c.email || ""} onChange={e => set("email", e.target.value)} /></div>
             <div><Label>Website</Label><Input value={c.website || ""} onChange={e => set("website", e.target.value)} /></div>
             <div><Label>Address</Label><Input value={c.address || ""} onChange={e => set("address", e.target.value)} /></div>
+          </div>
+        </Card>
+
+        <Card className="p-6 space-y-4">
+          <h2 className="font-serif text-xl">Social Media</h2>
+          <p className="text-xs text-muted-foreground -mt-2">Shown as icons on the thank-you page of every PDF.</p>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div><Label>LinkedIn URL</Label><Input value={c.linkedin_url || ""} onChange={e => set("linkedin_url", e.target.value)} placeholder="https://linkedin.com/company/..." /></div>
+            <div><Label>Facebook URL</Label><Input value={c.facebook_url || ""} onChange={e => set("facebook_url", e.target.value)} placeholder="https://facebook.com/..." /></div>
+            <div><Label>Instagram URL</Label><Input value={c.instagram_url || ""} onChange={e => set("instagram_url", e.target.value)} placeholder="https://instagram.com/..." /></div>
+            <div><Label>YouTube URL</Label><Input value={c.youtube_url || ""} onChange={e => set("youtube_url", e.target.value)} placeholder="https://youtube.com/@..." /></div>
           </div>
         </Card>
 
