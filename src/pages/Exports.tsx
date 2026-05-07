@@ -61,6 +61,8 @@ export default function Exports() {
   const [sets, setSets] = useState<TplSet[]>([]);
   const [assignments, setAssignments] = useState<Record<string, string | null>>({});
   const [quality, setQuality] = useState<keyof typeof QUALITY_PRESETS>("balanced");
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [contactId, setContactId] = useState<string>("__me__");
   const selected = useMemo(() => new Set(selectedOrder), [selectedOrder]);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
@@ -76,16 +78,28 @@ export default function Exports() {
     setCovers(map);
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const [{ data: ts }, { data: ea }] = await Promise.all([
+      const [{ data: ts }, { data: ea }, { data: members }] = await Promise.all([
         supabase.from("template_sets").select("id,name").eq("user_id", user.id).order("created_at"),
         supabase.from("export_template_assignments").select("export_kind,set_id").eq("user_id", user.id),
+        supabase.from("profiles").select("*"),
       ]);
       setSets(ts || []);
       const a: Record<string, string | null> = {};
       (ea || []).forEach((r: any) => { a[r.export_kind] = r.set_id; });
       setAssignments(a);
+      setTeamMembers(members || []);
     }
   })(); }, []);
+
+  async function resolveSelectedContact() {
+    if (contactId === "__me__") {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return undefined;
+      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+      return data || undefined;
+    }
+    return teamMembers.find(m => m.id === contactId) || undefined;
+  }
 
   async function setKindAssignment(kind: string, setId: string | null) {
     const { data: { user } } = await supabase.auth.getUser();
