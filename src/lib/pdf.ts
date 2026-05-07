@@ -110,24 +110,76 @@ function sectionTitle(doc: jsPDF, label: string, title: string, y: number) {
   return y + 22;
 }
 
-async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template) {
+async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, contact?: any) {
   doc.addPage();
-  if (tpl) { await renderTemplatePage(doc, tpl, { company }); return; }
+  if (tpl) { await renderTemplatePage(doc, tpl, { company, contact }); return; }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setFillColor(BRAND.ink); doc.rect(0, 0, W, H, "F");
-  if (logo) {
-    const ratio = logo.w / logo.h; const w = 50; const h = w / ratio;
-    doc.addImage(logo.data, "PNG", (W - w) / 2, H / 2 - h - 30, w, h);
-  }
-  doc.setTextColor(BRAND.paper); doc.setFont("Montserrat", "bold"); doc.setFontSize(64);
-  doc.text("Thank You", W / 2, H / 2 + 5, { align: "center" });
-  doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor("#bbbbbb");
-  doc.text("We look forward to building with you.", W / 2, H / 2 + 18, { align: "center" });
 
-  // contact row
+  // Headline
+  doc.setTextColor(BRAND.paper); doc.setFont("Montserrat", "bold"); doc.setFontSize(56);
+  doc.text("Thank You", W / 2, 50, { align: "center" });
+  doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor("#bbbbbb");
+  doc.text("We look forward to building with you.", W / 2, 62, { align: "center" });
+
+  // Contact card (centered)
+  const cardY = 80;
+  const avatar = contact?.avatar_url ? await loadImg(contact.avatar_url) : null;
+  const avatarSize = 32;
+  if (avatar) {
+    // simple square (jsPDF doesn't natively clip circles) — render as rounded by drawing on white
+    doc.addImage(avatar.data, "JPEG", W / 2 - avatarSize / 2, cardY, avatarSize, avatarSize);
+  } else if (logo) {
+    const ratio = logo.w / logo.h; const w = 40; const h = w / ratio;
+    doc.addImage(logo.data, "PNG", (W - w) / 2, cardY, w, h);
+  }
+
+  let ty = cardY + avatarSize + 10;
+  if (contact?.full_name) {
+    doc.setFont("Montserrat", "bold"); doc.setFontSize(16); doc.setTextColor(BRAND.paper);
+    doc.text(contact.full_name, W / 2, ty, { align: "center" }); ty += 6;
+  }
+  if (contact?.job_title) {
+    doc.setFont("Montserrat", "normal"); doc.setFontSize(10); doc.setTextColor("#bbbbbb");
+    doc.text(contact.job_title, W / 2, ty, { align: "center" }); ty += 8;
+  }
+
+  // Contact lines
+  doc.setFontSize(10); doc.setTextColor("#dddddd"); doc.setFont("Montserrat", "normal");
+  const lines = [
+    contact?.phone ? `Phone  ${contact.phone}` : null,
+    contact?.whatsapp ? `WhatsApp  ${contact.whatsapp}` : null,
+    contact?.email ? `Email  ${contact.email}` : null,
+  ].filter(Boolean) as string[];
+  lines.forEach(l => { doc.text(l, W / 2, ty, { align: "center" }); ty += 6; });
+
+  // Company contact row
   const parts = [company?.phone, company?.email, company?.website].filter(Boolean).join("   |   ");
-  doc.setFontSize(9); doc.setTextColor("#cccccc");
-  doc.text(parts, W / 2, H - 20, { align: "center" });
+  doc.setFontSize(9); doc.setTextColor("#999999");
+  doc.text(parts, W / 2, H - 28, { align: "center" });
+
+  // Social icons row (drawn as labeled circles since icon fonts aren't embedded)
+  const socials = [
+    { url: company?.linkedin_url, letter: "in" },
+    { url: company?.facebook_url, letter: "f" },
+    { url: company?.instagram_url, letter: "ig" },
+    { url: company?.youtube_url, letter: "yt" },
+  ].filter(s => s.url);
+  if (socials.length) {
+    const r = 4;
+    const gap = 14;
+    const totalW = socials.length * (r * 2) + (socials.length - 1) * gap;
+    let sx = (W - totalW) / 2 + r;
+    const sy = H - 16;
+    socials.forEach(s => {
+      doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.4);
+      doc.circle(sx, sy, r, "S");
+      doc.setFont("Montserrat", "bold"); doc.setFontSize(7); doc.setTextColor(BRAND.paper);
+      doc.text(s.letter, sx, sy + 1.2, { align: "center" });
+      (doc as any).link(sx - r, sy - r, r * 2, r * 2, { url: s.url });
+      sx += r * 2 + gap;
+    });
+  }
 }
 
 async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number }, tpl?: Template) {
@@ -276,10 +328,19 @@ function groupByType(list: any[], preserveOrder = false): Array<{ type: string; 
   return entries.map(([type, items]) => ({ type, items }));
 }
 
-export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}) {
+async function resolveContact(explicit?: any): Promise<any | null> {
+  if (explicit) return explicit;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  return data || null;
+}
+
+export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}, contact?: any) {
   const doc = await newDoc();
   const tpls = await loadTemplates("portfolio");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
+  const c = await resolveContact(contact);
   await addCover(doc, company, `Portfolio - ${list.length} Projects`, logo, tpls.cover);
   const page = { n: 1 };
   const groups = groupByType(list, true);
@@ -290,15 +351,16 @@ export async function exportSelectedPDF(company: any, list: any[], categoryCover
     page.n++;
     for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
   }
-  await addThankYou(doc, company, logo, tpls.thankyou);
+  await addThankYou(doc, company, logo, tpls.thankyou, c);
   doc.save(`SADECO-Portfolio.pdf`);
 }
 
-export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}) {
+export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}, contact?: any) {
   const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
   const tpls = await loadTemplates("profile");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
+  const c = await resolveContact(contact);
   await addCover(doc, company, "Company Profile", logo, tpls.cover);
   const page = { n: 1 };
 
@@ -340,17 +402,18 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
     for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
   }
 
-  await addThankYou(doc, company, logo, tpls.thankyou);
+  await addThankYou(doc, company, logo, tpls.thankyou, c);
   doc.save(`SADECO-Company-Profile.pdf`);
 }
 
-export async function exportProjectPDF(p: any, company: any) {
+export async function exportProjectPDF(p: any, company: any, contact?: any) {
   const doc = await newDoc();
   const tpls = await loadTemplates("project");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
+  const c = await resolveContact(contact);
   await addCover(doc, company, "Project Case Study", logo, tpls.cover);
   const page = { n: 1 };
   await renderProject(doc, p, company, page, tpls.project);
-  await addThankYou(doc, company, logo, tpls.thankyou);
+  await addThankYou(doc, company, logo, tpls.thankyou, c);
   doc.save(`SADECO-${p.name.replace(/\s+/g, "-")}.pdf`);
 }

@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import logoWhite from "@/assets/sadeco-logo-white.png";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ const links = [
   { to: "/exports", icon: FileText, label: "Export PDFs" },
   { to: "/template", icon: LayoutTemplate, label: "Template Designer" },
   { to: "/team", icon: Users, label: "Team" },
+  { to: "/me", icon: UserCircle2, label: "My Profile" },
 ];
 
 export default function AppLayout() {
