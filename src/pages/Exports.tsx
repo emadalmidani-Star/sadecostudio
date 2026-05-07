@@ -132,8 +132,11 @@ export default function Exports() {
   async function fullProfile() {
     setBusy("full");
     setPdfCompression(QUALITY_PRESETS[quality]);
-    try { await exportFullProfilePDF(company, projects, covers); toast.success("Profile PDF generated"); }
-    catch (e: any) { toast.error(e.message); }
+    try {
+      const c = await resolveSelectedContact();
+      await exportFullProfilePDF(company, projects, covers, c);
+      toast.success("Profile PDF generated");
+    } catch (e: any) { toast.error(e.message); }
     setBusy(null);
   }
 
@@ -144,7 +147,8 @@ export default function Exports() {
     try {
       const byId = new Map(projects.map(p => [p.id, p]));
       const list = selectedOrder.map(id => byId.get(id)).filter(Boolean);
-      await exportSelectedPDF(company, list, covers);
+      const c = await resolveSelectedContact();
+      await exportSelectedPDF(company, list, covers, c);
       toast.success("Portfolio PDF generated");
     } catch (e: any) { toast.error(e.message); }
     setBusy(null);
