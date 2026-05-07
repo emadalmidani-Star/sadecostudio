@@ -46,37 +46,49 @@ export type Database = {
           about: string | null
           address: string | null
           email: string | null
+          facebook_url: string | null
           id: string
+          instagram_url: string | null
+          linkedin_url: string | null
           logo_url: string | null
           name: string
           phone: string | null
           services: Json
           updated_at: string
           website: string | null
+          youtube_url: string | null
         }
         Insert: {
           about?: string | null
           address?: string | null
           email?: string | null
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
           logo_url?: string | null
           name?: string
           phone?: string | null
           services?: Json
           updated_at?: string
           website?: string | null
+          youtube_url?: string | null
         }
         Update: {
           about?: string | null
           address?: string | null
           email?: string | null
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
           logo_url?: string | null
           name?: string
           phone?: string | null
           services?: Json
           updated_at?: string
           website?: string | null
+          youtube_url?: string | null
         }
         Relationships: []
       }
@@ -171,22 +183,34 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           email: string | null
           full_name: string | null
           id: string
+          job_title: string | null
+          phone: string | null
+          whatsapp: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id: string
+          job_title?: string | null
+          phone?: string | null
+          whatsapp?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id?: string
+          job_title?: string | null
+          phone?: string | null
+          whatsapp?: string | null
         }
         Relationships: []
       }
