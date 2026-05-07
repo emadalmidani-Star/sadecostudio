@@ -245,6 +245,26 @@ export default function Exports() {
         </Card>
       </div>
 
+      <Card className="p-5 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 className="font-serif text-lg mb-1">Thank-you contact</h2>
+            <p className="text-xs text-muted-foreground">Whose photo &amp; contact details appear on the final page.</p>
+          </div>
+          <Select value={contactId} onValueChange={setContactId}>
+            <SelectTrigger className="md:w-72"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__me__">Me (signed-in user)</SelectItem>
+              {teamMembers.map(m => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.full_name || m.email}{m.job_title ? ` — ${m.job_title}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
+
       <Card className="p-5 mb-10">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
