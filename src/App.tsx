@@ -13,6 +13,7 @@ import CompanyProfile from "./pages/CompanyProfile";
 import Exports from "./pages/Exports";
 import TemplateDesigner from "./pages/TemplateDesigner";
 import Team from "./pages/Team";
+import MyProfile from "./pages/MyProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/exports" element={<Exports />} />
               <Route path="/template" element={<TemplateDesigner />} />
               <Route path="/team" element={<Team />} />
+              <Route path="/me" element={<MyProfile />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
