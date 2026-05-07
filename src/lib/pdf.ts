@@ -328,10 +328,19 @@ function groupByType(list: any[], preserveOrder = false): Array<{ type: string; 
   return entries.map(([type, items]) => ({ type, items }));
 }
 
-export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}) {
+async function resolveContact(explicit?: any): Promise<any | null> {
+  if (explicit) return explicit;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  return data || null;
+}
+
+export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}, contact?: any) {
   const doc = await newDoc();
   const tpls = await loadTemplates("portfolio");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
+  const c = await resolveContact(contact);
   await addCover(doc, company, `Portfolio - ${list.length} Projects`, logo, tpls.cover);
   const page = { n: 1 };
   const groups = groupByType(list, true);
@@ -342,15 +351,16 @@ export async function exportSelectedPDF(company: any, list: any[], categoryCover
     page.n++;
     for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
   }
-  await addThankYou(doc, company, logo, tpls.thankyou);
+  await addThankYou(doc, company, logo, tpls.thankyou, c);
   doc.save(`SADECO-Portfolio.pdf`);
 }
 
-export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}) {
+export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}, contact?: any) {
   const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
   const tpls = await loadTemplates("profile");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
+  const c = await resolveContact(contact);
   await addCover(doc, company, "Company Profile", logo, tpls.cover);
   const page = { n: 1 };
 
@@ -392,17 +402,18 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
     for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
   }
 
-  await addThankYou(doc, company, logo, tpls.thankyou);
+  await addThankYou(doc, company, logo, tpls.thankyou, c);
   doc.save(`SADECO-Company-Profile.pdf`);
 }
 
-export async function exportProjectPDF(p: any, company: any) {
+export async function exportProjectPDF(p: any, company: any, contact?: any) {
   const doc = await newDoc();
   const tpls = await loadTemplates("project");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
+  const c = await resolveContact(contact);
   await addCover(doc, company, "Project Case Study", logo, tpls.cover);
   const page = { n: 1 };
   await renderProject(doc, p, company, page, tpls.project);
-  await addThankYou(doc, company, logo, tpls.thankyou);
+  await addThankYou(doc, company, logo, tpls.thankyou, c);
   doc.save(`SADECO-${p.name.replace(/\s+/g, "-")}.pdf`);
 }
