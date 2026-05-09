@@ -5,14 +5,16 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
+import ImageCropDialog from "@/components/ImageCropDialog";
 
 export default function MyProfile() {
   const { user } = useAuth();
   const [p, setP] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => { (async () => {
     if (!user) return;
@@ -23,13 +25,21 @@ export default function MyProfile() {
   if (!p) return <div className="p-10 text-muted-foreground">Loading…</div>;
   const set = (k: string, v: any) => setP((prev: any) => ({ ...prev, [k]: v }));
 
-  async function handleAvatar(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file || !user) return;
-    const path = `${user.id}/avatar-${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from("company-assets").upload(path, file, { upsert: true });
+  function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) setPendingFile(file);
+  }
+
+  async function uploadBlob(blob: Blob, name: string) {
+    if (!user) return;
+    setUploading(true);
+    const path = `${user.id}/avatar-${Date.now()}-${name.replace(/\.[^.]+$/, "")}.jpg`;
+    const { error } = await supabase.storage.from("company-assets").upload(path, blob, { upsert: true, contentType: "image/jpeg" });
+    setUploading(false);
     if (error) return toast.error(error.message);
     const { data } = supabase.storage.from("company-assets").getPublicUrl(path);
-    set("avatar_url", data.publicUrl);
+    set("avatar_url", `${data.publicUrl}?t=${Date.now()}`);
     toast.success("Photo uploaded — don't forget to save");
   }
 
@@ -62,8 +72,8 @@ export default function MyProfile() {
       <Card className="p-8 mb-6">
         <h2 className="font-serif text-xl mb-6">Profile Photo</h2>
         <div className="flex flex-col sm:flex-row items-center gap-8">
-          <div className="relative group">
-            <div className="w-40 h-40 rounded-full overflow-hidden ring-4 ring-background shadow-xl border border-border bg-muted">
+          <div className="relative group shrink-0">
+            <div className="w-40 h-40 rounded-full overflow-hidden ring-4 ring-background shadow-xl border border-border bg-muted aspect-square">
               {p.avatar_url ? (
                 <img src={p.avatar_url} alt={p.full_name || "Profile"} className="w-full h-full object-cover" />
               ) : (
@@ -73,23 +83,24 @@ export default function MyProfile() {
               )}
             </div>
             <label className="absolute inset-0 rounded-full flex items-center justify-center bg-black/0 group-hover:bg-black/50 transition cursor-pointer opacity-0 group-hover:opacity-100">
-              <input type="file" accept="image/*" className="hidden" onChange={handleAvatar} />
+              <input type="file" accept="image/*" className="hidden" onChange={pickFile} />
               <Camera className="w-8 h-8 text-white" />
             </label>
             <label className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg cursor-pointer hover:scale-105 transition border-2 border-background">
-              <input type="file" accept="image/*" className="hidden" onChange={handleAvatar} />
+              <input type="file" accept="image/*" className="hidden" onChange={pickFile} />
               <Camera className="w-4 h-4" />
             </label>
           </div>
           <div className="flex-1 text-center sm:text-left">
             <p className="text-sm text-muted-foreground mb-4">
-              Upload a square photo (JPG or PNG). For best results use at least 400×400px. This photo appears on the thank-you page of your PDFs.
+              Upload any photo — you'll be able to crop it to a perfect square. For best results use at least 400×400px. This photo appears as a circle on the thank-you page of your PDFs.
             </p>
             <div className="flex flex-wrap justify-center sm:justify-start gap-2">
               <label className="cursor-pointer">
-                <input type="file" accept="image/*" className="hidden" onChange={handleAvatar} />
+                <input type="file" accept="image/*" className="hidden" onChange={pickFile} />
                 <span className="inline-flex items-center px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:opacity-90 transition">
-                  <Upload className="w-4 h-4 mr-2" />{p.avatar_url ? "Change Photo" : "Upload Photo"}
+                  <Upload className="w-4 h-4 mr-2" />
+                  {uploading ? "Uploading…" : p.avatar_url ? "Change Photo" : "Upload Photo"}
                 </span>
               </label>
               {p.avatar_url && (
@@ -112,6 +123,19 @@ export default function MyProfile() {
           <div><Label>WhatsApp</Label><Input value={p.whatsapp || ""} onChange={e => set("whatsapp", e.target.value)} placeholder="+971…" /></div>
         </div>
       </Card>
+
+      <ImageCropDialog
+        file={pendingFile}
+        onCancel={() => setPendingFile(null)}
+        onSkip={async () => {
+          if (pendingFile) await uploadBlob(pendingFile, pendingFile.name);
+          setPendingFile(null);
+        }}
+        onConfirm={async (blob) => {
+          if (pendingFile) await uploadBlob(blob, pendingFile.name);
+          setPendingFile(null);
+        }}
+      />
     </div>
   );
 }
