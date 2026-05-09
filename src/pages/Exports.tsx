@@ -304,7 +304,7 @@ export default function Exports() {
         </Card>
       )}
 
-      {types.length > 0 && (
+      {isAdmin && types.length > 0 && (
         <>
           <h2 className="font-serif text-2xl mb-2">Category covers</h2>
           <p className="text-muted-foreground text-sm mb-4">Each project type gets its own divider page in the PDF. Upload a custom cover image per category, or we'll auto-pick from a project in that category.</p>
