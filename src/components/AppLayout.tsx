@@ -31,7 +31,7 @@ export default function AppLayout() {
           <p className="text-center text-xs tracking-[0.3em] text-accent mt-2 font-sans">PROJECT STUDIO</p>
         </div>
         <nav className="flex-1 p-4 space-y-1">
-          {links.map(l => (
+          {visible.map(l => (
             <NavLink key={l.to} to={l.to} end={l.end}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded text-sm transition-colors ${
