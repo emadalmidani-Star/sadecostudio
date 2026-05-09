@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Mail, Trash2, UserPlus, ShieldCheck, Copy, Link2, AlertCircle, Clock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-type Role = "admin" | "manager" | "user";
+type Role = "admin" | "user";
 
 export default function Team() {
   const { user } = useAuth();
@@ -162,7 +162,6 @@ export default function Team() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="user">Member</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
@@ -225,7 +224,6 @@ export default function Team() {
                 <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">Member</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
