@@ -66,6 +66,7 @@ export default function Exports() {
   const [contactId, setContactId] = useState<string>("__me__");
   const selected = useMemo(() => new Set(selectedOrder), [selectedOrder]);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const { isAdmin } = useUserRole();
 
   useEffect(() => { (async () => {
     const [{ data: p }, { data: c }, { data: cc }] = await Promise.all([
