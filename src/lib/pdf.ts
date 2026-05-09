@@ -122,19 +122,41 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
   doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor("#bbbbbb");
   doc.text("We look forward to building with you.", W / 2, 62, { align: "center" });
 
-  // Contact card (centered)
-  const cardY = 80;
+  // Contact card (centered) — circular avatar
+  const cardY = 78;
+  const avatarSize = 42;
+  const cx = W / 2;
+  const cy = cardY + avatarSize / 2;
+  const r = avatarSize / 2;
+
   const avatar = contact?.avatar_url ? await loadImg(contact.avatar_url) : null;
-  const avatarSize = 32;
   if (avatar) {
-    // simple square (jsPDF doesn't natively clip circles) — render as rounded by drawing on white
-    doc.addImage(avatar.data, "JPEG", W / 2 - avatarSize / 2, cardY, avatarSize, avatarSize);
+    try {
+      const px = 512;
+      const cv = document.createElement("canvas"); cv.width = px; cv.height = px;
+      const ctx = cv.getContext("2d")!;
+      ctx.save();
+      ctx.beginPath(); ctx.arc(px / 2, px / 2, px / 2, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
+      const img = new Image(); img.crossOrigin = "anonymous";
+      await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; img.src = contact.avatar_url; });
+      const ar = img.width / img.height;
+      let sw = img.width, sh = img.height, sx = 0, sy = 0;
+      if (ar > 1) { sw = img.height; sx = (img.width - sw) / 2; }
+      else if (ar < 1) { sh = img.width; sy = (img.height - sh) / 2; }
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, px, px);
+      ctx.restore();
+      doc.addImage(cv.toDataURL("image/png"), "PNG", cx - r, cy - r, avatarSize, avatarSize);
+    } catch {
+      doc.addImage(avatar.data, "JPEG", cx - r, cy - r, avatarSize, avatarSize);
+    }
+    doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.8);
+    doc.circle(cx, cy, r + 0.4, "S");
   } else if (logo) {
     const ratio = logo.w / logo.h; const w = 40; const h = w / ratio;
     doc.addImage(logo.data, "PNG", (W - w) / 2, cardY, w, h);
   }
 
-  let ty = cardY + avatarSize + 10;
+  let ty = cardY + avatarSize + 12;
   if (contact?.full_name) {
     doc.setFont("Montserrat", "bold"); doc.setFontSize(16); doc.setTextColor(BRAND.paper);
     doc.text(contact.full_name, W / 2, ty, { align: "center" }); ty += 6;
