@@ -1,17 +1,20 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole, AppRole } from "@/hooks/useUserRole";
 import logoWhite from "@/assets/sadeco-logo-white.png";
 import { Button } from "@/components/ui/button";
 
-const links = [
+type Link = { to: string; icon: any; label: string; end?: boolean; allow?: AppRole[] };
+
+const links: Link[] = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", end: true },
   { to: "/projects", icon: FolderKanban, label: "Projects" },
-  { to: "/company", icon: Building2, label: "Company Profile" },
   { to: "/exports", icon: FileText, label: "Export PDFs" },
-  { to: "/template", icon: LayoutTemplate, label: "Template Designer" },
-  { to: "/team", icon: Users, label: "Team" },
   { to: "/me", icon: UserCircle2, label: "My Profile" },
+  { to: "/company", icon: Building2, label: "Company Profile", allow: ["admin"] },
+  { to: "/template", icon: LayoutTemplate, label: "Template Designer", allow: ["admin"] },
+  { to: "/team", icon: Users, label: "Team", allow: ["admin"] },
 ];
 
 export default function AppLayout() {
