@@ -48,12 +48,7 @@ export default function CompanyProfile() {
 
   return (
     <div className="p-10 max-w-4xl mx-auto">
-      <div className="flex items-end justify-between mb-8">
-        <div>
-          <p className="text-xs tracking-[0.3em] text-accent mb-2">BRAND IDENTITY</p>
-          <h1 className="font-serif text-5xl">Company Profile</h1>
-          <p className="text-muted-foreground mt-2">Used across every generated PDF.</p>
-        </div>
+      <div className="flex items-center justify-end mb-8">
         <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save Changes"}</Button>
       </div>
 
