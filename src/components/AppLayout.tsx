@@ -1,26 +1,31 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2 } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserRole, AppRole } from "@/hooks/useUserRole";
+import { useUserRole, PageKey } from "@/hooks/useUserRole";
 import logoWhite from "@/assets/sadeco-logo-white.png";
 import { Button } from "@/components/ui/button";
 
-type Link = { to: string; icon: any; label: string; end?: boolean; allow?: AppRole[] };
+type Link = { to: string; icon: any; label: string; end?: boolean; page?: PageKey; adminOnly?: boolean };
 
 const links: Link[] = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", end: true },
-  { to: "/projects", icon: FolderKanban, label: "Projects" },
-  { to: "/exports", icon: FileText, label: "Export PDFs" },
-  { to: "/me", icon: UserCircle2, label: "My Profile" },
-  { to: "/company", icon: Building2, label: "Company Profile", allow: ["admin"] },
-  { to: "/template", icon: LayoutTemplate, label: "Template Designer", allow: ["admin"] },
-  { to: "/team", icon: Users, label: "Team", allow: ["admin"] },
+  { to: "/projects", icon: FolderKanban, label: "Projects", page: "projects" },
+  { to: "/exports", icon: FileText, label: "Export PDFs", page: "exports" },
+  { to: "/me", icon: UserCircle2, label: "My Profile", page: "me" },
+  { to: "/company", icon: Building2, label: "Company Profile", page: "company" },
+  { to: "/template", icon: LayoutTemplate, label: "Template Designer", page: "template" },
+  { to: "/team", icon: Users, label: "Team", page: "team" },
+  { to: "/permissions", icon: ShieldCheck, label: "Permissions", adminOnly: true },
 ];
 
 export default function AppLayout() {
   const { signOut, user } = useAuth();
-  const { roles } = useUserRole();
-  const visible = links.filter(l => !l.allow || l.allow.some(r => roles.includes(r)));
+  const { canAccess, isAdmin, loading } = useUserRole();
+  const visible = links.filter(l => {
+    if (l.adminOnly) return isAdmin;
+    if (!l.page) return true;
+    return canAccess(l.page);
+  });
   const nav = useNavigate();
 
   return (
@@ -31,7 +36,7 @@ export default function AppLayout() {
           <p className="text-center text-xs tracking-[0.3em] text-accent mt-2 font-sans">PROJECT STUDIO</p>
         </div>
         <nav className="flex-1 p-4 space-y-1">
-          {visible.map(l => (
+          {!loading && visible.map(l => (
             <NavLink key={l.to} to={l.to} end={l.end}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded text-sm transition-colors ${
