@@ -19,6 +19,8 @@ const links: Link[] = [
 
 export default function AppLayout() {
   const { signOut, user } = useAuth();
+  const { roles } = useUserRole();
+  const visible = links.filter(l => !l.allow || l.allow.some(r => roles.includes(r)));
   const nav = useNavigate();
 
   return (
