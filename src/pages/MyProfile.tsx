@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Upload } from "lucide-react";
+import { Camera, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 export default function MyProfile() {
@@ -59,19 +59,46 @@ export default function MyProfile() {
         <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save Changes"}</Button>
       </div>
 
-      <Card className="p-6 mb-6">
-        <h2 className="font-serif text-xl mb-4">Photo</h2>
-        <div className="flex items-center gap-6">
-          <Avatar className="w-28 h-28">
-            <AvatarImage src={p.avatar_url || undefined} />
-            <AvatarFallback className="text-xl">{initials}</AvatarFallback>
-          </Avatar>
-          <label className="cursor-pointer">
-            <input type="file" accept="image/*" className="hidden" onChange={handleAvatar} />
-            <span className="inline-flex items-center px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:opacity-90">
-              <Upload className="w-4 h-4 mr-2" />Upload Photo
-            </span>
-          </label>
+      <Card className="p-8 mb-6">
+        <h2 className="font-serif text-xl mb-6">Profile Photo</h2>
+        <div className="flex flex-col sm:flex-row items-center gap-8">
+          <div className="relative group">
+            <div className="w-40 h-40 rounded-full overflow-hidden ring-4 ring-background shadow-xl border border-border bg-muted">
+              {p.avatar_url ? (
+                <img src={p.avatar_url} alt={p.full_name || "Profile"} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-3xl font-serif text-muted-foreground bg-gradient-to-br from-muted to-muted/50">
+                  {initials}
+                </div>
+              )}
+            </div>
+            <label className="absolute inset-0 rounded-full flex items-center justify-center bg-black/0 group-hover:bg-black/50 transition cursor-pointer opacity-0 group-hover:opacity-100">
+              <input type="file" accept="image/*" className="hidden" onChange={handleAvatar} />
+              <Camera className="w-8 h-8 text-white" />
+            </label>
+            <label className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg cursor-pointer hover:scale-105 transition border-2 border-background">
+              <input type="file" accept="image/*" className="hidden" onChange={handleAvatar} />
+              <Camera className="w-4 h-4" />
+            </label>
+          </div>
+          <div className="flex-1 text-center sm:text-left">
+            <p className="text-sm text-muted-foreground mb-4">
+              Upload a square photo (JPG or PNG). For best results use at least 400×400px. This photo appears on the thank-you page of your PDFs.
+            </p>
+            <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+              <label className="cursor-pointer">
+                <input type="file" accept="image/*" className="hidden" onChange={handleAvatar} />
+                <span className="inline-flex items-center px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:opacity-90 transition">
+                  <Upload className="w-4 h-4 mr-2" />{p.avatar_url ? "Change Photo" : "Upload Photo"}
+                </span>
+              </label>
+              {p.avatar_url && (
+                <Button variant="outline" size="sm" onClick={() => set("avatar_url", "")}>
+                  <Trash2 className="w-4 h-4 mr-2" />Remove
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </Card>
 
