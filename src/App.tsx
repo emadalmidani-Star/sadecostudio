@@ -15,6 +15,7 @@ import Exports from "./pages/Exports";
 import TemplateDesigner from "./pages/TemplateDesigner";
 import Team from "./pages/Team";
 import MyProfile from "./pages/MyProfile";
+import Permissions from "./pages/Permissions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
