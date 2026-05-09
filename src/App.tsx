@@ -15,6 +15,7 @@ import Exports from "./pages/Exports";
 import TemplateDesigner from "./pages/TemplateDesigner";
 import Team from "./pages/Team";
 import MyProfile from "./pages/MyProfile";
+import Permissions from "./pages/Permissions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,14 +30,15 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/projects/new" element={<ProjectEditor />} />
-              <Route path="/projects/:id" element={<ProjectEditor />} />
-              <Route path="/company" element={<RoleRoute allow={["admin"]}><CompanyProfile /></RoleRoute>} />
-              <Route path="/exports" element={<Exports />} />
-              <Route path="/template" element={<RoleRoute allow={["admin"]}><TemplateDesigner /></RoleRoute>} />
-              <Route path="/team" element={<RoleRoute allow={["admin"]}><Team /></RoleRoute>} />
-              <Route path="/me" element={<MyProfile />} />
+              <Route path="/projects" element={<RoleRoute page="projects"><Projects /></RoleRoute>} />
+              <Route path="/projects/new" element={<RoleRoute page="projects"><ProjectEditor /></RoleRoute>} />
+              <Route path="/projects/:id" element={<RoleRoute page="projects"><ProjectEditor /></RoleRoute>} />
+              <Route path="/company" element={<RoleRoute page="company"><CompanyProfile /></RoleRoute>} />
+              <Route path="/exports" element={<RoleRoute page="exports"><Exports /></RoleRoute>} />
+              <Route path="/template" element={<RoleRoute page="template"><TemplateDesigner /></RoleRoute>} />
+              <Route path="/team" element={<RoleRoute page="team"><Team /></RoleRoute>} />
+              <Route path="/me" element={<RoleRoute page="me"><MyProfile /></RoleRoute>} />
+              <Route path="/permissions" element={<RoleRoute page="team"><Permissions /></RoleRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

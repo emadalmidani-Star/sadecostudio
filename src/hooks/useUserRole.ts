@@ -2,25 +2,53 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type AppRole = "admin" | "moderator" | "user";
+export type AppRole = "admin" | "manager" | "user";
+export type PageKey = "dashboard" | "projects" | "exports" | "company" | "template" | "team" | "me";
+
+export const ALL_ROLES: AppRole[] = ["admin", "manager", "user"];
+export const ALL_PAGES: { key: PageKey; label: string }[] = [
+  { key: "dashboard", label: "Dashboard" },
+  { key: "projects", label: "Projects" },
+  { key: "exports", label: "Export PDFs" },
+  { key: "me", label: "My Profile" },
+  { key: "company", label: "Company Profile" },
+  { key: "template", label: "Template Designer" },
+  { key: "team", label: "Team" },
+];
+
+type PermRow = { role: AppRole; page: PageKey; allowed: boolean };
 
 export function useUserRole() {
   const { user } = useAuth();
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [perms, setPerms] = useState<PermRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     (async () => {
-      if (!user) { setRoles([]); setLoading(false); return; }
-      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+      if (!user) { setRoles([]); setPerms([]); setLoading(false); return; }
+      const [{ data: r }, { data: p }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", user.id),
+        supabase.from("role_page_permissions").select("role,page,allowed"),
+      ]);
       if (!active) return;
-      setRoles((data || []).map((r: any) => r.role as AppRole));
+      setRoles((r || []).map((x: any) => x.role as AppRole));
+      setPerms((p || []) as PermRow[]);
       setLoading(false);
     })();
     return () => { active = false; };
   }, [user]);
 
-  const has = (r: AppRole) => roles.includes(r);
-  return { roles, loading, isAdmin: has("admin"), isModerator: has("moderator"), has };
+  const canAccess = (page: PageKey) =>
+    roles.some((role) => perms.some((p) => p.role === role && p.page === page && p.allowed));
+
+  return {
+    roles,
+    perms,
+    loading,
+    isAdmin: roles.includes("admin"),
+    isManager: roles.includes("manager"),
+    canAccess,
+  };
 }
