@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Mail, Trash2, UserPlus, ShieldCheck, Copy, Link2, AlertCircle, Clock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-type Role = "admin" | "manager" | "user";
+type Role = "admin" | "user";
 
 export default function Team() {
   const { user } = useAuth();
