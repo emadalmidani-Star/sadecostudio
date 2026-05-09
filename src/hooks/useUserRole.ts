@@ -48,7 +48,6 @@ export function useUserRole() {
     perms,
     loading,
     isAdmin: roles.includes("admin"),
-    isManager: roles.includes("manager"),
     canAccess,
   };
 }
