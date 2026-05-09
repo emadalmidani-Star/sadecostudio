@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type AppRole = "admin" | "manager" | "user";
+export type AppRole = "admin" | "user";
 export type PageKey = "dashboard" | "projects" | "exports" | "company" | "template" | "team" | "me";
 
-export const ALL_ROLES: AppRole[] = ["admin", "manager", "user"];
+export const ALL_ROLES: AppRole[] = ["admin", "user"];
 export const ALL_PAGES: { key: PageKey; label: string }[] = [
   { key: "dashboard", label: "Dashboard" },
   { key: "projects", label: "Projects" },
