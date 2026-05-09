@@ -101,13 +101,11 @@ function addPageFooter(doc: jsPDF, company: any, page: number) {
   doc.text(String(page), W - 15, H - 7, { align: "right" });
 }
 
-function sectionTitle(doc: jsPDF, label: string, title: string, y: number) {
-  doc.setFontSize(8); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
-  doc.text(label.toUpperCase(), 15, y, { charSpace: 3 });
+function sectionTitle(doc: jsPDF, _label: string, title: string, y: number) {
   doc.setFontSize(26); doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold");
-  doc.text(title, 15, y + 11);
-  doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.4); doc.line(15, y + 14, 50, y + 14);
-  return y + 22;
+  doc.text(title, 15, y + 4);
+  doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.4); doc.line(15, y + 7, 50, y + 7);
+  return y + 18;
 }
 
 async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, contact?: any) {
