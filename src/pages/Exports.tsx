@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileDown, FileText, Files, GripVertical, Loader2, Search, Upload, X } from "lucide-react";
 import { exportFullProfilePDF, exportSelectedPDF, setPdfCompression, type CompressOpts } from "@/lib/pdf";
+import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
@@ -65,6 +66,7 @@ export default function Exports() {
   const [contactId, setContactId] = useState<string>("__me__");
   const selected = useMemo(() => new Set(selectedOrder), [selectedOrder]);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const { isAdmin } = useUserRole();
 
   useEffect(() => { (async () => {
     const [{ data: p }, { data: c }, { data: cc }] = await Promise.all([
@@ -201,27 +203,29 @@ export default function Exports() {
       <h1 className="font-serif text-5xl mb-2">Generate PDFs</h1>
       <p className="text-muted-foreground mb-6">Premium client-ready documents in one click.</p>
 
-      <Card className="p-5 mb-8">
-        <h2 className="font-serif text-lg mb-1">Template assignments</h2>
-        <p className="text-xs text-muted-foreground mb-4">Pick which template set each export uses. Manage sets in <a href="/template" className="underline">Template Designer</a>.</p>
-        <div className="grid md:grid-cols-3 gap-3">
-          {KINDS.map(k => (
-            <div key={k.key}>
-              <p className="text-xs text-accent uppercase tracking-wider mb-1">{k.label}</p>
-              <Select
-                value={assignments[k.key] || "__none__"}
-                onValueChange={(v) => setKindAssignment(k.key, v === "__none__" ? null : v)}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Default layout (no template)</SelectItem>
-                  {sets.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          ))}
-        </div>
-      </Card>
+      {isAdmin && (
+        <Card className="p-5 mb-8">
+          <h2 className="font-serif text-lg mb-1">Template assignments</h2>
+          <p className="text-xs text-muted-foreground mb-4">Pick which template set each export uses. Manage sets in <a href="/template" className="underline">Template Designer</a>.</p>
+          <div className="grid md:grid-cols-3 gap-3">
+            {KINDS.map(k => (
+              <div key={k.key}>
+                <p className="text-xs text-accent uppercase tracking-wider mb-1">{k.label}</p>
+                <Select
+                  value={assignments[k.key] || "__none__"}
+                  onValueChange={(v) => setKindAssignment(k.key, v === "__none__" ? null : v)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Default layout (no template)</SelectItem>
+                    {sets.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <div className="grid md:grid-cols-2 gap-6 mb-10">
         <Card className="p-8 luxury-gradient text-primary-foreground">
@@ -300,7 +304,7 @@ export default function Exports() {
         </Card>
       )}
 
-      {types.length > 0 && (
+      {isAdmin && types.length > 0 && (
         <>
           <h2 className="font-serif text-2xl mb-2">Category covers</h2>
           <p className="text-muted-foreground text-sm mb-4">Each project type gets its own divider page in the PDF. Upload a custom cover image per category, or we'll auto-pick from a project in that category.</p>
