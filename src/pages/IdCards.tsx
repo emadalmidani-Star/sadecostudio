@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { QrCode, Download, Search, Globe, Mail, Phone, MessageCircle } from "lucide-react";
+import { QrCode, Download, Search } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
 
@@ -49,108 +50,76 @@ function buildVCard(m: Member, c: Company | null) {
   if (c?.phone) lines.push(`TEL;TYPE=WORK,VOICE:${c.phone}`);
   if (c?.website) lines.push(`URL:${c.website}`);
   if (c?.address) lines.push(`ADR;TYPE=WORK:;;${escapeVCard(c.address)};;;;`);
-  const socials = [c?.linkedin_url, c?.facebook_url, c?.instagram_url, c?.youtube_url].filter(Boolean) as string[];
-  socials.forEach((u) => lines.push(`URL:${u}`));
+  [c?.linkedin_url, c?.facebook_url, c?.instagram_url, c?.youtube_url]
+    .filter(Boolean)
+    .forEach((u) => lines.push(`URL:${u}`));
   lines.push("END:VCARD");
   return lines.join("\n");
 }
 
-function IdCard({ member, company }: { member: Member; company: Company | null }) {
-  const cardRef = useRef<HTMLDivElement>(null);
+function QrTile({ member, company }: { member: Member; company: Company | null }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
   const [qr, setQr] = useState<string>("");
 
   useEffect(() => {
     QRCode.toDataURL(buildVCard(member, company), {
-      margin: 1,
-      width: 320,
+      margin: 2,
+      width: 600,
       color: { dark: "#0a0a0a", light: "#ffffff" },
-      errorCorrectionLevel: "M",
+      errorCorrectionLevel: "H", // high — allows the logo overlay
     }).then(setQr);
   }, [member, company]);
 
-  async function downloadCard() {
+  async function download() {
     try {
       const html2canvas = (await import("html2canvas")).default;
-      if (!cardRef.current) return;
-      const canvas = await html2canvas(cardRef.current, { scale: 3, backgroundColor: null });
+      if (!wrapRef.current) return;
+      const canvas = await html2canvas(wrapRef.current, { scale: 3, backgroundColor: "#ffffff" });
       const link = document.createElement("a");
-      link.download = `${(member.full_name || "id-card").replace(/\s+/g, "-")}.png`;
+      link.download = `${(member.full_name || "qr").replace(/\s+/g, "-")}-qr.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-    } catch (e: any) {
-      toast.error("Couldn't download card");
+    } catch {
+      toast.error("Couldn't download QR");
     }
   }
 
-  const initials = (member.full_name || member.email || "?")
-    .split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
-
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col items-center gap-3">
       <div
-        ref={cardRef}
-        className="relative w-[360px] rounded-2xl overflow-hidden shadow-2xl border border-border bg-card"
-        style={{ aspectRatio: "1.586 / 1" }}
+        ref={wrapRef}
+        className="relative w-72 h-72 rounded-xl bg-white p-4 shadow-lg border border-border"
       >
-        {/* Top luxury band */}
-        <div className="luxury-gradient h-24 px-5 flex items-center justify-between">
-          {company?.logo_url ? (
-            <img src={company.logo_url} alt="" className="h-12 max-w-[140px] object-contain" />
-          ) : (
-            <div className="text-sidebar-foreground font-serif text-lg">{company?.name || "Company"}</div>
-          )}
-          <div className="text-right">
-            <p className="text-[9px] tracking-[0.3em] text-accent">TEAM</p>
-            <p className="text-[9px] tracking-[0.2em] text-sidebar-foreground/70">ID CARD</p>
+        {qr ? (
+          <img src={qr} alt={`QR for ${member.full_name}`} className="w-full h-full" />
+        ) : (
+          <div className="w-full h-full bg-muted animate-pulse rounded" />
+        )}
+        {company?.logo_url && (
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-md p-1.5 shadow-md flex items-center justify-center"
+            style={{ width: 64, height: 64 }}
+          >
+            <img src={company.logo_url} alt="" className="max-w-full max-h-full object-contain" />
           </div>
-        </div>
-
-        {/* Body */}
-        <div className="p-5 flex gap-4">
-          <Avatar className="h-20 w-20 -mt-12 ring-4 ring-card shrink-0">
-            {member.avatar_url && <AvatarImage src={member.avatar_url} />}
-            <AvatarFallback className="text-lg font-serif">{initials}</AvatarFallback>
-          </Avatar>
-
-          <div className="flex-1 min-w-0">
-            <p className="font-serif text-lg leading-tight truncate">{member.full_name || "Member"}</p>
-            <p className="text-[11px] text-accent tracking-wider uppercase truncate">
-              {member.job_title || "Team Member"}
-            </p>
-            <div className="mt-2 space-y-0.5 text-[10px] text-muted-foreground">
-              {member.email && (
-                <p className="flex items-center gap-1 truncate"><Mail className="w-3 h-3" />{member.email}</p>
-              )}
-              {(member.phone || company?.phone) && (
-                <p className="flex items-center gap-1 truncate"><Phone className="w-3 h-3" />{member.phone || company?.phone}</p>
-              )}
-              {company?.website && (
-                <p className="flex items-center gap-1 truncate"><Globe className="w-3 h-3" />{company.website.replace(/^https?:\/\//, "")}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="shrink-0 flex flex-col items-center gap-1">
-            {qr ? (
-              <img src={qr} alt="QR" className="w-20 h-20 rounded-md bg-white p-1" />
-            ) : (
-              <div className="w-20 h-20 rounded-md bg-muted animate-pulse" />
-            )}
-            <p className="text-[8px] tracking-widest text-muted-foreground">SCAN ME</p>
-          </div>
-        </div>
+        )}
       </div>
-
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={downloadCard} className="flex-1">
-          <Download className="w-3 h-3 mr-1" /> Download PNG
-        </Button>
+      <div className="text-center">
+        <p className="font-serif text-base">{member.full_name || member.email}</p>
+        {member.job_title && (
+          <p className="text-xs text-accent tracking-wider uppercase">{member.job_title}</p>
+        )}
       </div>
+      <Button variant="outline" size="sm" onClick={download}>
+        <Download className="w-3 h-3 mr-1" /> Download
+      </Button>
     </div>
   );
 }
 
 export default function IdCards() {
+  const { user } = useAuth();
+  const { isAdmin, loading: roleLoading } = useUserRole();
   const [members, setMembers] = useState<Member[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
@@ -168,38 +137,52 @@ export default function IdCards() {
     })();
   }, []);
 
-  const filtered = members.filter((m) => {
+  if (loading || roleLoading) return <div className="p-10 text-muted-foreground">Loading…</div>;
+
+  // Members see only their own QR. Admins see everyone.
+  const visible = isAdmin ? members : members.filter((m) => m.id === user?.id);
+
+  const filtered = visible.filter((m) => {
     if (!q) return true;
     const s = q.toLowerCase();
-    return (m.full_name || "").toLowerCase().includes(s) ||
-           (m.email || "").toLowerCase().includes(s) ||
-           (m.job_title || "").toLowerCase().includes(s);
+    return (
+      (m.full_name || "").toLowerCase().includes(s) ||
+      (m.email || "").toLowerCase().includes(s) ||
+      (m.job_title || "").toLowerCase().includes(s)
+    );
   });
-
-  if (loading) return <div className="p-10 text-muted-foreground">Loading…</div>;
 
   return (
     <div className="p-10 max-w-7xl mx-auto">
       <div className="flex items-center gap-3 mb-2">
         <QrCode className="w-5 h-5 text-accent" />
-        <p className="text-xs tracking-[0.3em] text-accent">DIGITAL BUSINESS CARDS</p>
+        <p className="text-xs tracking-[0.3em] text-accent">DIGITAL CONTACT</p>
       </div>
-      <h1 className="font-serif text-5xl mb-2">Team ID Cards</h1>
+      <h1 className="font-serif text-5xl mb-2">{isAdmin ? "Team QR Codes" : "My QR Code"}</h1>
       <p className="text-muted-foreground mb-8">
-        Scan any QR to instantly save the contact — including company website, phone, and social profiles.
+        Scan to instantly save the contact — name, title, email, phone, website and company socials.
       </p>
 
-      <div className="relative max-w-md mb-8">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, email, or title…" className="pl-9" />
-      </div>
+      {isAdmin && (
+        <div className="relative max-w-md mb-8">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search by name, email, or title…"
+            className="pl-9"
+          />
+        </div>
+      )}
 
       {filtered.length === 0 ? (
-        <Card className="p-10 text-center border-dashed text-muted-foreground">No team members found.</Card>
+        <Card className="p-10 text-center border-dashed text-muted-foreground">
+          No QR code available — complete your profile first.
+        </Card>
       ) : (
-        <div className="flex flex-wrap gap-6">
+        <div className="flex flex-wrap gap-10">
           {filtered.map((m) => (
-            <IdCard key={m.id} member={m} company={company} />
+            <QrTile key={m.id} member={m} company={company} />
           ))}
         </div>
       )}
