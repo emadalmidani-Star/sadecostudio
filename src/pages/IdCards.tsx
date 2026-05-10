@@ -58,11 +58,20 @@ function buildVCard(m: Member, c: Company | null) {
   return lines.join("\n");
 }
 
+type Theme = "gradient" | "black" | "white";
+
 function QrTile({ member, company, onRegenerate }: { member: Member; company: Company | null; onRegenerate?: () => void }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [qr, setQr] = useState<string>("");
-
+  const [theme, setTheme] = useState<Theme>("gradient");
   const [version, setVersion] = useState(0);
+
+  // Card colors per theme. QR always stays on a white tile so it scans.
+  const themeStyles = {
+    gradient: { bandClass: "luxury-gradient", bodyClass: "bg-card", textClass: "text-foreground", mutedClass: "text-muted-foreground", ringClass: "ring-card" },
+    black:    { bandClass: "bg-[#0a0a0a]",     bodyClass: "bg-[#0a0a0a]", textClass: "text-white", mutedClass: "text-white/70", ringClass: "ring-[#0a0a0a]" },
+    white:    { bandClass: "bg-white border-b border-border", bodyClass: "bg-white", textClass: "text-[#0a0a0a]", mutedClass: "text-neutral-500", ringClass: "ring-white" },
+  }[theme];
 
   // Logo overlay sized at ~18% of QR — within the 30% redundancy that
   // error-correction level "H" provides, so the code remains scannable.
@@ -113,22 +122,22 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
       {/* Vertical ID-card badge */}
       <div
         ref={wrapRef}
-        className="relative w-[340px] rounded-2xl overflow-hidden shadow-2xl border border-border bg-card"
+        className={`relative w-[340px] rounded-2xl overflow-hidden shadow-2xl border border-border ${themeStyles.bodyClass}`}
       >
         {/* Lanyard slot */}
-        <div className="luxury-gradient pt-5 pb-3 flex flex-col items-center">
-          <div className="w-12 h-1.5 rounded-full bg-sidebar-foreground/20 mb-3" />
+        <div className={`${themeStyles.bandClass} pt-5 pb-3 flex flex-col items-center`}>
+          <div className="w-12 h-1.5 rounded-full bg-current opacity-20 mb-3" />
           {company?.logo_url ? (
             <img src={company.logo_url} alt="" className="h-10 max-w-[180px] object-contain" />
           ) : (
-            <div className="text-sidebar-foreground font-serif text-base">{company?.name || "Company"}</div>
+            <div className={`font-serif text-base ${themeStyles.textClass}`}>{company?.name || "Company"}</div>
           )}
           <p className="text-[9px] tracking-[0.4em] text-accent mt-2">EMPLOYEE ID</p>
         </div>
 
         {/* Photo */}
         <div className="flex justify-center -mt-2 mb-3">
-          <Avatar className="h-24 w-24 ring-4 ring-card shadow-lg">
+          <Avatar className={`h-24 w-24 ring-4 ${themeStyles.ringClass} shadow-lg`}>
             {member.avatar_url && <AvatarImage src={member.avatar_url} />}
             <AvatarFallback className="text-2xl font-serif">{initials}</AvatarFallback>
           </Avatar>
@@ -136,14 +145,14 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
 
         {/* Name + title */}
         <div className="text-center px-5">
-          <p className="font-serif text-xl leading-tight">{member.full_name || "Member"}</p>
+          <p className={`font-serif text-xl leading-tight ${themeStyles.textClass}`}>{member.full_name || "Member"}</p>
           <p className="text-[10px] text-accent tracking-[0.2em] uppercase mt-1">
             {member.job_title || "Team Member"}
           </p>
         </div>
 
         {/* Contact strip */}
-        <div className="px-5 mt-3 space-y-1 text-[11px] text-muted-foreground">
+        <div className={`px-5 mt-3 space-y-1 text-[11px] ${themeStyles.mutedClass}`}>
           {member.email && (
             <p className="flex items-center gap-1.5 truncate"><Mail className="w-3 h-3 text-accent" />{member.email}</p>
           )}
@@ -155,7 +164,7 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
           )}
         </div>
 
-        {/* QR with logo */}
+        {/* QR with logo — always on white tile so it stays scannable */}
         <div className="mt-4 mb-5 flex flex-col items-center">
           <div
             className="relative rounded-lg bg-white p-2 border border-border"
@@ -175,16 +184,39 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
               </div>
             )}
           </div>
-          <p className="text-[8px] tracking-[0.3em] text-muted-foreground mt-2">SCAN TO SAVE CONTACT</p>
+          <p className={`text-[8px] tracking-[0.3em] mt-2 ${themeStyles.mutedClass}`}>SCAN TO SAVE CONTACT</p>
         </div>
 
         {/* Footer band */}
-        <div className="luxury-gradient px-5 py-2 flex items-center justify-between">
-          <p className="text-[8px] tracking-[0.2em] text-sidebar-foreground/60 truncate">{company?.name}</p>
+        <div className={`${themeStyles.bandClass} px-5 py-2 flex items-center justify-between`}>
+          <p className={`text-[8px] tracking-[0.2em] truncate opacity-70 ${themeStyles.textClass}`}>{company?.name}</p>
           {company?.website && (
             <p className="text-[8px] tracking-[0.2em] text-accent truncate">{company.website.replace(/^https?:\/\//, "")}</p>
           )}
         </div>
+      </div>
+
+      {/* Theme selector */}
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] tracking-[0.2em] text-muted-foreground uppercase">Theme</span>
+        {(["gradient", "black", "white"] as Theme[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTheme(t)}
+            aria-label={`${t} theme`}
+            className={`w-7 h-7 rounded-full border-2 transition-all ${theme === t ? "border-accent scale-110" : "border-border"}`}
+            style={{
+              background:
+                t === "gradient"
+                  ? "linear-gradient(135deg, hsl(var(--sidebar-background)), hsl(var(--accent)))"
+                  : t === "black"
+                  ? "#0a0a0a"
+                  : "#ffffff",
+            }}
+            title={t === "gradient" ? "SADECO gradient" : t.charAt(0).toUpperCase() + t.slice(1)}
+          />
+        ))}
       </div>
 
       <div className="flex flex-wrap gap-2 justify-center">
