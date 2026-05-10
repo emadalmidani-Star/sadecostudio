@@ -119,8 +119,8 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
         )}
         {company?.logo_url && (
           <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-md shadow-md flex items-center justify-center"
-            style={{ width: logoBox, height: logoBox, padding: Math.round(logoBox * 0.12) }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md shadow-md flex items-center justify-center"
+            style={{ width: logoBox, height: logoBox, padding: Math.round(logoBox * 0.12), backgroundColor: "#0a0a0a" }}
           >
             <img src={company.logo_url} alt="" className="max-w-full max-h-full object-contain" />
           </div>
