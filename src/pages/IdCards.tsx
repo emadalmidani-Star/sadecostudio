@@ -203,10 +203,14 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
         </div>
 
         {/* Footer band */}
-        <div className={`${themeStyles.bandClass} px-5 py-2 flex items-center justify-between`}>
-          <p className={`text-[8px] tracking-[0.2em] truncate opacity-70 ${themeStyles.textClass}`}>{company?.name}</p>
+        <div className={`${themeStyles.bandClass} mt-2 px-5 py-3 flex flex-col items-center gap-1 border-t border-white/10`}>
+          {company?.name && (
+            <p className={`font-serif text-sm tracking-wide ${themeStyles.textClass}`}>{company.name}</p>
+          )}
           {company?.website && (
-            <p className="text-[8px] tracking-[0.2em] text-accent truncate">{company.website.replace(/^https?:\/\//, "")}</p>
+            <p className="text-[9px] tracking-[0.35em] text-accent uppercase">
+              {company.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+            </p>
           )}
         </div>
       </div>
