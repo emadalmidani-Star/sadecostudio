@@ -172,7 +172,7 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
               </div>
             )}
           </div>
-          <p className={`text-[8px] tracking-[0.3em] mt-2 ${themeStyles.mutedClass}`}>SCAN TO SAVE CONTACT</p>
+          
         </div>
 
         {/* Footer band */}
