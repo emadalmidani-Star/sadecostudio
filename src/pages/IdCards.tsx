@@ -5,7 +5,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { QrCode, Download, Search, RefreshCw, Contact } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { QrCode, Download, Search, RefreshCw, Contact, Mail, Phone, Globe } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
 
@@ -63,10 +64,9 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
 
   const [version, setVersion] = useState(0);
 
-  // Logo overlay sized at ~18% of QR — well within the 30% redundancy that
+  // Logo overlay sized at ~18% of QR — within the 30% redundancy that
   // error-correction level "H" provides, so the code remains scannable.
-  // Render box is 288px (w-72) minus 32px padding = 256px QR area.
-  const QR_RENDER = 256;
+  const QR_RENDER = 180;
   const LOGO_RATIO = 0.18;
   const logoBox = Math.round(QR_RENDER * LOGO_RATIO);
 
@@ -75,7 +75,7 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
       margin: 2,
       width: 800,
       color: { dark: "#0a0a0a", light: "#ffffff" },
-      errorCorrectionLevel: "H", // high — allows the logo overlay
+      errorCorrectionLevel: "H",
     }).then(setQr);
   }, [member, company, version]);
 
@@ -83,13 +83,13 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
     try {
       const html2canvas = (await import("html2canvas")).default;
       if (!wrapRef.current) return;
-      const canvas = await html2canvas(wrapRef.current, { scale: 3, backgroundColor: "#ffffff" });
+      const canvas = await html2canvas(wrapRef.current, { scale: 3, backgroundColor: null, useCORS: true });
       const link = document.createElement("a");
-      link.download = `${(member.full_name || "qr").replace(/\s+/g, "-")}-qr.png`;
+      link.download = `${(member.full_name || "id-card").replace(/\s+/g, "-")}-id.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch {
-      toast.error("Couldn't download QR");
+      toast.error("Couldn't download card");
     }
   }
 
@@ -105,33 +105,88 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
     toast.success("vCard downloaded");
   }
 
+  const initials = (member.full_name || member.email || "?")
+    .split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
+
   return (
     <div className="flex flex-col items-center gap-3">
+      {/* Vertical ID-card badge */}
       <div
         ref={wrapRef}
-        className="relative rounded-xl bg-white p-4 shadow-lg border border-border"
-        style={{ width: QR_RENDER + 32, height: QR_RENDER + 32 }}
+        className="relative w-[340px] rounded-2xl overflow-hidden shadow-2xl border border-border bg-card"
       >
-        {qr ? (
-          <img src={qr} alt={`QR for ${member.full_name}`} className="w-full h-full" />
-        ) : (
-          <div className="w-full h-full bg-muted animate-pulse rounded" />
-        )}
-        {company?.logo_url && (
+        {/* Lanyard slot */}
+        <div className="luxury-gradient pt-5 pb-3 flex flex-col items-center">
+          <div className="w-12 h-1.5 rounded-full bg-sidebar-foreground/20 mb-3" />
+          {company?.logo_url ? (
+            <img src={company.logo_url} alt="" className="h-10 max-w-[180px] object-contain" />
+          ) : (
+            <div className="text-sidebar-foreground font-serif text-base">{company?.name || "Company"}</div>
+          )}
+          <p className="text-[9px] tracking-[0.4em] text-accent mt-2">EMPLOYEE ID</p>
+        </div>
+
+        {/* Photo */}
+        <div className="flex justify-center -mt-2 mb-3">
+          <Avatar className="h-24 w-24 ring-4 ring-card shadow-lg">
+            {member.avatar_url && <AvatarImage src={member.avatar_url} />}
+            <AvatarFallback className="text-2xl font-serif">{initials}</AvatarFallback>
+          </Avatar>
+        </div>
+
+        {/* Name + title */}
+        <div className="text-center px-5">
+          <p className="font-serif text-xl leading-tight">{member.full_name || "Member"}</p>
+          <p className="text-[10px] text-accent tracking-[0.2em] uppercase mt-1">
+            {member.job_title || "Team Member"}
+          </p>
+        </div>
+
+        {/* Contact strip */}
+        <div className="px-5 mt-3 space-y-1 text-[11px] text-muted-foreground">
+          {member.email && (
+            <p className="flex items-center gap-1.5 truncate"><Mail className="w-3 h-3 text-accent" />{member.email}</p>
+          )}
+          {(member.phone || company?.phone) && (
+            <p className="flex items-center gap-1.5 truncate"><Phone className="w-3 h-3 text-accent" />{member.phone || company?.phone}</p>
+          )}
+          {company?.website && (
+            <p className="flex items-center gap-1.5 truncate"><Globe className="w-3 h-3 text-accent" />{company.website.replace(/^https?:\/\//, "")}</p>
+          )}
+        </div>
+
+        {/* QR with logo */}
+        <div className="mt-4 mb-5 flex flex-col items-center">
           <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md shadow-md flex items-center justify-center"
-            style={{ width: logoBox, height: logoBox, padding: Math.round(logoBox * 0.12), backgroundColor: "#0a0a0a" }}
+            className="relative rounded-lg bg-white p-2 border border-border"
+            style={{ width: QR_RENDER + 16, height: QR_RENDER + 16 }}
           >
-            <img src={company.logo_url} alt="" className="max-w-full max-h-full object-contain" />
+            {qr ? (
+              <img src={qr} alt={`QR for ${member.full_name}`} className="w-full h-full" />
+            ) : (
+              <div className="w-full h-full bg-muted animate-pulse rounded" />
+            )}
+            {company?.logo_url && (
+              <div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md shadow-md flex items-center justify-center"
+                style={{ width: logoBox, height: logoBox, padding: Math.round(logoBox * 0.12), backgroundColor: "#0a0a0a" }}
+              >
+                <img src={company.logo_url} alt="" className="max-w-full max-h-full object-contain" />
+              </div>
+            )}
           </div>
-        )}
+          <p className="text-[8px] tracking-[0.3em] text-muted-foreground mt-2">SCAN TO SAVE CONTACT</p>
+        </div>
+
+        {/* Footer band */}
+        <div className="luxury-gradient px-5 py-2 flex items-center justify-between">
+          <p className="text-[8px] tracking-[0.2em] text-sidebar-foreground/60 truncate">{company?.name}</p>
+          {company?.website && (
+            <p className="text-[8px] tracking-[0.2em] text-accent truncate">{company.website.replace(/^https?:\/\//, "")}</p>
+          )}
+        </div>
       </div>
-      <div className="text-center">
-        <p className="font-serif text-base">{member.full_name || member.email}</p>
-        {member.job_title && (
-          <p className="text-xs text-accent tracking-wider uppercase">{member.job_title}</p>
-        )}
-      </div>
+
       <div className="flex flex-wrap gap-2 justify-center">
         <Button variant="outline" size="sm" onClick={downloadPng}>
           <Download className="w-3 h-3 mr-1" /> PNG
