@@ -157,17 +157,17 @@ export default function IdCards() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
 
-  useEffect(() => {
-    (async () => {
-      const [{ data: profiles }, { data: c }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, email, avatar_url, job_title, phone, whatsapp"),
-        supabase.from("company_profile").select("*").limit(1).single(),
-      ]);
-      setMembers((profiles as Member[]) || []);
-      setCompany((c as Company) || null);
-      setLoading(false);
-    })();
-  }, []);
+  async function loadAll() {
+    const [{ data: profiles }, { data: c }] = await Promise.all([
+      supabase.from("profiles").select("id, full_name, email, avatar_url, job_title, phone, whatsapp"),
+      supabase.from("company_profile").select("*").limit(1).single(),
+    ]);
+    setMembers((profiles as Member[]) || []);
+    setCompany((c as Company) || null);
+    setLoading(false);
+  }
+
+  useEffect(() => { loadAll(); }, []);
 
   if (loading || roleLoading) return <div className="p-10 text-muted-foreground">Loading…</div>;
 
@@ -214,7 +214,7 @@ export default function IdCards() {
       ) : (
         <div className="flex flex-wrap gap-10">
           {filtered.map((m) => (
-            <QrTile key={m.id} member={m} company={company} />
+            <QrTile key={m.id} member={m} company={company} onRegenerate={() => { toast.success("Refreshed from latest profile"); loadAll(); }} />
           ))}
         </div>
       )}
