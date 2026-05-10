@@ -16,6 +16,7 @@ import TemplateDesigner from "./pages/TemplateDesigner";
 import Team from "./pages/Team";
 import MyProfile from "./pages/MyProfile";
 import Permissions from "./pages/Permissions";
+import IdCards from "./pages/IdCards";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/template" element={<RoleRoute page="template"><TemplateDesigner /></RoleRoute>} />
               <Route path="/team" element={<RoleRoute page="team"><Team /></RoleRoute>} />
               <Route path="/me" element={<RoleRoute page="me"><MyProfile /></RoleRoute>} />
+              <Route path="/id-cards" element={<RoleRoute page="idcards"><IdCards /></RoleRoute>} />
               <Route path="/permissions" element={<RoleRoute page="team"><Permissions /></RoleRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />

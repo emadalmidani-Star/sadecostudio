@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type AppRole = "admin" | "user";
-export type PageKey = "dashboard" | "projects" | "exports" | "company" | "template" | "team" | "me";
+export type PageKey = "dashboard" | "projects" | "exports" | "company" | "template" | "team" | "me" | "idcards";
 
 export const ALL_ROLES: AppRole[] = ["admin", "user"];
 export const ALL_PAGES: { key: PageKey; label: string }[] = [
@@ -11,6 +11,7 @@ export const ALL_PAGES: { key: PageKey; label: string }[] = [
   { key: "projects", label: "Projects" },
   { key: "exports", label: "Export PDFs" },
   { key: "me", label: "My Profile" },
+  { key: "idcards", label: "Team ID Cards" },
   { key: "company", label: "Company Profile" },
   { key: "template", label: "Template Designer" },
   { key: "team", label: "Team" },
