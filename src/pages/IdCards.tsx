@@ -132,7 +132,7 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
           ) : (
             <div className={`font-serif text-base ${themeStyles.textClass}`}>{company?.name || "Company"}</div>
           )}
-          <p className="text-[9px] tracking-[0.4em] text-accent mt-2">EMPLOYEE ID</p>
+          
         </div>
 
         {/* Photo */}
@@ -151,18 +151,6 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
           </p>
         </div>
 
-        {/* Contact strip */}
-        <div className={`px-5 mt-3 space-y-1 text-[11px] ${themeStyles.mutedClass}`}>
-          {member.email && (
-            <p className="flex items-center gap-1.5 truncate"><Mail className="w-3 h-3 text-accent" />{member.email}</p>
-          )}
-          {(member.phone || company?.phone) && (
-            <p className="flex items-center gap-1.5 truncate"><Phone className="w-3 h-3 text-accent" />{member.phone || company?.phone}</p>
-          )}
-          {company?.website && (
-            <p className="flex items-center gap-1.5 truncate"><Globe className="w-3 h-3 text-accent" />{company.website.replace(/^https?:\/\//, "")}</p>
-          )}
-        </div>
 
         {/* QR with logo — always on white tile so it stays scannable */}
         <div className="mt-4 mb-5 flex flex-col items-center">
