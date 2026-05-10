@@ -102,6 +102,33 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
     }
   }
 
+  async function downloadPdf() {
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+      if (!wrapRef.current) return;
+      const canvas = await html2canvas(wrapRef.current, { scale: 3, backgroundColor: null, useCORS: true });
+      const imgData = canvas.toDataURL("image/png");
+
+      // Standard ID-card 85.6 x 54mm proportions feel cramped here; use the
+      // card's own aspect ratio centered on A4 portrait with a small margin.
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const targetW = 90; // mm — typical credit-card width
+      const ratio = canvas.height / canvas.width;
+      const targetH = targetW * ratio;
+      const x = (pageW - targetW) / 2;
+      const y = (pageH - targetH) / 2;
+      pdf.addImage(imgData, "PNG", x, y, targetW, targetH);
+      pdf.save(`${(member.full_name || "id-card").replace(/\s+/g, "-")}-id.pdf`);
+    } catch {
+      toast.error("Couldn't download PDF");
+    }
+  }
+
   function downloadVCard() {
     const vcard = buildVCard(member, company);
     const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
@@ -172,7 +199,7 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
               </div>
             )}
           </div>
-          <p className={`text-[8px] tracking-[0.3em] mt-2 ${themeStyles.mutedClass}`}>SCAN TO SAVE CONTACT</p>
+          
         </div>
 
         {/* Footer band */}
@@ -210,6 +237,9 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
       <div className="flex flex-wrap gap-2 justify-center">
         <Button variant="outline" size="sm" onClick={downloadPng}>
           <Download className="w-3 h-3 mr-1" /> PNG
+        </Button>
+        <Button variant="outline" size="sm" onClick={downloadPdf}>
+          <Download className="w-3 h-3 mr-1" /> PDF
         </Button>
         <Button variant="outline" size="sm" onClick={downloadVCard}>
           <Contact className="w-3 h-3 mr-1" /> vCard
