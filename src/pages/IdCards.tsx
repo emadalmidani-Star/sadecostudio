@@ -281,7 +281,14 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
           <Contact className="w-3 h-3 mr-1" /> vCard
         </Button>
         {onRegenerate && (
-          <Button variant="outline" size="sm" onClick={() => { onRegenerate(); setVersion(v => v + 1); }}>
+          <Button variant="outline" size="sm" onClick={() => {
+            // Drop any cached entries for this member so the next encode is fresh.
+            for (const k of Array.from(qrCache.keys())) {
+              if (k.startsWith(`${member.id}::`)) qrCache.delete(k);
+            }
+            onRegenerate();
+            setVersion(v => v + 1);
+          }}>
             <RefreshCw className="w-3 h-3 mr-1" /> Regenerate
           </Button>
         )}
@@ -309,6 +316,22 @@ export default function IdCards() {
   }
 
   useEffect(() => { loadAll(); }, []);
+
+  // Pre-warm export libraries during browser idle time so the first
+  // PNG / PDF download click resolves instantly.
+  useEffect(() => {
+    const prewarm = () => {
+      import("html2canvas").catch(() => {});
+      import("jspdf").catch(() => {});
+    };
+    const w = window as any;
+    if (typeof w.requestIdleCallback === "function") {
+      const id = w.requestIdleCallback(prewarm, { timeout: 2000 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const t = setTimeout(prewarm, 1500);
+    return () => clearTimeout(t);
+  }, []);
 
   if (loading || roleLoading) return <div className="p-10 text-muted-foreground">Loading…</div>;
 
