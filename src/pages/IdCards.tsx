@@ -58,11 +58,20 @@ function buildVCard(m: Member, c: Company | null) {
   return lines.join("\n");
 }
 
+type Theme = "gradient" | "black" | "white";
+
 function QrTile({ member, company, onRegenerate }: { member: Member; company: Company | null; onRegenerate?: () => void }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [qr, setQr] = useState<string>("");
-
+  const [theme, setTheme] = useState<Theme>("gradient");
   const [version, setVersion] = useState(0);
+
+  // Card colors per theme. QR always stays on a white tile so it scans.
+  const themeStyles = {
+    gradient: { bandClass: "luxury-gradient", bodyClass: "bg-card", textClass: "text-foreground", mutedClass: "text-muted-foreground", ringClass: "ring-card" },
+    black:    { bandClass: "bg-[#0a0a0a]",     bodyClass: "bg-[#0a0a0a]", textClass: "text-white", mutedClass: "text-white/70", ringClass: "ring-[#0a0a0a]" },
+    white:    { bandClass: "bg-white border-b border-border", bodyClass: "bg-white", textClass: "text-[#0a0a0a]", mutedClass: "text-neutral-500", ringClass: "ring-white" },
+  }[theme];
 
   // Logo overlay sized at ~18% of QR — within the 30% redundancy that
   // error-correction level "H" provides, so the code remains scannable.
