@@ -5,7 +5,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { QrCode, Download, Search } from "lucide-react";
+import { QrCode, Download, Search, RefreshCw, Contact } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
 
@@ -57,20 +57,29 @@ function buildVCard(m: Member, c: Company | null) {
   return lines.join("\n");
 }
 
-function QrTile({ member, company }: { member: Member; company: Company | null }) {
+function QrTile({ member, company, onRegenerate }: { member: Member; company: Company | null; onRegenerate?: () => void }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [qr, setQr] = useState<string>("");
+
+  const [version, setVersion] = useState(0);
+
+  // Logo overlay sized at ~18% of QR — well within the 30% redundancy that
+  // error-correction level "H" provides, so the code remains scannable.
+  // Render box is 288px (w-72) minus 32px padding = 256px QR area.
+  const QR_RENDER = 256;
+  const LOGO_RATIO = 0.18;
+  const logoBox = Math.round(QR_RENDER * LOGO_RATIO);
 
   useEffect(() => {
     QRCode.toDataURL(buildVCard(member, company), {
       margin: 2,
-      width: 600,
+      width: 800,
       color: { dark: "#0a0a0a", light: "#ffffff" },
       errorCorrectionLevel: "H", // high — allows the logo overlay
     }).then(setQr);
-  }, [member, company]);
+  }, [member, company, version]);
 
-  async function download() {
+  async function downloadPng() {
     try {
       const html2canvas = (await import("html2canvas")).default;
       if (!wrapRef.current) return;
@@ -84,11 +93,24 @@ function QrTile({ member, company }: { member: Member; company: Company | null }
     }
   }
 
+  function downloadVCard() {
+    const vcard = buildVCard(member, company);
+    const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = `${(member.full_name || "contact").replace(/\s+/g, "-")}.vcf`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("vCard downloaded");
+  }
+
   return (
     <div className="flex flex-col items-center gap-3">
       <div
         ref={wrapRef}
-        className="relative w-72 h-72 rounded-xl bg-white p-4 shadow-lg border border-border"
+        className="relative rounded-xl bg-white p-4 shadow-lg border border-border"
+        style={{ width: QR_RENDER + 32, height: QR_RENDER + 32 }}
       >
         {qr ? (
           <img src={qr} alt={`QR for ${member.full_name}`} className="w-full h-full" />
@@ -97,8 +119,8 @@ function QrTile({ member, company }: { member: Member; company: Company | null }
         )}
         {company?.logo_url && (
           <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-md p-1.5 shadow-md flex items-center justify-center"
-            style={{ width: 64, height: 64 }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-md shadow-md flex items-center justify-center"
+            style={{ width: logoBox, height: logoBox, padding: Math.round(logoBox * 0.12) }}
           >
             <img src={company.logo_url} alt="" className="max-w-full max-h-full object-contain" />
           </div>
@@ -110,9 +132,19 @@ function QrTile({ member, company }: { member: Member; company: Company | null }
           <p className="text-xs text-accent tracking-wider uppercase">{member.job_title}</p>
         )}
       </div>
-      <Button variant="outline" size="sm" onClick={download}>
-        <Download className="w-3 h-3 mr-1" /> Download
-      </Button>
+      <div className="flex flex-wrap gap-2 justify-center">
+        <Button variant="outline" size="sm" onClick={downloadPng}>
+          <Download className="w-3 h-3 mr-1" /> PNG
+        </Button>
+        <Button variant="outline" size="sm" onClick={downloadVCard}>
+          <Contact className="w-3 h-3 mr-1" /> vCard
+        </Button>
+        {onRegenerate && (
+          <Button variant="outline" size="sm" onClick={() => { onRegenerate(); setVersion(v => v + 1); }}>
+            <RefreshCw className="w-3 h-3 mr-1" /> Regenerate
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -125,17 +157,17 @@ export default function IdCards() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
 
-  useEffect(() => {
-    (async () => {
-      const [{ data: profiles }, { data: c }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, email, avatar_url, job_title, phone, whatsapp"),
-        supabase.from("company_profile").select("*").limit(1).single(),
-      ]);
-      setMembers((profiles as Member[]) || []);
-      setCompany((c as Company) || null);
-      setLoading(false);
-    })();
-  }, []);
+  async function loadAll() {
+    const [{ data: profiles }, { data: c }] = await Promise.all([
+      supabase.from("profiles").select("id, full_name, email, avatar_url, job_title, phone, whatsapp"),
+      supabase.from("company_profile").select("*").limit(1).single(),
+    ]);
+    setMembers((profiles as Member[]) || []);
+    setCompany((c as Company) || null);
+    setLoading(false);
+  }
+
+  useEffect(() => { loadAll(); }, []);
 
   if (loading || roleLoading) return <div className="p-10 text-muted-foreground">Loading…</div>;
 
@@ -182,7 +214,7 @@ export default function IdCards() {
       ) : (
         <div className="flex flex-wrap gap-10">
           {filtered.map((m) => (
-            <QrTile key={m.id} member={m} company={company} />
+            <QrTile key={m.id} member={m} company={company} onRegenerate={() => { toast.success("Refreshed from latest profile"); loadAll(); }} />
           ))}
         </div>
       )}
