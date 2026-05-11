@@ -474,7 +474,10 @@ export default function IdCards() {
       import("html2canvas").catch(() => {});
       import("jspdf").catch(() => {});
     };
-    const w = window as any;
+    const w = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
     if (typeof w.requestIdleCallback === "function") {
       const id = w.requestIdleCallback(prewarm, { timeout: 2000 });
       return () => w.cancelIdleCallback?.(id);
