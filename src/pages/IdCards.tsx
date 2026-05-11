@@ -93,10 +93,15 @@ function buildVCard(m: Member, c: Company | null, photo?: string) {
   lines.push(`N:${escapeVCard(parts.slice(1).join(" "))};${escapeVCard(parts[0])};;;`);
   if (m.job_title) lines.push(`TITLE:${escapeVCard(m.job_title)}`);
   if (c?.name) lines.push(`ORG:${escapeVCard(c.name)}`);
-  if (m.email) lines.push(`EMAIL;TYPE=WORK:${m.email}`);
-  if (m.phone) lines.push(`TEL;TYPE=CELL:${m.phone}`);
-  if (m.whatsapp) lines.push(`TEL;TYPE=WORK:${m.whatsapp}`);
-  if (c?.phone) lines.push(`TEL;TYPE=WORK,VOICE:${c.phone}`);
+  if (m.email) {
+    lines.push(`EMAIL;TYPE=INTERNET,WORK,pref:${escapeVCard(m.email)}`);
+  }
+  if (m.phone) lines.push(`TEL;TYPE=CELL,VOICE,pref:${escapeVCard(m.phone)}`);
+  if (m.whatsapp) {
+    lines.push(`item0.TEL:${escapeVCard(m.whatsapp)}`);
+    lines.push(`item0.X-ABLabel:WhatsApp`);
+  }
+  if (c?.phone) lines.push(`TEL;TYPE=WORK,VOICE:${escapeVCard(c.phone)}`);
   const website = normalizeVCardUrl(c?.website);
   if (website) {
     lines.push(`item1.URL;TYPE=Website:${escapeVCard(website)}`);
