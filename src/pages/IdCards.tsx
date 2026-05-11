@@ -310,10 +310,14 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
         <Button variant="outline" size="sm" onClick={downloadVCard}>
           <Contact className="w-3 h-3 mr-1" /> vCard
         </Button>
+        {canEdit && (
+          <Button variant="outline" size="sm" onClick={() => { setDraft(member); setEditOpen(true); }}>
+            <Pencil className="w-3 h-3 mr-1" /> Edit Info
+          </Button>
+        )}
         {onRegenerate && (
           <Button variant="outline" size="sm" disabled={regenerating} onClick={() => {
             setRegenerating(true);
-            // Drop any cached entries for this member so the next encode is fresh.
             for (const k of Array.from(qrCache.keys())) {
               if (k.startsWith(`${member.id}::`)) qrCache.delete(k);
             }
@@ -325,6 +329,28 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
           </Button>
         )}
       </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit QR Info</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Updates the contact details encoded in your QR code and shown on the badge.
+          </p>
+          <div className="grid gap-3 py-2">
+            <div><Label>Full name</Label><Input value={draft.full_name || ""} onChange={e => setDraft({ ...draft, full_name: e.target.value })} /></div>
+            <div><Label>Job title</Label><Input value={draft.job_title || ""} onChange={e => setDraft({ ...draft, job_title: e.target.value })} /></div>
+            <div><Label>Email</Label><Input value={draft.email || ""} onChange={e => setDraft({ ...draft, email: e.target.value })} /></div>
+            <div><Label>Phone</Label><Input value={draft.phone || ""} onChange={e => setDraft({ ...draft, phone: e.target.value })} placeholder="+971…" /></div>
+            <div><Label>WhatsApp</Label><Input value={draft.whatsapp || ""} onChange={e => setDraft({ ...draft, whatsapp: e.target.value })} placeholder="+971…" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>Cancel</Button>
+            <Button onClick={saveDraft} disabled={saving}>{saving ? "Saving…" : "Save & Update QR"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
