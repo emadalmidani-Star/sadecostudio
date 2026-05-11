@@ -39,6 +39,52 @@ function escapeVCard(s: string) {
   return (s || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 }
 
+function normalizeVCardUrl(url?: string | null) {
+  const trimmed = (url || "").trim();
+  if (!trimmed) return "";
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function extractSocialUsername(rawUrl: string, type: string) {
+  const fallback = () => {
+    const clean = rawUrl.trim().replace(/^https?:\/\//i, "").split(/[?#]/)[0];
+    const parts = clean.split("/").filter(Boolean);
+    return (parts[parts.length - 1] || clean).replace(/^@/, "") || rawUrl.trim();
+  };
+
+  try {
+    const url = new URL(normalizeVCardUrl(rawUrl));
+    const segments = url.pathname
+      .split("/")
+      .map((part) => decodeURIComponent(part.trim()))
+      .filter(Boolean);
+
+    if (type === "facebook" && url.searchParams.get("id")) return url.searchParams.get("id") || fallback();
+    if (type === "linkedin") {
+      const marker = segments.findIndex((part) => ["in", "company", "school"].includes(part.toLowerCase()));
+      if (marker >= 0 && segments[marker + 1]) return segments[marker + 1].replace(/^@/, "");
+    }
+    if (type === "instagram" && segments[0] && !["p", "reel", "explore", "stories"].includes(segments[0].toLowerCase())) {
+      return segments[0].replace(/^@/, "");
+    }
+    const handle = segments.find((part) => part.startsWith("@")) || segments[segments.length - 1];
+    return (handle || url.hostname.replace(/^www\./, "")).replace(/^@/, "");
+  } catch {
+    return fallback();
+  }
+}
+
+function foldVCardLine(line: string) {
+  const chunks: string[] = [];
+  let remaining = line;
+  while (remaining.length > 73) {
+    chunks.push(remaining.slice(0, 73));
+    remaining = ` ${remaining.slice(73)}`;
+  }
+  chunks.push(remaining);
+  return chunks.join("\r\n");
+}
+
 function buildVCard(m: Member, c: Company | null, photoDataUrl?: string) {
   const lines = ["BEGIN:VCARD", "VERSION:3.0"];
   const name = m.full_name || m.email || "Member";
@@ -51,20 +97,12 @@ function buildVCard(m: Member, c: Company | null, photoDataUrl?: string) {
   if (m.phone) lines.push(`TEL;TYPE=CELL:${m.phone}`);
   if (m.whatsapp) lines.push(`TEL;TYPE=WORK:${m.whatsapp}`);
   if (c?.phone) lines.push(`TEL;TYPE=WORK,VOICE:${c.phone}`);
-  if (c?.website) {
-    lines.push(`URL;TYPE=Website:${c.website}`);
-    lines.push(`item1.URL:${c.website}`);
+  const website = normalizeVCardUrl(c?.website);
+  if (website) {
+    lines.push(`item1.URL;TYPE=Website:${website}`);
     lines.push(`item1.X-ABLabel:Website`);
   }
   if (c?.address) lines.push(`ADR;TYPE=WORK:;;${escapeVCard(c.address)};;;;`);
-
-  const handle = (url: string) => {
-    try {
-      const u = new URL(url);
-      const seg = u.pathname.split("/").filter(Boolean);
-      return seg[seg.length - 1] || u.hostname;
-    } catch { return url; }
-  };
 
   const socials: { url?: string | null; label: string; type: string }[] = [
     { url: c?.linkedin_url, label: "LinkedIn", type: "linkedin" },
@@ -73,15 +111,16 @@ function buildVCard(m: Member, c: Company | null, photoDataUrl?: string) {
     { url: c?.youtube_url, label: "YouTube", type: "youtube" },
   ];
   socials.forEach((s, i) => {
-    if (!s.url) return;
-    const user = handle(s.url);
+    const url = normalizeVCardUrl(s.url);
+    if (!url) return;
+    const user = extractSocialUsername(url, s.type);
     // iOS — renders the brand icon
-    lines.push(`X-SOCIALPROFILE;TYPE=${s.type};x-user=${escapeVCard(user)}:${s.url}`);
+    lines.push(`X-SOCIALPROFILE;TYPE=${s.type};x-user=${escapeVCard(user)}:${url}`);
     // Android / Google Contacts — honors custom TYPE on URL as the label
-    lines.push(`URL;TYPE=${s.label}:${s.url}`);
+    lines.push(`URL;TYPE=${s.label}:${url}`);
     // iOS fallback labelling
     const item = `item${i + 2}`;
-    lines.push(`${item}.URL:${s.url}`);
+    lines.push(`${item}.URL;TYPE=${s.label}:${url}`);
     lines.push(`${item}.X-ABLabel:${s.label}`);
   });
   if (photoDataUrl) {
@@ -91,11 +130,11 @@ function buildVCard(m: Member, c: Company | null, photoDataUrl?: string) {
     }
   }
   lines.push("END:VCARD");
-  return lines.join("\n");
+  return lines.map(foldVCardLine).join("\r\n");
 }
 
 // Fetch image URL and return a small base64 data URL so the QR stays scannable.
-async function fetchImageAsDataUrl(url: string, maxSize = 240): Promise<string | null> {
+async function fetchImageAsDataUrl(url: string, maxSize = 96): Promise<string | null> {
   try {
     const res = await fetch(url, { mode: "cors" });
     const blob = await res.blob();
@@ -108,7 +147,7 @@ async function fetchImageAsDataUrl(url: string, maxSize = 240): Promise<string |
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
     ctx.drawImage(bitmap, 0, 0, w, h);
-    return canvas.toDataURL("image/jpeg", 0.7);
+    return canvas.toDataURL("image/jpeg", 0.45);
   } catch { return null; }
 }
 
@@ -192,10 +231,10 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
       const photo = member.avatar_url ? await fetchImageAsDataUrl(member.avatar_url) : null;
       if (cancelled) return;
       const url = await QRCode.toDataURL(buildVCard(member, company, photo || undefined), {
-        margin: 2,
-        width: 400,
+        margin: 4,
+        width: 520,
         color: { dark: "#0a0a0a", light: "#ffffff" },
-        errorCorrectionLevel: photo ? "M" : "H",
+        errorCorrectionLevel: "H",
       });
       if (cancelled) return;
       qrCache.set(cacheKey, url);
@@ -247,7 +286,7 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
   }
 
   async function downloadVCard() {
-    const photo = member.avatar_url ? await fetchImageAsDataUrl(member.avatar_url, 480) : null;
+    const photo = member.avatar_url ? await fetchImageAsDataUrl(member.avatar_url, 160) : null;
     const vcard = buildVCard(member, company, photo || undefined);
     const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -435,7 +474,10 @@ export default function IdCards() {
       import("html2canvas").catch(() => {});
       import("jspdf").catch(() => {});
     };
-    const w = window as any;
+    const w = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
     if (typeof w.requestIdleCallback === "function") {
       const id = w.requestIdleCallback(prewarm, { timeout: 2000 });
       return () => w.cancelIdleCallback?.(id);
