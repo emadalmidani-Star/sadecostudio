@@ -436,7 +436,7 @@ export default function IdCards() {
       ) : (
         <div className="flex flex-wrap gap-10">
           {filtered.map((m) => (
-            <QrTile key={m.id} member={m} company={company} onRegenerate={() => { toast.success("Refreshed from latest profile"); loadAll(); }} />
+            <QrTile key={m.id} member={m} company={company} canEdit={m.id === user?.id} onRegenerate={() => { toast.success("Refreshed from latest profile"); loadAll(); }} onSaved={() => loadAll()} />
           ))}
         </div>
       )}
