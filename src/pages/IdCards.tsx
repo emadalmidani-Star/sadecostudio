@@ -6,9 +6,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { QrCode, Download, Search, RefreshCw, Contact, Mail, Phone, Globe } from "lucide-react";
+import { QrCode, Download, Search, RefreshCw, Contact, Mail, Phone, Globe, Pencil } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 type Member = {
   id: string;
@@ -63,11 +65,37 @@ type Theme = "gradient" | "black" | "white";
 // Module-level cache so theme switches / remounts don't re-encode the QR.
 const qrCache = new Map<string, string>();
 
-function QrTile({ member, company, onRegenerate }: { member: Member; company: Company | null; onRegenerate?: () => void }) {
+function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: Member; company: Company | null; canEdit: boolean; onRegenerate?: () => void; onSaved?: (m: Member) => void }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [theme, setTheme] = useState<Theme>("gradient");
   const [version, setVersion] = useState(0);
   const [regenerating, setRegenerating] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [draft, setDraft] = useState<Member>(member);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { setDraft(member); }, [member]);
+
+  async function saveDraft() {
+    setSaving(true);
+    const { error } = await supabase.from("profiles").update({
+      full_name: draft.full_name,
+      job_title: draft.job_title,
+      email: draft.email,
+      phone: draft.phone,
+      whatsapp: draft.whatsapp,
+    }).eq("id", member.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    // Drop cache so QR re-encodes with new info
+    for (const k of Array.from(qrCache.keys())) {
+      if (k.startsWith(`${member.id}::`)) qrCache.delete(k);
+    }
+    setVersion(v => v + 1);
+    setRegenerating(true);
+    setEditOpen(false);
+    toast.success("Info updated");
+    onSaved?.(draft);
+  }
 
   // Stable cache key — bumped via Regenerate, or when company info changes.
   const cacheKey = `${member.id}::${version}::${company?.logo_url || ""}::${company?.website || ""}`;
@@ -282,10 +310,14 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
         <Button variant="outline" size="sm" onClick={downloadVCard}>
           <Contact className="w-3 h-3 mr-1" /> vCard
         </Button>
+        {canEdit && (
+          <Button variant="outline" size="sm" onClick={() => { setDraft(member); setEditOpen(true); }}>
+            <Pencil className="w-3 h-3 mr-1" /> Edit Info
+          </Button>
+        )}
         {onRegenerate && (
           <Button variant="outline" size="sm" disabled={regenerating} onClick={() => {
             setRegenerating(true);
-            // Drop any cached entries for this member so the next encode is fresh.
             for (const k of Array.from(qrCache.keys())) {
               if (k.startsWith(`${member.id}::`)) qrCache.delete(k);
             }
@@ -297,6 +329,28 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
           </Button>
         )}
       </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit QR Info</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Updates the contact details encoded in your QR code and shown on the badge.
+          </p>
+          <div className="grid gap-3 py-2">
+            <div><Label>Full name</Label><Input value={draft.full_name || ""} onChange={e => setDraft({ ...draft, full_name: e.target.value })} /></div>
+            <div><Label>Job title</Label><Input value={draft.job_title || ""} onChange={e => setDraft({ ...draft, job_title: e.target.value })} /></div>
+            <div><Label>Email</Label><Input value={draft.email || ""} onChange={e => setDraft({ ...draft, email: e.target.value })} /></div>
+            <div><Label>Phone</Label><Input value={draft.phone || ""} onChange={e => setDraft({ ...draft, phone: e.target.value })} placeholder="+971…" /></div>
+            <div><Label>WhatsApp</Label><Input value={draft.whatsapp || ""} onChange={e => setDraft({ ...draft, whatsapp: e.target.value })} placeholder="+971…" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>Cancel</Button>
+            <Button onClick={saveDraft} disabled={saving}>{saving ? "Saving…" : "Save & Update QR"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -382,7 +436,7 @@ export default function IdCards() {
       ) : (
         <div className="flex flex-wrap gap-10">
           {filtered.map((m) => (
-            <QrTile key={m.id} member={m} company={company} onRegenerate={() => { toast.success("Refreshed from latest profile"); loadAll(); }} />
+            <QrTile key={m.id} member={m} company={company} canEdit={m.id === user?.id} onRegenerate={() => { toast.success("Refreshed from latest profile"); loadAll(); }} onSaved={() => loadAll()} />
           ))}
         </div>
       )}
