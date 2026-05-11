@@ -283,7 +283,8 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
           <Contact className="w-3 h-3 mr-1" /> vCard
         </Button>
         {onRegenerate && (
-          <Button variant="outline" size="sm" onClick={() => {
+          <Button variant="outline" size="sm" disabled={regenerating} onClick={() => {
+            setRegenerating(true);
             // Drop any cached entries for this member so the next encode is fresh.
             for (const k of Array.from(qrCache.keys())) {
               if (k.startsWith(`${member.id}::`)) qrCache.delete(k);
@@ -291,7 +292,8 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
             onRegenerate();
             setVersion(v => v + 1);
           }}>
-            <RefreshCw className="w-3 h-3 mr-1" /> Regenerate
+            <RefreshCw className={`w-3 h-3 mr-1 ${regenerating ? "animate-spin" : ""}`} />
+            {regenerating ? "Regenerating…" : "Regenerate"}
           </Button>
         )}
       </div>
