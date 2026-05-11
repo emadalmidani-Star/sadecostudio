@@ -67,6 +67,7 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
   const wrapRef = useRef<HTMLDivElement>(null);
   const [theme, setTheme] = useState<Theme>("gradient");
   const [version, setVersion] = useState(0);
+  const [regenerating, setRegenerating] = useState(false);
 
   // Stable cache key — bumped via Regenerate, or when company info changes.
   const cacheKey = `${member.id}::${version}::${company?.logo_url || ""}::${company?.website || ""}`;
@@ -105,7 +106,7 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
   useEffect(() => {
     if (!visible) return;
     const cached = qrCache.get(cacheKey);
-    if (cached) { setQr(cached); return; }
+    if (cached) { setQr(cached); setRegenerating(false); return; }
     let cancelled = false;
     QRCode.toDataURL(buildVCard(member, company), {
       margin: 2,
@@ -116,6 +117,7 @@ function QrTile({ member, company, onRegenerate }: { member: Member; company: Co
       if (cancelled) return;
       qrCache.set(cacheKey, url);
       setQr(url);
+      setRegenerating(false);
     });
     return () => { cancelled = true; };
   }, [visible, cacheKey, member, company]);
