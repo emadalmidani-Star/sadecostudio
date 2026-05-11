@@ -160,17 +160,20 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
     const cached = qrCache.get(cacheKey);
     if (cached) { setQr(cached); setRegenerating(false); return; }
     let cancelled = false;
-    QRCode.toDataURL(buildVCard(member, company), {
-      margin: 2,
-      width: 400,
-      color: { dark: "#0a0a0a", light: "#ffffff" },
-      errorCorrectionLevel: "H",
-    }).then((url) => {
+    (async () => {
+      const photo = member.avatar_url ? await fetchImageAsDataUrl(member.avatar_url) : null;
+      if (cancelled) return;
+      const url = await QRCode.toDataURL(buildVCard(member, company, photo || undefined), {
+        margin: 2,
+        width: 400,
+        color: { dark: "#0a0a0a", light: "#ffffff" },
+        errorCorrectionLevel: photo ? "M" : "H",
+      });
       if (cancelled) return;
       qrCache.set(cacheKey, url);
       setQr(url);
       setRegenerating(false);
-    });
+    })();
     return () => { cancelled = true; };
   }, [visible, cacheKey, member, company]);
 
