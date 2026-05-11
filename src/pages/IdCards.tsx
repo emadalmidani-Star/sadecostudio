@@ -39,7 +39,7 @@ function escapeVCard(s: string) {
   return (s || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 }
 
-function buildVCard(m: Member, c: Company | null) {
+function buildVCard(m: Member, c: Company | null, photoDataUrl?: string) {
   const lines = ["BEGIN:VCARD", "VERSION:3.0"];
   const name = m.full_name || m.email || "Member";
   lines.push(`FN:${escapeVCard(name)}`);
@@ -56,8 +56,32 @@ function buildVCard(m: Member, c: Company | null) {
   [c?.linkedin_url, c?.facebook_url, c?.instagram_url, c?.youtube_url]
     .filter(Boolean)
     .forEach((u) => lines.push(`URL:${u}`));
+  if (photoDataUrl) {
+    const match = photoDataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (match) {
+      lines.push(`PHOTO;ENCODING=b;TYPE=${match[1].toUpperCase()}:${match[2]}`);
+    }
+  }
   lines.push("END:VCARD");
   return lines.join("\n");
+}
+
+// Fetch image URL and return a small base64 data URL so the QR stays scannable.
+async function fetchImageAsDataUrl(url: string, maxSize = 240): Promise<string | null> {
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    const blob = await res.blob();
+    const bitmap = await createImageBitmap(blob);
+    const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", 0.7);
+  } catch { return null; }
 }
 
 type Theme = "gradient" | "black" | "white";
@@ -136,17 +160,20 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
     const cached = qrCache.get(cacheKey);
     if (cached) { setQr(cached); setRegenerating(false); return; }
     let cancelled = false;
-    QRCode.toDataURL(buildVCard(member, company), {
-      margin: 2,
-      width: 400,
-      color: { dark: "#0a0a0a", light: "#ffffff" },
-      errorCorrectionLevel: "H",
-    }).then((url) => {
+    (async () => {
+      const photo = member.avatar_url ? await fetchImageAsDataUrl(member.avatar_url) : null;
+      if (cancelled) return;
+      const url = await QRCode.toDataURL(buildVCard(member, company, photo || undefined), {
+        margin: 2,
+        width: 400,
+        color: { dark: "#0a0a0a", light: "#ffffff" },
+        errorCorrectionLevel: photo ? "M" : "H",
+      });
       if (cancelled) return;
       qrCache.set(cacheKey, url);
       setQr(url);
       setRegenerating(false);
-    });
+    })();
     return () => { cancelled = true; };
   }, [visible, cacheKey, member, company]);
 
@@ -191,8 +218,9 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
     }
   }
 
-  function downloadVCard() {
-    const vcard = buildVCard(member, company);
+  async function downloadVCard() {
+    const photo = member.avatar_url ? await fetchImageAsDataUrl(member.avatar_url, 480) : null;
+    const vcard = buildVCard(member, company, photo || undefined);
     const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
