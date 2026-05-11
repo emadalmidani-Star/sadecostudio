@@ -85,7 +85,7 @@ function foldVCardLine(line: string) {
   return chunks.join("\r\n");
 }
 
-function buildVCard(m: Member, c: Company | null, photoDataUrl?: string) {
+function buildVCard(m: Member, c: Company | null, photo?: string) {
   const lines = ["BEGIN:VCARD", "VERSION:3.0"];
   const name = m.full_name || m.email || "Member";
   lines.push(`FN:${escapeVCard(name)}`);
@@ -99,7 +99,7 @@ function buildVCard(m: Member, c: Company | null, photoDataUrl?: string) {
   if (c?.phone) lines.push(`TEL;TYPE=WORK,VOICE:${c.phone}`);
   const website = normalizeVCardUrl(c?.website);
   if (website) {
-    lines.push(`item1.URL;TYPE=Website:${website}`);
+    lines.push(`item1.URL;TYPE=Website:${escapeVCard(website)}`);
     lines.push(`item1.X-ABLabel:Website`);
   }
   if (c?.address) lines.push(`ADR;TYPE=WORK:;;${escapeVCard(c.address)};;;;`);
@@ -115,18 +115,20 @@ function buildVCard(m: Member, c: Company | null, photoDataUrl?: string) {
     if (!url) return;
     const user = extractSocialUsername(url, s.type);
     // iOS — renders the brand icon
-    lines.push(`X-SOCIALPROFILE;TYPE=${s.type};x-user=${escapeVCard(user)}:${url}`);
+    lines.push(`X-SOCIALPROFILE;TYPE=${s.type};x-user=${escapeVCard(user)}:${escapeVCard(url)}`);
     // Android / Google Contacts — honors custom TYPE on URL as the label
-    lines.push(`URL;TYPE=${s.label}:${url}`);
+    lines.push(`URL;TYPE=${s.label}:${escapeVCard(url)}`);
     // iOS fallback labelling
     const item = `item${i + 2}`;
-    lines.push(`${item}.URL;TYPE=${s.label}:${url}`);
+    lines.push(`${item}.URL;TYPE=${s.label}:${escapeVCard(url)}`);
     lines.push(`${item}.X-ABLabel:${s.label}`);
   });
-  if (photoDataUrl) {
-    const match = photoDataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+  if (photo) {
+    const match = photo.match(/^data:image\/(\w+);base64,(.+)$/);
     if (match) {
       lines.push(`PHOTO;ENCODING=b;TYPE=${match[1].toUpperCase()}:${match[2]}`);
+    } else {
+      lines.push(`PHOTO;VALUE=URI:${escapeVCard(photo)}`);
     }
   }
   lines.push("END:VCARD");
