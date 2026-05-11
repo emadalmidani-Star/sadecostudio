@@ -230,19 +230,23 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
     if (cached) { setQr(cached); setRegenerating(false); return; }
     let cancelled = false;
     (async () => {
-      const photo = member.avatar_url ? await fetchImageAsDataUrl(member.avatar_url) : null;
-      if (cancelled) return;
-      const url = await QRCode.toDataURL(buildVCard(member, company, photo || undefined), {
+      const vcard = buildVCard(member, company, normalizeVCardUrl(member.avatar_url));
+      const url = await QRCode.toDataURL(vcard, {
         margin: 4,
         width: 520,
         color: { dark: "#0a0a0a", light: "#ffffff" },
-        errorCorrectionLevel: "H",
+        errorCorrectionLevel: "M",
       });
       if (cancelled) return;
       qrCache.set(cacheKey, url);
       setQr(url);
       setRegenerating(false);
-    })();
+    })().catch(() => {
+      if (!cancelled) {
+        setRegenerating(false);
+        toast.error("QR data is too large to generate");
+      }
+    });
     return () => { cancelled = true; };
   }, [visible, cacheKey, member, company]);
 
