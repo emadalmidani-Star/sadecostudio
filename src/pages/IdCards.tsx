@@ -70,6 +70,32 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
   const [theme, setTheme] = useState<Theme>("gradient");
   const [version, setVersion] = useState(0);
   const [regenerating, setRegenerating] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [draft, setDraft] = useState<Member>(member);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { setDraft(member); }, [member]);
+
+  async function saveDraft() {
+    setSaving(true);
+    const { error } = await supabase.from("profiles").update({
+      full_name: draft.full_name,
+      job_title: draft.job_title,
+      email: draft.email,
+      phone: draft.phone,
+      whatsapp: draft.whatsapp,
+    }).eq("id", member.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    // Drop cache so QR re-encodes with new info
+    for (const k of Array.from(qrCache.keys())) {
+      if (k.startsWith(`${member.id}::`)) qrCache.delete(k);
+    }
+    setVersion(v => v + 1);
+    setRegenerating(true);
+    setEditOpen(false);
+    toast.success("Info updated");
+    onSaved?.(draft);
+  }
 
   // Stable cache key — bumped via Regenerate, or when company info changes.
   const cacheKey = `${member.id}::${version}::${company?.logo_url || ""}::${company?.website || ""}`;
