@@ -51,11 +51,25 @@ function buildVCard(m: Member, c: Company | null, photoDataUrl?: string) {
   if (m.phone) lines.push(`TEL;TYPE=CELL:${m.phone}`);
   if (m.whatsapp) lines.push(`TEL;TYPE=WORK:${m.whatsapp}`);
   if (c?.phone) lines.push(`TEL;TYPE=WORK,VOICE:${c.phone}`);
-  if (c?.website) lines.push(`URL:${c.website}`);
+  if (c?.website) {
+    lines.push(`URL;TYPE=WORK:${c.website}`);
+    lines.push(`item1.URL:${c.website}`);
+    lines.push(`item1.X-ABLabel:Website`);
+  }
   if (c?.address) lines.push(`ADR;TYPE=WORK:;;${escapeVCard(c.address)};;;;`);
-  [c?.linkedin_url, c?.facebook_url, c?.instagram_url, c?.youtube_url]
-    .filter(Boolean)
-    .forEach((u) => lines.push(`URL:${u}`));
+  const socials: { url?: string | null; label: string; type: string }[] = [
+    { url: c?.linkedin_url, label: "LinkedIn", type: "linkedin" },
+    { url: c?.facebook_url, label: "Facebook", type: "facebook" },
+    { url: c?.instagram_url, label: "Instagram", type: "instagram" },
+    { url: c?.youtube_url, label: "YouTube", type: "youtube" },
+  ];
+  socials.forEach((s, i) => {
+    if (!s.url) return;
+    const item = `item${i + 2}`;
+    lines.push(`X-SOCIALPROFILE;TYPE=${s.type}:${s.url}`);
+    lines.push(`${item}.URL:${s.url}`);
+    lines.push(`${item}.X-ABLabel:${s.label}`);
+  });
   if (photoDataUrl) {
     const match = photoDataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
     if (match) {
