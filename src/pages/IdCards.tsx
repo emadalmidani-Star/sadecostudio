@@ -135,7 +135,7 @@ function buildVCard(m: Member, c: Company | null, photo?: string) {
   return lines.map(foldVCardLine).join("\r\n");
 }
 
-// Fetch image URL and return a small base64 data URL so the QR stays scannable.
+// Used only for the downloadable vCard; the on-card QR uses the photo URL so it stays scannable.
 async function fetchImageAsDataUrl(url: string, maxSize = 96): Promise<string | null> {
   try {
     const res = await fetch(url, { mode: "cors" });
