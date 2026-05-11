@@ -6,9 +6,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { QrCode, Download, Search, RefreshCw, Contact, Mail, Phone, Globe } from "lucide-react";
+import { QrCode, Download, Search, RefreshCw, Contact, Mail, Phone, Globe, Pencil } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 type Member = {
   id: string;
