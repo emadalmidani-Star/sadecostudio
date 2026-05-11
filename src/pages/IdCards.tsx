@@ -231,10 +231,10 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
       const photo = member.avatar_url ? await fetchImageAsDataUrl(member.avatar_url) : null;
       if (cancelled) return;
       const url = await QRCode.toDataURL(buildVCard(member, company, photo || undefined), {
-        margin: 2,
-        width: 400,
+        margin: 4,
+        width: 520,
         color: { dark: "#0a0a0a", light: "#ffffff" },
-        errorCorrectionLevel: photo ? "M" : "H",
+        errorCorrectionLevel: "H",
       });
       if (cancelled) return;
       qrCache.set(cacheKey, url);
@@ -286,7 +286,7 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
   }
 
   async function downloadVCard() {
-    const photo = member.avatar_url ? await fetchImageAsDataUrl(member.avatar_url, 480) : null;
+    const photo = member.avatar_url ? await fetchImageAsDataUrl(member.avatar_url, 160) : null;
     const vcard = buildVCard(member, company, photo || undefined);
     const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
