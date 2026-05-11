@@ -45,34 +45,6 @@ function normalizeVCardUrl(url?: string | null) {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
-function extractSocialUsername(rawUrl: string, type: string) {
-  const fallback = () => {
-    const clean = rawUrl.trim().replace(/^https?:\/\//i, "").split(/[?#]/)[0];
-    const parts = clean.split("/").filter(Boolean);
-    return (parts[parts.length - 1] || clean).replace(/^@/, "") || rawUrl.trim();
-  };
-
-  try {
-    const url = new URL(normalizeVCardUrl(rawUrl));
-    const segments = url.pathname
-      .split("/")
-      .map((part) => decodeURIComponent(part.trim()))
-      .filter(Boolean);
-
-    if (type === "facebook" && url.searchParams.get("id")) return url.searchParams.get("id") || fallback();
-    if (type === "linkedin") {
-      const marker = segments.findIndex((part) => ["in", "company", "school"].includes(part.toLowerCase()));
-      if (marker >= 0 && segments[marker + 1]) return segments[marker + 1].replace(/^@/, "");
-    }
-    if (type === "instagram" && segments[0] && !["p", "reel", "explore", "stories"].includes(segments[0].toLowerCase())) {
-      return segments[0].replace(/^@/, "");
-    }
-    const handle = segments.find((part) => part.startsWith("@")) || segments[segments.length - 1];
-    return (handle || url.hostname.replace(/^www\./, "")).replace(/^@/, "");
-  } catch {
-    return fallback();
-  }
-}
 
 function foldVCardLine(line: string) {
   const chunks: string[] = [];
