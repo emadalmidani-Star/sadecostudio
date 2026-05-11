@@ -266,9 +266,6 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
 
         {/* Footer band */}
         <div className={`${themeStyles.bandClass} mt-2 px-5 py-3 flex flex-col items-center gap-1 border-t border-white/10`}>
-          {company?.name && (
-            <p className={`font-serif text-sm tracking-wide ${themeStyles.textClass}`}>{company.name}</p>
-          )}
           {company?.website && (
             <p className="text-[9px] tracking-[0.35em] text-accent uppercase">
               {company.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
