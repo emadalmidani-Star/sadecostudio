@@ -218,8 +218,9 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
     }
   }
 
-  function downloadVCard() {
-    const vcard = buildVCard(member, company);
+  async function downloadVCard() {
+    const photo = member.avatar_url ? await fetchImageAsDataUrl(member.avatar_url, 480) : null;
+    const vcard = buildVCard(member, company, photo || undefined);
     const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
