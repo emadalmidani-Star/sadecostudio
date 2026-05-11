@@ -116,11 +116,9 @@ function buildVCard(m: Member, c: Company | null, photo?: string) {
     const user = extractSocialUsername(url, s.type);
     // iOS — renders the brand icon
     lines.push(`X-SOCIALPROFILE;TYPE=${s.type};x-user=${escapeVCard(user)}:${escapeVCard(url)}`);
-    // Android / Google Contacts — honors custom TYPE on URL as the label
-    lines.push(`URL;TYPE=${s.label}:${escapeVCard(url)}`);
-    // iOS fallback labelling
+    // Labelled URL — single entry works for both iOS (via item/X-ABLabel) and Android
     const item = `item${i + 2}`;
-    lines.push(`${item}.URL;TYPE=${s.label}:${escapeVCard(url)}`);
+    lines.push(`${item}.URL:${escapeVCard(url)}`);
     lines.push(`${item}.X-ABLabel:${s.label}`);
   });
   if (photo) {
