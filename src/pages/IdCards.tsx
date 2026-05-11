@@ -39,7 +39,7 @@ function escapeVCard(s: string) {
   return (s || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 }
 
-function buildVCard(m: Member, c: Company | null) {
+function buildVCard(m: Member, c: Company | null, photoDataUrl?: string) {
   const lines = ["BEGIN:VCARD", "VERSION:3.0"];
   const name = m.full_name || m.email || "Member";
   lines.push(`FN:${escapeVCard(name)}`);
@@ -56,8 +56,32 @@ function buildVCard(m: Member, c: Company | null) {
   [c?.linkedin_url, c?.facebook_url, c?.instagram_url, c?.youtube_url]
     .filter(Boolean)
     .forEach((u) => lines.push(`URL:${u}`));
+  if (photoDataUrl) {
+    const match = photoDataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (match) {
+      lines.push(`PHOTO;ENCODING=b;TYPE=${match[1].toUpperCase()}:${match[2]}`);
+    }
+  }
   lines.push("END:VCARD");
   return lines.join("\n");
+}
+
+// Fetch image URL and return a small base64 data URL so the QR stays scannable.
+async function fetchImageAsDataUrl(url: string, maxSize = 240): Promise<string | null> {
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    const blob = await res.blob();
+    const bitmap = await createImageBitmap(blob);
+    const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", 0.7);
+  } catch { return null; }
 }
 
 type Theme = "gradient" | "black" | "white";
