@@ -52,11 +52,21 @@ function buildVCard(m: Member, c: Company | null, photoDataUrl?: string) {
   if (m.whatsapp) lines.push(`TEL;TYPE=WORK:${m.whatsapp}`);
   if (c?.phone) lines.push(`TEL;TYPE=WORK,VOICE:${c.phone}`);
   if (c?.website) {
-    lines.push(`URL;TYPE=WORK:${c.website}`);
     lines.push(`item1.URL:${c.website}`);
     lines.push(`item1.X-ABLabel:Website`);
   }
   if (c?.address) lines.push(`ADR;TYPE=WORK:;;${escapeVCard(c.address)};;;;`);
+
+  // Extract a handle from a social URL so iOS Contacts renders the brand icon
+  // (X-SOCIALPROFILE with x-user is what triggers the LinkedIn/IG/FB logos).
+  const handle = (url: string) => {
+    try {
+      const u = new URL(url);
+      const seg = u.pathname.split("/").filter(Boolean);
+      return seg[seg.length - 1] || u.hostname;
+    } catch { return url; }
+  };
+
   const socials: { url?: string | null; label: string; type: string }[] = [
     { url: c?.linkedin_url, label: "LinkedIn", type: "linkedin" },
     { url: c?.facebook_url, label: "Facebook", type: "facebook" },
@@ -65,8 +75,11 @@ function buildVCard(m: Member, c: Company | null, photoDataUrl?: string) {
   ];
   socials.forEach((s, i) => {
     if (!s.url) return;
+    const user = handle(s.url);
+    // iOS recognizes this exact shape and renders the brand icon.
+    lines.push(`X-SOCIALPROFILE;TYPE=${s.type};x-user=${escapeVCard(user)}:${s.url}`);
+    // Fallback labelled URL for Android / generic contact apps.
     const item = `item${i + 2}`;
-    lines.push(`X-SOCIALPROFILE;TYPE=${s.type}:${s.url}`);
     lines.push(`${item}.URL:${s.url}`);
     lines.push(`${item}.X-ABLabel:${s.label}`);
   });
