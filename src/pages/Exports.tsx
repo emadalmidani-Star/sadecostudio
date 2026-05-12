@@ -94,13 +94,14 @@ export default function Exports() {
   })(); }, []);
 
   async function resolveSelectedContact() {
+    if (contactId === "__none__") return null;
     if (contactId === "__me__") {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return undefined;
+      if (!user) return null;
       const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-      return data || undefined;
+      return data || null;
     }
-    return teamMembers.find(m => m.id === contactId) || undefined;
+    return teamMembers.find(m => m.id === contactId) || null;
   }
 
   async function setKindAssignment(kind: string, setId: string | null) {
