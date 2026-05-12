@@ -11,6 +11,11 @@ import QRCode from "qrcode";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { Slot, Template } from "@/lib/templateRender";
+import { FIELDS_BY_TYPE } from "@/lib/templateRender";
+
+type IdCardTemplate = { background_url: string | null; slots: Slot[] } | null;
 
 type Member = {
   id: string;
