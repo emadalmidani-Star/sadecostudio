@@ -11,6 +11,11 @@ import QRCode from "qrcode";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { Slot, Template } from "@/lib/templateRender";
+import { FIELDS_BY_TYPE } from "@/lib/templateRender";
+
+type IdCardTemplate = { background_url: string | null; slots: Slot[] } | null;
 
 type Member = {
   id: string;
@@ -131,7 +136,7 @@ type Theme = "gradient" | "black" | "white";
 // Module-level cache so theme switches / remounts don't re-encode the QR.
 const qrCache = new Map<string, string>();
 
-function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: Member; company: Company | null; canEdit: boolean; onRegenerate?: () => void; onSaved?: (m: Member) => void }) {
+function QrTile({ member, company, canEdit, template, onRegenerate, onSaved }: { member: Member; company: Company | null; canEdit: boolean; template: IdCardTemplate; onRegenerate?: () => void; onSaved?: (m: Member) => void }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [theme, setTheme] = useState<Theme>("gradient");
   const [version, setVersion] = useState(0);
@@ -280,9 +285,83 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
   const initials = (member.full_name || member.email || "?")
     .split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
 
+  const useTemplate = !!template && template.slots.length > 0;
+  const CARD_W = 340;
+  const CARD_H = useTemplate ? Math.round(CARD_W * (86 / 54)) : undefined;
+
+  function resolveTextValue(field: string): string {
+    switch (field) {
+      case "member_name": return member.full_name || member.email || "";
+      case "member_title": return member.job_title || "";
+      case "member_email": return member.email || "";
+      case "member_phone": return member.phone || "";
+      case "member_whatsapp": return member.whatsapp || "";
+      case "company_name": return company?.name || "";
+      case "company_website": return (company?.website || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
+      case "company_phone": return company?.phone || "";
+      default: return "";
+    }
+  }
+  function resolveImageValue(field: string): string | null {
+    if (field === "member_photo") return member.avatar_url || null;
+    if (field === "company_logo") return company?.logo_url || null;
+    if (field === "qr_code") return qr || null;
+    return null;
+  }
+
   return (
     <div className="flex flex-col items-center gap-3">
-      {/* Vertical ID-card badge */}
+      {useTemplate ? (
+        <div
+          ref={wrapRef}
+          className="relative rounded-2xl overflow-hidden shadow-2xl border border-border bg-white"
+          style={{ width: CARD_W, height: CARD_H }}
+        >
+          {template!.background_url && (
+            <img src={template!.background_url} alt="" crossOrigin="anonymous" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
+          )}
+          {template!.slots.map((s, i) => {
+            const meta = FIELDS_BY_TYPE.idcard.find(f => f.field === s.field);
+            const style: React.CSSProperties = {
+              position: "absolute",
+              left: `${s.x}%`, top: `${s.y}%`,
+              width: `${s.w}%`, height: `${s.h}%`,
+            };
+            if (meta?.kind === "image") {
+              const url = resolveImageValue(s.field);
+              if (!url) return null;
+              const isQr = s.field === "qr_code";
+              return (
+                <div key={i} style={style} className={isQr ? "bg-white p-1" : ""}>
+                  <img src={url} alt="" crossOrigin="anonymous" className="w-full h-full object-contain" />
+                </div>
+              );
+            }
+            const text = resolveTextValue(s.field);
+            if (!text) return null;
+            return (
+              <div
+                key={i}
+                style={{
+                  ...style,
+                  fontSize: (s.fontSize || 12) * (CARD_W / 595), // approx scale: A4@72dpi width
+                  color: s.color || "#000",
+                  fontWeight: s.bold ? 700 : 400,
+                  textAlign: s.align || "left",
+                  lineHeight: 1.15,
+                  whiteSpace: "pre-wrap",
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: s.align === "center" ? "center" : s.align === "right" ? "flex-end" : "flex-start",
+                }}
+              >
+                <span style={{ width: "100%" }}>{text}</span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
       <div
         ref={wrapRef}
         className={`relative w-[340px] rounded-2xl overflow-hidden shadow-2xl border border-border ${themeStyles.bodyClass}`}
@@ -347,8 +426,10 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
           )}
         </div>
       </div>
+      )}
 
-      {/* Theme selector */}
+      {/* Theme selector — only when using built-in layout */}
+      {!useTemplate && (
       <div className="flex items-center gap-2">
         <span className="text-[10px] tracking-[0.2em] text-muted-foreground uppercase">Theme</span>
         {(["gradient", "black", "white"] as Theme[]).map((t) => (
@@ -370,6 +451,7 @@ function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: M
           />
         ))}
       </div>
+      )}
 
       <div className="flex flex-wrap gap-2 justify-center">
         <Button variant="outline" size="sm" onClick={downloadPng}>
@@ -433,6 +515,9 @@ export default function IdCards() {
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [sets, setSets] = useState<{ id: string; name: string }[]>([]);
+  const [setId, setSetId] = useState<string>("__none__");
+  const [template, setTemplate] = useState<IdCardTemplate>(null);
 
   async function loadAll() {
     const [{ data: profiles }, { data: c }] = await Promise.all([
@@ -441,10 +526,43 @@ export default function IdCards() {
     ]);
     setMembers((profiles as Member[]) || []);
     setCompany((c as Company) || null);
+    const { data: { user: u } } = await supabase.auth.getUser();
+    if (u) {
+      const [{ data: ts }, { data: ea }] = await Promise.all([
+        supabase.from("template_sets").select("id,name").eq("user_id", u.id).order("created_at"),
+        supabase.from("export_template_assignments").select("set_id").eq("user_id", u.id).eq("export_kind", "id_card").maybeSingle(),
+      ]);
+      setSets(ts || []);
+      const initial = (ea?.set_id as string) || (ts?.[0]?.id) || "__none__";
+      setSetId(initial === "__none__" ? "__none__" : initial);
+    }
     setLoading(false);
   }
 
   useEffect(() => { loadAll(); }, []);
+
+  // Load template for chosen set
+  useEffect(() => {
+    (async () => {
+      if (!setId || setId === "__none__") { setTemplate(null); return; }
+      const { data } = await supabase.from("pdf_templates").select("background_url,slots").eq("set_id", setId).eq("page_type", "idcard").maybeSingle();
+      if (data) setTemplate({ background_url: data.background_url, slots: (data.slots as any) || [] });
+      else setTemplate(null);
+    })();
+  }, [setId]);
+
+  async function saveSetAssignment(newSetId: string) {
+    setSetId(newSetId);
+    const { data: { user: u } } = await supabase.auth.getUser();
+    if (!u) return;
+    if (newSetId === "__none__") {
+      await supabase.from("export_template_assignments").delete().eq("user_id", u.id).eq("export_kind", "id_card");
+    } else {
+      await supabase.from("export_template_assignments").upsert({
+        user_id: u.id, export_kind: "id_card", set_id: newSetId,
+      }, { onConflict: "user_id,export_kind" });
+    }
+  }
 
   // Pre-warm export libraries during browser idle time so the first
   // PNG / PDF download click resolves instantly.
@@ -491,6 +609,20 @@ export default function IdCards() {
         Scan to instantly save the contact — name, title, email, phone, website and company socials.
       </p>
 
+      {isAdmin && sets.length > 0 && (
+        <Card className="p-4 mb-6 flex flex-wrap items-center gap-3">
+          <Label className="text-xs">ID Card template</Label>
+          <Select value={setId} onValueChange={saveSetAssignment}>
+            <SelectTrigger className="w-72"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Default layout (no template)</SelectItem>
+              {sets.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground">Design custom layouts in <a href="/template" className="underline">Template Designer</a> → ID Card tab.</span>
+        </Card>
+      )}
+
       {isAdmin && (
         <div className="relative max-w-md mb-8">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -510,7 +642,7 @@ export default function IdCards() {
       ) : (
         <div className="flex flex-wrap gap-10">
           {filtered.map((m) => (
-            <QrTile key={m.id} member={m} company={company} canEdit={m.id === user?.id} onRegenerate={() => { toast.success("Refreshed from latest profile"); loadAll(); }} onSaved={() => loadAll()} />
+            <QrTile key={m.id} member={m} company={company} template={template} canEdit={m.id === user?.id} onRegenerate={() => { toast.success("Refreshed from latest profile"); loadAll(); }} onSaved={() => loadAll()} />
           ))}
         </div>
       )}

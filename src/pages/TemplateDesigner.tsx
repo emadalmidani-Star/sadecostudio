@@ -21,9 +21,11 @@ const PAGE_TABS: { key: PageType; label: string }[] = [
   { key: "divider", label: "Category Divider" },
   { key: "project", label: "Project Page" },
   { key: "thankyou", label: "Thank You" },
+  { key: "idcard", label: "ID Card" },
 ];
 
-const RATIO = 297 / 210;
+const A4_RATIO = 297 / 210;
+const IDCARD_RATIO = 54 / 86; // portrait credit-card
 
 export default function TemplateDesigner() {
   const [sets, setSets] = useState<TplSet[]>([]);
@@ -37,18 +39,21 @@ export default function TemplateDesigner() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [canvasSize, setCanvasSize] = useState({ w: 800, h: 800 / RATIO });
+  const ratio = pageType === "idcard" ? IDCARD_RATIO : A4_RATIO;
+  const [canvasSize, setCanvasSize] = useState({ w: 800, h: 800 / A4_RATIO });
 
   useEffect(() => {
     const update = () => {
       if (!canvasRef.current) return;
       const w = canvasRef.current.clientWidth;
-      setCanvasSize({ w, h: w / RATIO });
+      const maxW = pageType === "idcard" ? 420 : w;
+      const cw = Math.min(w, maxW);
+      setCanvasSize({ w: cw, h: cw / ratio });
     };
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
-  }, []);
+  }, [ratio, pageType]);
 
   // Load sets
   useEffect(() => { (async () => {

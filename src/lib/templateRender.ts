@@ -10,12 +10,25 @@ export type Slot = {
 };
 
 export type Template = {
-  page_type: "cover" | "divider" | "project" | "thankyou";
+  page_type: "cover" | "divider" | "project" | "thankyou" | "idcard";
   background_url: string | null;
   slots: Slot[];
 };
 
 export const FIELDS_BY_TYPE: Record<Template["page_type"], { field: string; kind: "text" | "image"; label: string }[]> = {
+  idcard: [
+    { field: "member_name", kind: "text", label: "Member name" },
+    { field: "member_title", kind: "text", label: "Job title" },
+    { field: "member_email", kind: "text", label: "Email" },
+    { field: "member_phone", kind: "text", label: "Phone" },
+    { field: "member_whatsapp", kind: "text", label: "WhatsApp" },
+    { field: "company_name", kind: "text", label: "Company name" },
+    { field: "company_website", kind: "text", label: "Website" },
+    { field: "company_phone", kind: "text", label: "Company phone" },
+    { field: "member_photo", kind: "image", label: "Member photo" },
+    { field: "company_logo", kind: "image", label: "Company logo" },
+    { field: "qr_code", kind: "image", label: "QR code" },
+  ],
   cover: [
     { field: "company_name", kind: "text", label: "Company name" },
     { field: "subtitle", kind: "text", label: "Subtitle" },
@@ -62,9 +75,11 @@ export async function loadImage(url: string): Promise<{ data: string; w: number;
 function fmt(s?: string | null) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ""; }
 
 function resolveText(field: string, ctx: any): string {
-  const { project: p, company: c, category, count } = ctx;
+  const { project: p, company: c, category, count, member: m } = ctx;
   switch (field) {
     case "company_name": return c?.name || "";
+    case "company_website": return (c?.website || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
+    case "company_phone": return c?.phone || "";
     case "subtitle": return ctx.subtitle || "";
     case "date": return new Date().toLocaleDateString("en-US", { year: "numeric", month: "long" });
     case "category_title": return fmt(category) || "";
@@ -78,13 +93,20 @@ function resolveText(field: string, ctx: any): string {
     case "description": return p?.description || "";
     case "highlights": return (p?.highlights || []).map((h: string) => "• " + h).join("\n");
     case "contact": return [c?.phone, c?.email, c?.website].filter(Boolean).join("   |   ");
+    case "member_name": return m?.full_name || m?.email || "";
+    case "member_title": return m?.job_title || "";
+    case "member_email": return m?.email || "";
+    case "member_phone": return m?.phone || "";
+    case "member_whatsapp": return m?.whatsapp || "";
     default: return "";
   }
 }
 
 function resolveImageUrl(field: string, ctx: any): string | null {
-  const { project: p, company: c } = ctx;
-  if (field === "logo") return c?.logo_url || null;
+  const { project: p, company: c, member: m } = ctx;
+  if (field === "logo" || field === "company_logo") return c?.logo_url || null;
+  if (field === "member_photo") return m?.avatar_url || null;
+  if (field === "qr_code") return ctx.qrDataUrl || null;
   if (field === "cover_image") return p?.cover_image || null;
   if (field === "category_image") return ctx.categoryImageUrl || null;
   if (field.startsWith("gallery_")) {

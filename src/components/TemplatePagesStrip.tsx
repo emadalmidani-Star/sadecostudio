@@ -10,6 +10,7 @@ const ROLES = [
   { value: "divider", label: "Divider" },
   { value: "project", label: "Project" },
   { value: "thankyou", label: "Thank You" },
+  { value: "idcard", label: "ID Card" },
 ];
 
 export default function TemplatePagesStrip({
