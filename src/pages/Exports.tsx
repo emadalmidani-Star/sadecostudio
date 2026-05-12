@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileDown, FileText, Files, GripVertical, Loader2, Search, Upload, X } from "lucide-react";
-import { exportFullProfilePDF, exportSelectedPDF, setPdfCompression, type CompressOpts } from "@/lib/pdf";
+import { exportFullProfilePDF, exportSelectedPDF, setPdfCompression, type CompressOpts, type CompanyFooterFields } from "@/lib/pdf";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import {
@@ -64,6 +64,7 @@ export default function Exports() {
   const [quality, setQuality] = useState<keyof typeof QUALITY_PRESETS>("balanced");
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [contactId, setContactId] = useState<string>("__none__");
+  const [companyFields, setCompanyFields] = useState<CompanyFooterFields>({ phone: true, email: true, website: true, address: false });
   const selected = useMemo(() => new Set(selectedOrder), [selectedOrder]);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const { isAdmin } = useUserRole();
@@ -137,7 +138,7 @@ export default function Exports() {
     setPdfCompression(QUALITY_PRESETS[quality]);
     try {
       const c = await resolveSelectedContact();
-      await exportFullProfilePDF(company, projects, covers, c);
+      await exportFullProfilePDF(company, projects, covers, c, companyFields);
       toast.success("Profile PDF generated");
     } catch (e: any) { toast.error(e.message); }
     setBusy(null);
@@ -151,7 +152,7 @@ export default function Exports() {
       const byId = new Map(projects.map(p => [p.id, p]));
       const list = selectedOrder.map(id => byId.get(id)).filter(Boolean);
       const c = await resolveSelectedContact();
-      await exportSelectedPDF(company, list, covers, c);
+      await exportSelectedPDF(company, list, covers, c, companyFields);
       toast.success("Portfolio PDF generated");
     } catch (e: any) { toast.error(e.message); }
     setBusy(null);
@@ -268,6 +269,23 @@ export default function Exports() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="mt-4 pt-4 border-t">
+          <p className="text-xs text-accent uppercase tracking-wider mb-2">Company contact fields on footer</p>
+          <p className="text-xs text-muted-foreground mb-3">Choose which company details appear at the bottom of the thank-you page.</p>
+          <div className="flex flex-wrap gap-4">
+            {(["phone", "email", "website", "address"] as const).map(k => (
+              <label key={k} className="flex items-center gap-2 text-sm capitalize cursor-pointer">
+                <Checkbox
+                  checked={!!companyFields[k]}
+                  onCheckedChange={(v) => setCompanyFields(prev => ({ ...prev, [k]: !!v }))}
+                />
+                {k}
+                {!company?.[k] && <span className="text-xs text-muted-foreground">(empty)</span>}
+              </label>
+            ))}
+          </div>
         </div>
       </Card>
 

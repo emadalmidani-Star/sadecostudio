@@ -104,7 +104,8 @@ function sectionTitle(doc: jsPDF, _label: string, title: string, y: number) {
   return y + 18;
 }
 
-async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, contact?: any) {
+export type CompanyFooterFields = { phone?: boolean; email?: boolean; website?: boolean; address?: boolean };
+async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, contact?: any, companyFields?: CompanyFooterFields) {
   doc.addPage();
   if (tpl) { await renderTemplatePage(doc, tpl, { company, contact }); return; }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
@@ -168,10 +169,19 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
   ].filter(Boolean) as string[];
   lines.forEach(l => { doc.text(l, W / 2, ty, { align: "center" }); ty += 6; });
 
-  // Company contact row
-  const parts = [company?.phone, company?.email, company?.website].filter(Boolean).join("   |   ");
+  // Company contact row (configurable fields)
+  const cf: CompanyFooterFields = companyFields || { phone: true, email: true, website: true, address: false };
+  const parts = [
+    cf.phone ? company?.phone : null,
+    cf.email ? company?.email : null,
+    cf.website ? company?.website : null,
+    cf.address ? company?.address : null,
+  ].filter(Boolean).join("   |   ");
   doc.setFontSize(9); doc.setTextColor("#999999");
-  doc.text(parts, W / 2, H - 28, { align: "center" });
+  const partLines = doc.splitTextToSize(parts, W - 40);
+  partLines.forEach((ln: string, i: number) => {
+    doc.text(ln, W / 2, H - 28 + i * 5, { align: "center" });
+  });
 
   // Social icons row (drawn as labeled circles since icon fonts aren't embedded)
   const socials = [
@@ -463,7 +473,7 @@ async function resolveContact(explicit?: any): Promise<any | null> {
   return data || null;
 }
 
-export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}, contact?: any) {
+export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}, contact?: any, companyFields?: CompanyFooterFields) {
   const doc = await newDoc();
   const tpls = await loadTemplates("portfolio");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
@@ -479,11 +489,11 @@ export async function exportSelectedPDF(company: any, list: any[], categoryCover
     for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
   }
   await addClientsPage(doc, company, page);
-  await addThankYou(doc, company, logo, tpls.thankyou, c);
+  await addThankYou(doc, company, logo, tpls.thankyou, c, companyFields);
   doc.save(`SADECO-Portfolio.pdf`);
 }
 
-export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}, contact?: any) {
+export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}, contact?: any, companyFields?: CompanyFooterFields) {
   const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
   const tpls = await loadTemplates("profile");
@@ -541,11 +551,11 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   }
 
   await addClientsPage(doc, company, page);
-  await addThankYou(doc, company, logo, tpls.thankyou, c);
+  await addThankYou(doc, company, logo, tpls.thankyou, c, companyFields);
   doc.save(`SADECO-Company-Profile.pdf`);
 }
 
-export async function exportProjectPDF(p: any, company: any, contact?: any) {
+export async function exportProjectPDF(p: any, company: any, contact?: any, companyFields?: CompanyFooterFields) {
   const doc = await newDoc();
   const tpls = await loadTemplates("project");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
@@ -553,6 +563,6 @@ export async function exportProjectPDF(p: any, company: any, contact?: any) {
   await addCover(doc, company, "Project Case Study", logo, tpls.cover);
   const page = { n: 1 };
   await renderProject(doc, p, company, page, tpls.project);
-  await addThankYou(doc, company, logo, tpls.thankyou, c);
+  await addThankYou(doc, company, logo, tpls.thankyou, c, companyFields);
   doc.save(`SADECO-${p.name.replace(/\s+/g, "-")}.pdf`);
 }
