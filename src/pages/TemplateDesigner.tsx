@@ -39,18 +39,21 @@ export default function TemplateDesigner() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [canvasSize, setCanvasSize] = useState({ w: 800, h: 800 / RATIO });
+  const ratio = pageType === "idcard" ? IDCARD_RATIO : A4_RATIO;
+  const [canvasSize, setCanvasSize] = useState({ w: 800, h: 800 / A4_RATIO });
 
   useEffect(() => {
     const update = () => {
       if (!canvasRef.current) return;
       const w = canvasRef.current.clientWidth;
-      setCanvasSize({ w, h: w / RATIO });
+      const maxW = pageType === "idcard" ? 420 : w;
+      const cw = Math.min(w, maxW);
+      setCanvasSize({ w: cw, h: cw / ratio });
     };
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
-  }, []);
+  }, [ratio, pageType]);
 
   // Load sets
   useEffect(() => { (async () => {
