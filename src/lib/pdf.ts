@@ -214,9 +214,10 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     return;
   }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
-  const cover = p.cover_image ? await loadImg(p.cover_image) : null;
+  const hasInfo = !!(p.description && p.description.trim()) || !!(p.highlights?.length);
+  const cover = p.cover_image && hasInfo ? await loadImg(p.cover_image) : null;
 
-  // Hero page (landscape split)
+  // Hero page (landscape split) — skip when there's no info
   doc.addPage(); page.n++;
   if (cover) {
     const halfW = W * 0.6;
