@@ -473,7 +473,7 @@ async function resolveContact(explicit?: any): Promise<any | null> {
   return data || null;
 }
 
-export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}, contact?: any) {
+export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}, contact?: any, companyFields?: CompanyFooterFields) {
   const doc = await newDoc();
   const tpls = await loadTemplates("portfolio");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
@@ -489,11 +489,11 @@ export async function exportSelectedPDF(company: any, list: any[], categoryCover
     for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
   }
   await addClientsPage(doc, company, page);
-  await addThankYou(doc, company, logo, tpls.thankyou, c);
+  await addThankYou(doc, company, logo, tpls.thankyou, c, companyFields);
   doc.save(`SADECO-Portfolio.pdf`);
 }
 
-export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}, contact?: any) {
+export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}, contact?: any, companyFields?: CompanyFooterFields) {
   const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
   const tpls = await loadTemplates("profile");
@@ -551,11 +551,11 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   }
 
   await addClientsPage(doc, company, page);
-  await addThankYou(doc, company, logo, tpls.thankyou, c);
+  await addThankYou(doc, company, logo, tpls.thankyou, c, companyFields);
   doc.save(`SADECO-Company-Profile.pdf`);
 }
 
-export async function exportProjectPDF(p: any, company: any, contact?: any) {
+export async function exportProjectPDF(p: any, company: any, contact?: any, companyFields?: CompanyFooterFields) {
   const doc = await newDoc();
   const tpls = await loadTemplates("project");
   const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
@@ -563,6 +563,6 @@ export async function exportProjectPDF(p: any, company: any, contact?: any) {
   await addCover(doc, company, "Project Case Study", logo, tpls.cover);
   const page = { n: 1 };
   await renderProject(doc, p, company, page, tpls.project);
-  await addThankYou(doc, company, logo, tpls.thankyou, c);
+  await addThankYou(doc, company, logo, tpls.thankyou, c, companyFields);
   doc.save(`SADECO-${p.name.replace(/\s+/g, "-")}.pdf`);
 }
