@@ -515,6 +515,9 @@ export default function IdCards() {
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [sets, setSets] = useState<{ id: string; name: string }[]>([]);
+  const [setId, setSetId] = useState<string>("__none__");
+  const [template, setTemplate] = useState<IdCardTemplate>(null);
 
   async function loadAll() {
     const [{ data: profiles }, { data: c }] = await Promise.all([
@@ -523,10 +526,43 @@ export default function IdCards() {
     ]);
     setMembers((profiles as Member[]) || []);
     setCompany((c as Company) || null);
+    const { data: { user: u } } = await supabase.auth.getUser();
+    if (u) {
+      const [{ data: ts }, { data: ea }] = await Promise.all([
+        supabase.from("template_sets").select("id,name").eq("user_id", u.id).order("created_at"),
+        supabase.from("export_template_assignments").select("set_id").eq("user_id", u.id).eq("export_kind", "id_card").maybeSingle(),
+      ]);
+      setSets(ts || []);
+      const initial = (ea?.set_id as string) || (ts?.[0]?.id) || "__none__";
+      setSetId(initial === "__none__" ? "__none__" : initial);
+    }
     setLoading(false);
   }
 
   useEffect(() => { loadAll(); }, []);
+
+  // Load template for chosen set
+  useEffect(() => {
+    (async () => {
+      if (!setId || setId === "__none__") { setTemplate(null); return; }
+      const { data } = await supabase.from("pdf_templates").select("background_url,slots").eq("set_id", setId).eq("page_type", "idcard").maybeSingle();
+      if (data) setTemplate({ background_url: data.background_url, slots: (data.slots as any) || [] });
+      else setTemplate(null);
+    })();
+  }, [setId]);
+
+  async function saveSetAssignment(newSetId: string) {
+    setSetId(newSetId);
+    const { data: { user: u } } = await supabase.auth.getUser();
+    if (!u) return;
+    if (newSetId === "__none__") {
+      await supabase.from("export_template_assignments").delete().eq("user_id", u.id).eq("export_kind", "id_card");
+    } else {
+      await supabase.from("export_template_assignments").upsert({
+        user_id: u.id, export_kind: "id_card", set_id: newSetId,
+      }, { onConflict: "user_id,export_kind" });
+    }
+  }
 
   // Pre-warm export libraries during browser idle time so the first
   // PNG / PDF download click resolves instantly.
