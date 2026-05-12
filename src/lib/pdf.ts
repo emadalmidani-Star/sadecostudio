@@ -219,14 +219,26 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     doc.addImage(cover.data, "JPEG", (halfW - iw) / 2, (H - ih) / 2, iw, ih);
     doc.setFillColor(BRAND.paper); doc.rect(halfW, 0, W - halfW, H, "F");
     const tx = halfW + 12;
+    const textW = W - halfW - 20;
     doc.setFontSize(9); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
     doc.text(fmt(p.type).toUpperCase(), tx, 30, { charSpace: 2 });
-    doc.setFontSize(28); doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.ink);
-    const lines = doc.splitTextToSize(p.name, W - halfW - 20);
+    // Auto-shrink title until it fits in at most 4 lines
+    doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.ink);
+    let titleSize = 28;
+    let lines: string[] = [];
+    while (titleSize >= 14) {
+      doc.setFontSize(titleSize);
+      lines = doc.splitTextToSize(p.name || "", textW);
+      if (lines.length <= 4) break;
+      titleSize -= 2;
+    }
+    const lh = titleSize * 0.42;
     doc.text(lines, tx, 44);
-    doc.setDrawColor(BRAND.ink); doc.line(tx, 44 + lines.length * 10, tx + 25, 44 + lines.length * 10);
+    const afterTitleY = 44 + lines.length * lh;
+    doc.setDrawColor(BRAND.ink); doc.line(tx, afterTitleY + 2, tx + 25, afterTitleY + 2);
     doc.setFontSize(10); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
-    doc.text(p.location || "", tx, 44 + lines.length * 10 + 8);
+    const locLines = doc.splitTextToSize(p.location || "", textW);
+    doc.text(locLines, tx, afterTitleY + 10);
   } else {
     doc.setFillColor(BRAND.ink); doc.rect(0, 0, W, H, "F");
     doc.setTextColor(BRAND.paper); doc.setFontSize(10); doc.setFont("Montserrat", "normal");
@@ -261,7 +273,12 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
 
   doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor(BRAND.ink);
   const descLines = doc.splitTextToSize(p.description || "No description available.", W - 30);
-  doc.text(descLines, 15, y); y += descLines.length * 5.5 + 8;
+  const descLh = 5.5;
+  for (const ln of descLines) {
+    if (y > H - 25) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
+    doc.text(ln, 15, y); y += descLh;
+  }
+  y += 8;
 
   if (p.highlights?.length) {
     doc.setFontSize(9); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "bold");
@@ -324,9 +341,19 @@ async function addCategoryCover(doc: jsPDF, type: string, count: number, image: 
     (doc as any).setGState && (doc as any).setGState(new (doc as any).GState({ opacity: 1 }));
   }
   doc.setTextColor(BRAND.paper); doc.setFont("Montserrat", "normal"); doc.setFontSize(10);
-  doc.text("CATEGORY", 20, H - 50, { charSpace: 3 });
-  doc.setFont("Montserrat", "bold"); doc.setFontSize(56);
-  doc.text(fmt(type) || "Projects", 20, H - 28);
+  doc.text("CATEGORY", 20, H - 60, { charSpace: 3 });
+  // Auto-shrink long category titles
+  const titleText = fmt(type) || "Projects";
+  let tSize = 56; let tLines: string[] = [];
+  doc.setFont("Montserrat", "bold");
+  while (tSize >= 24) {
+    doc.setFontSize(tSize);
+    tLines = doc.splitTextToSize(titleText, W - 40);
+    if (tLines.length <= 2) break;
+    tSize -= 4;
+  }
+  const tlh = tSize * 0.42;
+  doc.text(tLines, 20, H - 28 - (tLines.length - 1) * tlh);
   doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor("#cccccc");
   doc.text(`${count} project${count === 1 ? "" : "s"}`, 20, H - 18);
 }
@@ -468,18 +495,26 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   // About page
   doc.addPage(); page.n++;
   addPageHeader(doc, company);
+  const H = doc.internal.pageSize.getHeight();
   let y = sectionTitle(doc, "Introduction", "About " + (company?.name || "SADECO"), 28);
   doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.ink);
   const about = doc.splitTextToSize(company?.about || "", W - 30);
-  doc.text(about, 15, y); y += about.length * 6 + 10;
+  for (const ln of about) {
+    if (y > H - 25) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
+    doc.text(ln, 15, y); y += 6;
+  }
+  y += 10;
 
+  if (y > H - 50) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
   doc.setFont("Montserrat", "bold"); doc.setFontSize(9); doc.setTextColor(BRAND.muted);
   doc.text("CONTACT", 15, y, { charSpace: 3 }); y += 7;
   doc.setFontSize(10); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.ink);
-  [["Phone", company?.phone], ["Email", company?.email], ["Website", company?.website], ["Address", company?.address]]
+  ([["Phone", company?.phone], ["Email", company?.email], ["Website", company?.website], ["Address", company?.address]] as [string, string][])
     .filter(([_, v]) => v).forEach(([k, v]) => {
-      doc.setTextColor(BRAND.muted); doc.text(`${k}`, 15, y);
-      doc.setTextColor(BRAND.ink); doc.text(String(v), 45, y); y += 6;
+      const lines = doc.splitTextToSize(String(v), W - 60);
+      if (y + lines.length * 6 > H - 18) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
+      doc.setTextColor(BRAND.muted); doc.text(k, 15, y);
+      doc.setTextColor(BRAND.ink); doc.text(lines, 45, y); y += lines.length * 6;
     });
   addPageFooter(doc, company, page.n);
 
@@ -489,8 +524,10 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   y = sectionTitle(doc, "Capabilities", "Our Services", 28);
   doc.setFontSize(13); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.ink);
   (company?.services || []).forEach((s: string) => {
+    const lines = doc.splitTextToSize(s, W - 35);
+    if (y + lines.length * 6 > H - 18) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
     doc.text(BULLET, 15, y);
-    doc.text(s, 22, y); y += 9;
+    doc.text(lines, 22, y); y += lines.length * 6 + 3;
   });
   addPageFooter(doc, company, page.n);
 
