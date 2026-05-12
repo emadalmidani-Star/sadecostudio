@@ -146,7 +146,7 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     }
     doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.8);
     doc.circle(cx, cy, r + 0.4, "S");
-  } else if (logo) {
+  } else if (contact && logo) {
     const ratio = logo.w / logo.h; const w = 40; const h = w / ratio;
     doc.addImage(logo.data, "PNG", (W - w) / 2, cardY, w, h);
   }
