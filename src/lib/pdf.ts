@@ -343,44 +343,86 @@ function groupByType(list: any[], preserveOrder = false): Array<{ type: string; 
   return entries.map(([type, items]) => ({ type, items }));
 }
 
+const DEFAULT_PARTNERS_INTRO =
+  "We take immense pride as Sadeco is a Top listed and approved contractor in all major shopping malls in the UAE; EMAAR, MERAAS, MAF, NAKHEEL. Moreover, we have successfully executed major projects in all of the GCC countries.";
+
+const FALLBACK_PARTNERS = [
+  "Al Qana", "Emaar", "Meraas", "Majid Al Futtaim",
+  "Al Futtaim Property", "Danube", "Nakheel",
+  "Marina Mall", "Dubai Retail",
+];
+
 async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+
+  // Fetch partners list
+  const { data: rows } = await supabase.from("partners")
+    .select("name,logo_url,sort_order").order("sort_order", { ascending: true });
+  const partners = (rows && rows.length)
+    ? rows
+    : FALLBACK_PARTNERS.map((name, i) => ({ name, logo_url: null, sort_order: i }));
+
+  const layout = company?.partners_layout || {};
+  const cols = Math.max(1, Math.min(6, Number(layout.cols) || 3));
+  const tileStyle: "outlined" | "filled" | "none" = layout.tile_style || "outlined";
+  const fontSize = Math.max(7, Math.min(24, Number(layout.font_size) || 13));
+  const showLogos = layout.logo_mode !== false;
+  const intro = (company?.partners_intro ?? DEFAULT_PARTNERS_INTRO) || "";
+
   doc.addPage(); page.n++;
   addPageHeader(doc, company);
   let y = sectionTitle(doc, "Trusted Partners", "Clients & Partners", 28);
 
-  doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.ink);
-  const intro = doc.splitTextToSize(
-    "We take immense pride as Sadeco is a Top listed and approved contractor in all major shopping malls in the UAE; EMAAR, MERAAS, MAF, NAKHEEL. Moreover, we have successfully executed major projects in all of the GCC countries.",
-    W - 30
-  );
-  doc.text(intro, 15, y); y += intro.length * 6 + 8;
+  if (intro.trim()) {
+    doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.ink);
+    const lines = doc.splitTextToSize(intro, W - 30);
+    doc.text(lines, 15, y); y += lines.length * 6 + 8;
+  }
 
   doc.setFont("Montserrat", "bold"); doc.setFontSize(9); doc.setTextColor(BRAND.muted);
   doc.text("LISTED & APPROVED WITH", 15, y, { charSpace: 3 }); y += 8;
 
-  const clients = [
-    "Al Qana", "Emaar", "Meraas", "Majid Al Futtaim",
-    "Al Futtaim Property", "Danube", "Nakheel",
-    "Marina Mall", "Dubai Retail",
-  ];
-
-  const cols = 3;
   const gap = 6;
   const cellW = (W - 30 - gap * (cols - 1)) / cols;
-  const cellH = 18;
-  let x = 15;
-  let col = 0;
-  doc.setFont("Montserrat", "bold"); doc.setFontSize(13); doc.setTextColor(BRAND.ink);
-  clients.forEach((name) => {
-    if (y + cellH > H - 20) return;
-    doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.3);
-    doc.rect(x, y, cellW, cellH, "S");
-    doc.text(name, x + cellW / 2, y + cellH / 2 + 2, { align: "center" });
+  const cellH = showLogos ? Math.max(24, cellW * 0.45) : 18;
+
+  // Preload logos
+  const logos = await Promise.all(
+    partners.map(p => (showLogos && p.logo_url) ? loadImg(p.logo_url) : Promise.resolve(null))
+  );
+
+  let x = 15, col = 0;
+  for (let i = 0; i < partners.length; i++) {
+    if (y + cellH > H - 20) break;
+    const p = partners[i];
+    const img = logos[i];
+
+    if (tileStyle === "filled") {
+      doc.setFillColor("#f4f4f4"); doc.rect(x, y, cellW, cellH, "F");
+    } else if (tileStyle === "outlined") {
+      doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.3);
+      doc.rect(x, y, cellW, cellH, "S");
+    }
+
+    if (img) {
+      const pad = 4;
+      const maxW = cellW - pad * 2;
+      const maxH = cellH - pad * 2;
+      const ratio = img.w / img.h;
+      let dw = maxW, dh = maxW / ratio;
+      if (dh > maxH) { dh = maxH; dw = maxH * ratio; }
+      const ix = x + (cellW - dw) / 2;
+      const iy = y + (cellH - dh) / 2;
+      try { doc.addImage(img.data, "PNG", ix, iy, dw, dh, undefined, "FAST"); } catch {}
+    } else {
+      doc.setFont("Montserrat", "bold"); doc.setFontSize(fontSize); doc.setTextColor(BRAND.ink);
+      doc.text(p.name, x + cellW / 2, y + cellH / 2 + 2, { align: "center" });
+    }
+
     col++;
     if (col >= cols) { col = 0; x = 15; y += cellH + gap; }
     else { x += cellW + gap; }
-  });
+  }
 
   addPageFooter(doc, company, page.n);
 }
