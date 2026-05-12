@@ -152,7 +152,7 @@ export default function Exports() {
       const byId = new Map(projects.map(p => [p.id, p]));
       const list = selectedOrder.map(id => byId.get(id)).filter(Boolean);
       const c = await resolveSelectedContact();
-      await exportSelectedPDF(company, list, covers, c);
+      await exportSelectedPDF(company, list, covers, c, companyFields);
       toast.success("Portfolio PDF generated");
     } catch (e: any) { toast.error(e.message); }
     setBusy(null);
