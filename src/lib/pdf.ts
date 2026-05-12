@@ -451,6 +451,7 @@ export async function exportSelectedPDF(company: any, list: any[], categoryCover
     page.n++;
     for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
   }
+  await addClientsPage(doc, company, page);
   await addThankYou(doc, company, logo, tpls.thankyou, c);
   doc.save(`SADECO-Portfolio.pdf`);
 }
