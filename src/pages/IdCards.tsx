@@ -451,6 +451,7 @@ function QrTile({ member, company, canEdit, template, onRegenerate, onSaved }: {
           />
         ))}
       </div>
+      )}
 
       <div className="flex flex-wrap gap-2 justify-center">
         <Button variant="outline" size="sm" onClick={downloadPng}>
