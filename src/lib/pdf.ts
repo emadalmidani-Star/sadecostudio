@@ -383,6 +383,8 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
   });
 
   addPageFooter(doc, company, page.n);
+}
+
 
 async function resolveContact(explicit?: any): Promise<any | null> {
   if (explicit) return explicit;
