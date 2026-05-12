@@ -219,14 +219,26 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     doc.addImage(cover.data, "JPEG", (halfW - iw) / 2, (H - ih) / 2, iw, ih);
     doc.setFillColor(BRAND.paper); doc.rect(halfW, 0, W - halfW, H, "F");
     const tx = halfW + 12;
+    const textW = W - halfW - 20;
     doc.setFontSize(9); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
     doc.text(fmt(p.type).toUpperCase(), tx, 30, { charSpace: 2 });
-    doc.setFontSize(28); doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.ink);
-    const lines = doc.splitTextToSize(p.name, W - halfW - 20);
+    // Auto-shrink title until it fits in at most 4 lines
+    doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.ink);
+    let titleSize = 28;
+    let lines: string[] = [];
+    while (titleSize >= 14) {
+      doc.setFontSize(titleSize);
+      lines = doc.splitTextToSize(p.name || "", textW);
+      if (lines.length <= 4) break;
+      titleSize -= 2;
+    }
+    const lh = titleSize * 0.42;
     doc.text(lines, tx, 44);
-    doc.setDrawColor(BRAND.ink); doc.line(tx, 44 + lines.length * 10, tx + 25, 44 + lines.length * 10);
+    const afterTitleY = 44 + lines.length * lh;
+    doc.setDrawColor(BRAND.ink); doc.line(tx, afterTitleY + 2, tx + 25, afterTitleY + 2);
     doc.setFontSize(10); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
-    doc.text(p.location || "", tx, 44 + lines.length * 10 + 8);
+    const locLines = doc.splitTextToSize(p.location || "", textW);
+    doc.text(locLines, tx, afterTitleY + 10);
   } else {
     doc.setFillColor(BRAND.ink); doc.rect(0, 0, W, H, "F");
     doc.setTextColor(BRAND.paper); doc.setFontSize(10); doc.setFont("Montserrat", "normal");
