@@ -78,12 +78,8 @@ async function addCover(doc: jsPDF, company: any, subtitle: string, logo: any, t
   // right side
   doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold"); doc.setFontSize(48);
   doc.text(company?.name || "SADECO", W * 0.42, H / 2 - 6);
-  doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.muted);
-  doc.text(subtitle.toUpperCase(), W * 0.42, H / 2 + 6, { charSpace: 2 });
   // accent rule
-  doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.6); doc.line(W * 0.42, H / 2 + 12, W * 0.42 + 30, H / 2 + 12);
-  doc.setFontSize(9); doc.setTextColor(BRAND.muted);
-  doc.text(new Date().toLocaleDateString("en-US", { year: "numeric", month: "long" }), W * 0.42, H - 18);
+  doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.6); doc.line(W * 0.42, H / 2 + 6, W * 0.42 + 30, H / 2 + 6);
 }
 
 function addPageHeader(doc: jsPDF, company: any) {
@@ -164,11 +160,10 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     doc.text(contact.job_title, W / 2, ty, { align: "center" }); ty += 8;
   }
 
-  // Contact lines
+  // Contact lines (no WhatsApp on the export footer)
   doc.setFontSize(10); doc.setTextColor("#dddddd"); doc.setFont("Montserrat", "normal");
   const lines = [
     contact?.phone ? `Phone  ${contact.phone}` : null,
-    contact?.whatsapp ? `WhatsApp  ${contact.whatsapp}` : null,
     contact?.email ? `Email  ${contact.email}` : null,
   ].filter(Boolean) as string[];
   lines.forEach(l => { doc.text(l, W / 2, ty, { align: "center" }); ty += 6; });
