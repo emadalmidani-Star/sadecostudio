@@ -52,6 +52,8 @@ export type Database = {
           linkedin_url: string | null
           logo_url: string | null
           name: string
+          partners_intro: string | null
+          partners_layout: Json
           phone: string | null
           services: Json
           updated_at: string
@@ -68,6 +70,8 @@ export type Database = {
           linkedin_url?: string | null
           logo_url?: string | null
           name?: string
+          partners_intro?: string | null
+          partners_layout?: Json
           phone?: string | null
           services?: Json
           updated_at?: string
@@ -84,6 +88,8 @@ export type Database = {
           linkedin_url?: string | null
           logo_url?: string | null
           name?: string
+          partners_intro?: string | null
+          partners_layout?: Json
           phone?: string | null
           services?: Json
           updated_at?: string
@@ -145,6 +151,36 @@ export type Database = {
           id?: string
           invited_by?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
+      partners: {
+        Row: {
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
