@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileDown, FileText, Files, GripVertical, Loader2, Search, Upload, X } from "lucide-react";
-import { exportFullProfilePDF, exportSelectedPDF, setPdfCompression, type CompressOpts } from "@/lib/pdf";
+import { exportFullProfilePDF, exportSelectedPDF, setPdfCompression, type CompressOpts, type CompanyFooterFields } from "@/lib/pdf";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import {
