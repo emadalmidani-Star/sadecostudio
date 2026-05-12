@@ -259,6 +259,7 @@ export default function Exports() {
           <Select value={contactId} onValueChange={setContactId}>
             <SelectTrigger className="md:w-72"><SelectValue /></SelectTrigger>
             <SelectContent>
+              <SelectItem value="__none__">None — company only</SelectItem>
               <SelectItem value="__me__">Me (signed-in user)</SelectItem>
               {teamMembers.map(m => (
                 <SelectItem key={m.id} value={m.id}>
