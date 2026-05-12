@@ -466,6 +466,7 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
 
 
 async function resolveContact(explicit?: any): Promise<any | null> {
+  if (explicit === null) return null; // explicit "none"
   if (explicit) return explicit;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
