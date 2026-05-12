@@ -343,6 +343,47 @@ function groupByType(list: any[], preserveOrder = false): Array<{ type: string; 
   return entries.map(([type, items]) => ({ type, items }));
 }
 
+async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  doc.addPage(); page.n++;
+  addPageHeader(doc, company);
+  let y = sectionTitle(doc, "Trusted Partners", "Clients & Partners", 28);
+
+  doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.ink);
+  const intro = doc.splitTextToSize(
+    "We take immense pride as Sadeco is a Top listed and approved contractor in all major shopping malls in the UAE; EMAAR, MERAAS, MAF, NAKHEEL. Moreover, we have successfully executed major projects in all of the GCC countries.",
+    W - 30
+  );
+  doc.text(intro, 15, y); y += intro.length * 6 + 8;
+
+  doc.setFont("Montserrat", "bold"); doc.setFontSize(9); doc.setTextColor(BRAND.muted);
+  doc.text("LISTED & APPROVED WITH", 15, y, { charSpace: 3 }); y += 8;
+
+  const clients = [
+    "Al Qana", "Emaar", "Meraas", "Majid Al Futtaim",
+    "Al Futtaim Property", "Danube", "Nakheel",
+    "Marina Mall", "Dubai Retail",
+  ];
+
+  const cols = 3;
+  const gap = 6;
+  const cellW = (W - 30 - gap * (cols - 1)) / cols;
+  const cellH = 18;
+  let x = 15;
+  let col = 0;
+  doc.setFont("Montserrat", "bold"); doc.setFontSize(13); doc.setTextColor(BRAND.ink);
+  clients.forEach((name) => {
+    if (y + cellH > H - 20) return;
+    doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.3);
+    doc.rect(x, y, cellW, cellH, "S");
+    doc.text(name, x + cellW / 2, y + cellH / 2 + 2, { align: "center" });
+    col++;
+    if (col >= cols) { col = 0; x = 15; y += cellH + gap; }
+    else { x += cellW + gap; }
+  });
+
+  addPageFooter(doc, company, page.n);
+
 async function resolveContact(explicit?: any): Promise<any | null> {
   if (explicit) return explicit;
   const { data: { user } } = await supabase.auth.getUser();
