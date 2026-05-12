@@ -270,6 +270,23 @@ export default function Exports() {
             </SelectContent>
           </Select>
         </div>
+
+        <div className="mt-4 pt-4 border-t">
+          <p className="text-xs text-accent uppercase tracking-wider mb-2">Company contact fields on footer</p>
+          <p className="text-xs text-muted-foreground mb-3">Choose which company details appear at the bottom of the thank-you page.</p>
+          <div className="flex flex-wrap gap-4">
+            {(["phone", "email", "website", "address"] as const).map(k => (
+              <label key={k} className="flex items-center gap-2 text-sm capitalize cursor-pointer">
+                <Checkbox
+                  checked={!!companyFields[k]}
+                  onCheckedChange={(v) => setCompanyFields(prev => ({ ...prev, [k]: !!v }))}
+                />
+                {k}
+                {!company?.[k] && <span className="text-xs text-muted-foreground">(empty)</span>}
+              </label>
+            ))}
+          </div>
+        </div>
       </Card>
 
       <Card className="p-5 mb-10">
