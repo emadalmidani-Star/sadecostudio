@@ -417,6 +417,7 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
     for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
   }
 
+  await addClientsPage(doc, company, page);
   await addThankYou(doc, company, logo, tpls.thankyou, c);
   doc.save(`SADECO-Company-Profile.pdf`);
 }
