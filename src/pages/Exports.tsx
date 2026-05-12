@@ -63,7 +63,7 @@ export default function Exports() {
   const [assignments, setAssignments] = useState<Record<string, string | null>>({});
   const [quality, setQuality] = useState<keyof typeof QUALITY_PRESETS>("balanced");
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
-  const [contactId, setContactId] = useState<string>("__me__");
+  const [contactId, setContactId] = useState<string>("__none__");
   const selected = useMemo(() => new Set(selectedOrder), [selectedOrder]);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const { isAdmin } = useUserRole();
@@ -94,13 +94,14 @@ export default function Exports() {
   })(); }, []);
 
   async function resolveSelectedContact() {
+    if (contactId === "__none__") return null;
     if (contactId === "__me__") {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return undefined;
+      if (!user) return null;
       const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-      return data || undefined;
+      return data || null;
     }
-    return teamMembers.find(m => m.id === contactId) || undefined;
+    return teamMembers.find(m => m.id === contactId) || null;
   }
 
   async function setKindAssignment(kind: string, setId: string | null) {
@@ -258,6 +259,7 @@ export default function Exports() {
           <Select value={contactId} onValueChange={setContactId}>
             <SelectTrigger className="md:w-72"><SelectValue /></SelectTrigger>
             <SelectContent>
+              <SelectItem value="__none__">None — company only</SelectItem>
               <SelectItem value="__me__">Me (signed-in user)</SelectItem>
               {teamMembers.map(m => (
                 <SelectItem key={m.id} value={m.id}>
