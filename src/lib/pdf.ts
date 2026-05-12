@@ -315,7 +315,8 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     doc.addPage(); page.n++;
     addPageHeader(doc, company);
     let yy = sectionTitle(doc, "Gallery", "Visual Story", 28);
-    const cols = 3, gap = 5, imgW = (W - 30 - gap * (cols - 1)) / cols, imgH = imgW * 0.7;
+    const cols = allImages.length <= 4 ? 2 : 3;
+    const gap = 5, imgW = (W - 30 - gap * (cols - 1)) / cols, imgH = imgW * 0.7;
     let x = 15, col = 0;
     for (let i = 0; i < allImages.length; i++) {
       const img = await loadImg(allImages[i]);
