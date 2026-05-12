@@ -136,7 +136,7 @@ type Theme = "gradient" | "black" | "white";
 // Module-level cache so theme switches / remounts don't re-encode the QR.
 const qrCache = new Map<string, string>();
 
-function QrTile({ member, company, canEdit, onRegenerate, onSaved }: { member: Member; company: Company | null; canEdit: boolean; onRegenerate?: () => void; onSaved?: (m: Member) => void }) {
+function QrTile({ member, company, canEdit, template, onRegenerate, onSaved }: { member: Member; company: Company | null; canEdit: boolean; template: IdCardTemplate; onRegenerate?: () => void; onSaved?: (m: Member) => void }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [theme, setTheme] = useState<Theme>("gradient");
   const [version, setVersion] = useState(0);
