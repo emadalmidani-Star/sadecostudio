@@ -305,9 +305,12 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
   }
   addPageFooter(doc, company, page.n);
 
-  // Gallery
-  const gallery = (p.images || []).filter((u: string) => u !== p.cover_image);
-  if (gallery.length) {
+  // Gallery — include cover image first
+  const allImages = Array.from(new Set([
+    ...(p.cover_image ? [p.cover_image] : []),
+    ...((p.images || []) as string[]),
+  ]));
+  if (allImages.length) {
     doc.addPage(); page.n++;
     addPageHeader(doc, company);
     let yy = sectionTitle(doc, "Gallery", "Visual Story", 28);
