@@ -10,12 +10,25 @@ export type Slot = {
 };
 
 export type Template = {
-  page_type: "cover" | "divider" | "project" | "thankyou";
+  page_type: "cover" | "divider" | "project" | "thankyou" | "idcard";
   background_url: string | null;
   slots: Slot[];
 };
 
 export const FIELDS_BY_TYPE: Record<Template["page_type"], { field: string; kind: "text" | "image"; label: string }[]> = {
+  idcard: [
+    { field: "member_name", kind: "text", label: "Member name" },
+    { field: "member_title", kind: "text", label: "Job title" },
+    { field: "member_email", kind: "text", label: "Email" },
+    { field: "member_phone", kind: "text", label: "Phone" },
+    { field: "member_whatsapp", kind: "text", label: "WhatsApp" },
+    { field: "company_name", kind: "text", label: "Company name" },
+    { field: "company_website", kind: "text", label: "Website" },
+    { field: "company_phone", kind: "text", label: "Company phone" },
+    { field: "member_photo", kind: "image", label: "Member photo" },
+    { field: "company_logo", kind: "image", label: "Company logo" },
+    { field: "qr_code", kind: "image", label: "QR code" },
+  ],
   cover: [
     { field: "company_name", kind: "text", label: "Company name" },
     { field: "subtitle", kind: "text", label: "Subtitle" },
