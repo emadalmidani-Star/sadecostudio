@@ -165,7 +165,6 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
   const lines = [
     contact?.phone ? `Phone  ${contact.phone}` : null,
     contact?.email ? `Email  ${contact.email}` : null,
-    contact?.email ? `Email  ${contact.email}` : null,
   ].filter(Boolean) as string[];
   lines.forEach(l => { doc.text(l, W / 2, ty, { align: "center" }); ty += 6; });
 
