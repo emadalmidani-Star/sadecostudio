@@ -609,6 +609,20 @@ export default function IdCards() {
         Scan to instantly save the contact — name, title, email, phone, website and company socials.
       </p>
 
+      {isAdmin && sets.length > 0 && (
+        <Card className="p-4 mb-6 flex flex-wrap items-center gap-3">
+          <Label className="text-xs">ID Card template</Label>
+          <Select value={setId} onValueChange={saveSetAssignment}>
+            <SelectTrigger className="w-72"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Default layout (no template)</SelectItem>
+              {sets.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground">Design custom layouts in <a href="/template" className="underline">Template Designer</a> → ID Card tab.</span>
+        </Card>
+      )}
+
       {isAdmin && (
         <div className="relative max-w-md mb-8">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
