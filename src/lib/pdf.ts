@@ -485,18 +485,26 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   // About page
   doc.addPage(); page.n++;
   addPageHeader(doc, company);
+  const H = doc.internal.pageSize.getHeight();
   let y = sectionTitle(doc, "Introduction", "About " + (company?.name || "SADECO"), 28);
   doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.ink);
   const about = doc.splitTextToSize(company?.about || "", W - 30);
-  doc.text(about, 15, y); y += about.length * 6 + 10;
+  for (const ln of about) {
+    if (y > H - 25) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
+    doc.text(ln, 15, y); y += 6;
+  }
+  y += 10;
 
+  if (y > H - 50) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
   doc.setFont("Montserrat", "bold"); doc.setFontSize(9); doc.setTextColor(BRAND.muted);
   doc.text("CONTACT", 15, y, { charSpace: 3 }); y += 7;
   doc.setFontSize(10); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.ink);
-  [["Phone", company?.phone], ["Email", company?.email], ["Website", company?.website], ["Address", company?.address]]
+  ([["Phone", company?.phone], ["Email", company?.email], ["Website", company?.website], ["Address", company?.address]] as [string, string][])
     .filter(([_, v]) => v).forEach(([k, v]) => {
-      doc.setTextColor(BRAND.muted); doc.text(`${k}`, 15, y);
-      doc.setTextColor(BRAND.ink); doc.text(String(v), 45, y); y += 6;
+      const lines = doc.splitTextToSize(String(v), W - 60);
+      if (y + lines.length * 6 > H - 18) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
+      doc.setTextColor(BRAND.muted); doc.text(k, 15, y);
+      doc.setTextColor(BRAND.ink); doc.text(lines, 45, y); y += lines.length * 6;
     });
   addPageFooter(doc, company, page.n);
 
@@ -506,8 +514,10 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   y = sectionTitle(doc, "Capabilities", "Our Services", 28);
   doc.setFontSize(13); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.ink);
   (company?.services || []).forEach((s: string) => {
+    const lines = doc.splitTextToSize(s, W - 35);
+    if (y + lines.length * 6 > H - 18) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
     doc.text(BULLET, 15, y);
-    doc.text(s, 22, y); y += 9;
+    doc.text(lines, 22, y); y += lines.length * 6 + 3;
   });
   addPageFooter(doc, company, page.n);
 
