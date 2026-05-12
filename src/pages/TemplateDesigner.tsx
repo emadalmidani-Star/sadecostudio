@@ -21,9 +21,11 @@ const PAGE_TABS: { key: PageType; label: string }[] = [
   { key: "divider", label: "Category Divider" },
   { key: "project", label: "Project Page" },
   { key: "thankyou", label: "Thank You" },
+  { key: "idcard", label: "ID Card" },
 ];
 
-const RATIO = 297 / 210;
+const A4_RATIO = 297 / 210;
+const IDCARD_RATIO = 54 / 86; // portrait credit-card
 
 export default function TemplateDesigner() {
   const [sets, setSets] = useState<TplSet[]>([]);
