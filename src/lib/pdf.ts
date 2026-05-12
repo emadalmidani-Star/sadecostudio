@@ -273,7 +273,12 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
 
   doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor(BRAND.ink);
   const descLines = doc.splitTextToSize(p.description || "No description available.", W - 30);
-  doc.text(descLines, 15, y); y += descLines.length * 5.5 + 8;
+  const descLh = 5.5;
+  for (const ln of descLines) {
+    if (y > H - 25) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
+    doc.text(ln, 15, y); y += descLh;
+  }
+  y += 8;
 
   if (p.highlights?.length) {
     doc.setFontSize(9); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "bold");
