@@ -285,9 +285,83 @@ function QrTile({ member, company, canEdit, template, onRegenerate, onSaved }: {
   const initials = (member.full_name || member.email || "?")
     .split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
 
+  const useTemplate = !!template && template.slots.length > 0;
+  const CARD_W = 340;
+  const CARD_H = useTemplate ? Math.round(CARD_W * (86 / 54)) : undefined;
+
+  function resolveTextValue(field: string): string {
+    switch (field) {
+      case "member_name": return member.full_name || member.email || "";
+      case "member_title": return member.job_title || "";
+      case "member_email": return member.email || "";
+      case "member_phone": return member.phone || "";
+      case "member_whatsapp": return member.whatsapp || "";
+      case "company_name": return company?.name || "";
+      case "company_website": return (company?.website || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
+      case "company_phone": return company?.phone || "";
+      default: return "";
+    }
+  }
+  function resolveImageValue(field: string): string | null {
+    if (field === "member_photo") return member.avatar_url || null;
+    if (field === "company_logo") return company?.logo_url || null;
+    if (field === "qr_code") return qr || null;
+    return null;
+  }
+
   return (
     <div className="flex flex-col items-center gap-3">
-      {/* Vertical ID-card badge */}
+      {useTemplate ? (
+        <div
+          ref={wrapRef}
+          className="relative rounded-2xl overflow-hidden shadow-2xl border border-border bg-white"
+          style={{ width: CARD_W, height: CARD_H }}
+        >
+          {template!.background_url && (
+            <img src={template!.background_url} alt="" crossOrigin="anonymous" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
+          )}
+          {template!.slots.map((s, i) => {
+            const meta = FIELDS_BY_TYPE.idcard.find(f => f.field === s.field);
+            const style: React.CSSProperties = {
+              position: "absolute",
+              left: `${s.x}%`, top: `${s.y}%`,
+              width: `${s.w}%`, height: `${s.h}%`,
+            };
+            if (meta?.kind === "image") {
+              const url = resolveImageValue(s.field);
+              if (!url) return null;
+              const isQr = s.field === "qr_code";
+              return (
+                <div key={i} style={style} className={isQr ? "bg-white p-1" : ""}>
+                  <img src={url} alt="" crossOrigin="anonymous" className="w-full h-full object-contain" />
+                </div>
+              );
+            }
+            const text = resolveTextValue(s.field);
+            if (!text) return null;
+            return (
+              <div
+                key={i}
+                style={{
+                  ...style,
+                  fontSize: (s.fontSize || 12) * (CARD_W / 595), // approx scale: A4@72dpi width
+                  color: s.color || "#000",
+                  fontWeight: s.bold ? 700 : 400,
+                  textAlign: s.align || "left",
+                  lineHeight: 1.15,
+                  whiteSpace: "pre-wrap",
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: s.align === "center" ? "center" : s.align === "right" ? "flex-end" : "flex-start",
+                }}
+              >
+                <span style={{ width: "100%" }}>{text}</span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
       <div
         ref={wrapRef}
         className={`relative w-[340px] rounded-2xl overflow-hidden shadow-2xl border border-border ${themeStyles.bodyClass}`}
@@ -352,8 +426,10 @@ function QrTile({ member, company, canEdit, template, onRegenerate, onSaved }: {
           )}
         </div>
       </div>
+      )}
 
-      {/* Theme selector */}
+      {/* Theme selector — only when using built-in layout */}
+      {!useTemplate && (
       <div className="flex items-center gap-2">
         <span className="text-[10px] tracking-[0.2em] text-muted-foreground uppercase">Theme</span>
         {(["gradient", "black", "white"] as Theme[]).map((t) => (
