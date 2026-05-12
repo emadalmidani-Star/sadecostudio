@@ -160,7 +160,7 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     doc.text(contact.job_title, W / 2, ty, { align: "center" }); ty += 8;
   }
 
-  // Contact lines
+  // Contact lines (no WhatsApp on the export footer)
   doc.setFontSize(10); doc.setTextColor("#dddddd"); doc.setFont("Montserrat", "normal");
   const lines = [
     contact?.phone ? `Phone  ${contact.phone}` : null,
