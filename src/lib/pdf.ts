@@ -164,7 +164,7 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
   doc.setFontSize(10); doc.setTextColor("#dddddd"); doc.setFont("Montserrat", "normal");
   const lines = [
     contact?.phone ? `Phone  ${contact.phone}` : null,
-    contact?.whatsapp ? `WhatsApp  ${contact.whatsapp}` : null,
+    contact?.email ? `Email  ${contact.email}` : null,
     contact?.email ? `Email  ${contact.email}` : null,
   ].filter(Boolean) as string[];
   lines.forEach(l => { doc.text(l, W / 2, ty, { align: "center" }); ty += 6; });
