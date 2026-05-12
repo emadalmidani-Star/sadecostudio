@@ -104,7 +104,8 @@ function sectionTitle(doc: jsPDF, _label: string, title: string, y: number) {
   return y + 18;
 }
 
-async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, contact?: any) {
+export type CompanyFooterFields = { phone?: boolean; email?: boolean; website?: boolean; address?: boolean };
+async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, contact?: any, companyFields?: CompanyFooterFields) {
   doc.addPage();
   if (tpl) { await renderTemplatePage(doc, tpl, { company, contact }); return; }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
