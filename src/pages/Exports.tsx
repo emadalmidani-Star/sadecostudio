@@ -138,7 +138,7 @@ export default function Exports() {
     setPdfCompression(QUALITY_PRESETS[quality]);
     try {
       const c = await resolveSelectedContact();
-      await exportFullProfilePDF(company, projects, covers, c);
+      await exportFullProfilePDF(company, projects, covers, c, companyFields);
       toast.success("Profile PDF generated");
     } catch (e: any) { toast.error(e.message); }
     setBusy(null);
