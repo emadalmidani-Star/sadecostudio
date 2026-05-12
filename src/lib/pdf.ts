@@ -169,10 +169,19 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
   ].filter(Boolean) as string[];
   lines.forEach(l => { doc.text(l, W / 2, ty, { align: "center" }); ty += 6; });
 
-  // Company contact row
-  const parts = [company?.phone, company?.email, company?.website].filter(Boolean).join("   |   ");
+  // Company contact row (configurable fields)
+  const cf: CompanyFooterFields = companyFields || { phone: true, email: true, website: true, address: false };
+  const parts = [
+    cf.phone ? company?.phone : null,
+    cf.email ? company?.email : null,
+    cf.website ? company?.website : null,
+    cf.address ? company?.address : null,
+  ].filter(Boolean).join("   |   ");
   doc.setFontSize(9); doc.setTextColor("#999999");
-  doc.text(parts, W / 2, H - 28, { align: "center" });
+  const partLines = doc.splitTextToSize(parts, W - 40);
+  partLines.forEach((ln: string, i: number) => {
+    doc.text(ln, W / 2, H - 28 + i * 5, { align: "center" });
+  });
 
   // Social icons row (drawn as labeled circles since icon fonts aren't embedded)
   const socials = [
