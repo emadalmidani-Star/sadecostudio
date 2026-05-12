@@ -64,6 +64,7 @@ export default function Exports() {
   const [quality, setQuality] = useState<keyof typeof QUALITY_PRESETS>("balanced");
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [contactId, setContactId] = useState<string>("__none__");
+  const [companyFields, setCompanyFields] = useState<CompanyFooterFields>({ phone: true, email: true, website: true, address: false });
   const selected = useMemo(() => new Set(selectedOrder), [selectedOrder]);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const { isAdmin } = useUserRole();
