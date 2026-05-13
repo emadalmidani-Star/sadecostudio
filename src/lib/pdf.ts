@@ -56,6 +56,20 @@ async function loadImg(url: string, opts: CompressOpts = CURRENT_COMPRESS): Prom
   } catch { return null; }
 }
 
+// Load a logo while preserving transparency (PNG output, no white fill).
+async function loadLogoTransparent(url: string): Promise<{ data: string; w: number; h: number } | null> {
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    const blob = await res.blob();
+    const rawData = await new Promise<string>((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(blob); });
+    const img = await new Promise<HTMLImageElement | null>((r) => {
+      const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = rawData;
+    });
+    if (!img) return null;
+    return { data: rawData, w: img.width, h: img.height };
+  } catch { return null; }
+}
+
 // Always flatten logos onto white to avoid transparent-PNG fringing in PDFs.
 async function loadLogo(url: string): Promise<{ data: string; w: number; h: number } | null> {
   try {
