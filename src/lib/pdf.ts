@@ -428,18 +428,34 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
 
   const gap = 6;
   const cellW = (W - 30 - gap * (cols - 1)) / cols;
-  const cellH = showLogos ? Math.max(24, cellW * 0.45) : 18;
+  // Scale tile height down for denser grids so 6 columns fit nicely
+  const baseH = showLogos ? Math.max(20, Math.min(38, cellW * 0.55)) : 18;
+  const cellH = baseH;
 
   // Preload logos
   const logos = await Promise.all(
     partners.map(p => (showLogos && p.logo_url) ? loadImg(p.logo_url) : Promise.resolve(null))
   );
 
+  const startNewPartnersPage = () => {
+    addPageFooter(doc, company, page.n);
+    doc.addPage(); page.n++;
+    addPageHeader(doc, company);
+    y = sectionTitle(doc, "Trusted Partners", "Clients & Partners (cont.)", 28);
+  };
+
   let x = 15, col = 0;
   for (let i = 0; i < partners.length; i++) {
-    if (y + cellH > H - 20) break;
+    if (y + cellH > H - 20) {
+      startNewPartnersPage();
+      x = 15; col = 0;
+    }
     const p = partners[i];
     const img = logos[i];
+
+    // Always fill the tile background white so transparent PNGs render cleanly
+    doc.setFillColor("#ffffff");
+    doc.rect(x, y, cellW, cellH, "F");
 
     if (tileStyle === "filled") {
       doc.setFillColor("#f4f4f4"); doc.rect(x, y, cellW, cellH, "F");
@@ -449,7 +465,7 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
     }
 
     if (img) {
-      const pad = 4;
+      const pad = 3;
       const maxW = cellW - pad * 2;
       const maxH = cellH - pad * 2;
       const ratio = img.w / img.h;
