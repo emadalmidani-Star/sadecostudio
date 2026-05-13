@@ -458,7 +458,7 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
 
   // Preload logos
   const logos = await Promise.all(
-    partners.map(p => (showLogos && p.logo_url) ? loadImg(p.logo_url) : Promise.resolve(null))
+    partners.map(p => (showLogos && p.logo_url) ? loadLogo(p.logo_url) : Promise.resolve(null))
   );
 
   const startNewPartnersPage = () => {
@@ -524,7 +524,7 @@ async function resolveContact(explicit?: any): Promise<any | null> {
 export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}, contact?: any, companyFields?: CompanyFooterFields) {
   const doc = await newDoc();
   const tpls = await loadTemplates("portfolio");
-  const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
+  const logo = company?.logo_url ? await loadLogo(company.logo_url) : null;
   const c = await resolveContact(contact);
   await addCover(doc, company, `Portfolio - ${list.length} Projects`, logo, tpls.cover);
   const page = { n: 1 };
@@ -545,7 +545,7 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
   const tpls = await loadTemplates("profile");
-  const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
+  const logo = company?.logo_url ? await loadLogo(company.logo_url) : null;
   const c = await resolveContact(contact);
   await addCover(doc, company, "Company Profile", logo, tpls.cover);
   const page = { n: 1 };
@@ -606,7 +606,7 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
 export async function exportProjectPDF(p: any, company: any, contact?: any, companyFields?: CompanyFooterFields) {
   const doc = await newDoc();
   const tpls = await loadTemplates("project");
-  const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
+  const logo = company?.logo_url ? await loadLogo(company.logo_url) : null;
   const c = await resolveContact(contact);
   await addCover(doc, company, "Project Case Study", logo, tpls.cover);
   const page = { n: 1 };
