@@ -35,8 +35,9 @@ export default function CompanyProfile() {
 
   async function handleLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return;
-    const path = `logo-${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from("company-assets").upload(path, file);
+    const { blob, filename } = await flattenToWhite(file);
+    const path = `logo-${Date.now()}-${filename}`;
+    const { error } = await supabase.storage.from("company-assets").upload(path, blob, { contentType: blob.type });
     if (error) return toast.error(error.message);
     const { data } = supabase.storage.from("company-assets").getPublicUrl(path);
     set("logo_url", data.publicUrl);
