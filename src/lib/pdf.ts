@@ -477,14 +477,14 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
     const p = partners[i];
     const img = logos[i];
 
-    // Always fill the tile background white so transparent PNGs render cleanly
-    doc.setFillColor("#ffffff");
+    // Use a soft off-white tile so logos with white backgrounds still read as a tile
+    doc.setFillColor("#f7f7f8");
     doc.rect(x, y, cellW, cellH, "F");
 
     if (tileStyle === "filled") {
-      doc.setFillColor("#f4f4f4"); doc.rect(x, y, cellW, cellH, "F");
+      doc.setFillColor("#eeeef0"); doc.rect(x, y, cellW, cellH, "F");
     } else if (tileStyle === "outlined") {
-      doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.3);
+      doc.setDrawColor(220, 220, 224); doc.setLineWidth(0.3);
       doc.rect(x, y, cellW, cellH, "S");
     }
 
