@@ -56,11 +56,67 @@ async function loadImg(url: string, opts: CompressOpts = CURRENT_COMPRESS): Prom
   } catch { return null; }
 }
 
+// Parse SVG dimensions (viewBox or width/height) from raw SVG markup.
+function parseSvgSize(svgText: string): { w: number; h: number } {
+  try {
+    const doc = new DOMParser().parseFromString(svgText, "image/svg+xml");
+    const svg = doc.documentElement;
+    const vb = svg.getAttribute("viewBox");
+    if (vb) {
+      const parts = vb.split(/[\s,]+/).map(Number);
+      if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) return { w: parts[2], h: parts[3] };
+    }
+    const w = parseFloat(svg.getAttribute("width") || "");
+    const h = parseFloat(svg.getAttribute("height") || "");
+    if (w > 0 && h > 0) return { w, h };
+  } catch {}
+  return { w: 300, h: 150 };
+}
+
+// Rasterize an SVG (from raw text) onto a canvas at high resolution.
+async function rasterizeSvg(svgText: string, targetMax: number, fillWhite: boolean): Promise<{ data: string; w: number; h: number } | null> {
+  const { w: svgW, h: svgH } = parseSvgSize(svgText);
+  const scale = targetMax / Math.max(svgW, svgH);
+  const w = Math.max(1, Math.round(svgW * scale));
+  const h = Math.max(1, Math.round(svgH * scale));
+  const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = await new Promise<HTMLImageElement | null>((r) => {
+      const i = new Image();
+      i.onload = () => r(i); i.onerror = () => r(null);
+      i.src = url;
+    });
+    if (!img) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    if (fillWhite) { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h); }
+    ctx.drawImage(img, 0, 0, w, h);
+    const data = fillWhite ? canvas.toDataURL("image/jpeg", 0.95) : canvas.toDataURL("image/png");
+    return { data, w, h };
+  } finally { URL.revokeObjectURL(url); }
+}
+
+function isSvg(url: string, contentType: string, blobText?: string): boolean {
+  if (contentType.includes("svg")) return true;
+  if (/\.svg(\?|#|$)/i.test(url)) return true;
+  if (blobText && /^\s*<\?xml|^\s*<svg/i.test(blobText)) return true;
+  return false;
+}
+
 // Load a logo while preserving transparency (PNG output, no white fill).
 async function loadLogoTransparent(url: string): Promise<{ data: string; w: number; h: number } | null> {
   try {
     const res = await fetch(url, { mode: "cors" });
     const blob = await res.blob();
+    const ct = blob.type || "";
+    if (isSvg(url, ct)) {
+      const text = await blob.text();
+      const out = await rasterizeSvg(text, 1600, false);
+      if (out) return out;
+    }
     const rawData = await new Promise<string>((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(blob); });
     const img = await new Promise<HTMLImageElement | null>((r) => {
       const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = rawData;
@@ -75,6 +131,12 @@ async function loadLogo(url: string): Promise<{ data: string; w: number; h: numb
   try {
     const res = await fetch(url, { mode: "cors" });
     const blob = await res.blob();
+    const ct = blob.type || "";
+    if (isSvg(url, ct)) {
+      const text = await blob.text();
+      const out = await rasterizeSvg(text, 1600, true);
+      if (out) return out;
+    }
     const rawData = await new Promise<string>((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(blob); });
     const img = await new Promise<HTMLImageElement | null>((r) => {
       const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = rawData;
