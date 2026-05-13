@@ -56,6 +56,30 @@ async function loadImg(url: string, opts: CompressOpts = CURRENT_COMPRESS): Prom
   } catch { return null; }
 }
 
+// Always flatten logos onto white to avoid transparent-PNG fringing in PDFs.
+async function loadLogo(url: string): Promise<{ data: string; w: number; h: number } | null> {
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    const blob = await res.blob();
+    const rawData = await new Promise<string>((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(blob); });
+    const img = await new Promise<HTMLImageElement | null>((r) => {
+      const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = rawData;
+    });
+    if (!img) return null;
+    const maxDim = 600;
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return { data: rawData, w: img.width, h: img.height };
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    return { data: canvas.toDataURL("image/jpeg", 0.95), w, h };
+  } catch { return null; }
+}
+
 function fmt(s?: string | null) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ""; }
 
 async function newDoc() {
@@ -73,7 +97,7 @@ async function addCover(doc: jsPDF, company: any, subtitle: string, logo: any, t
   doc.setFillColor(BRAND.ink); doc.rect(0, 0, W * 0.38, H, "F");
   if (logo) {
     const ratio = logo.w / logo.h; const w = 60; const h = w / ratio;
-    doc.addImage(logo.data, "PNG", (W * 0.38 - w) / 2, H / 2 - h / 2, w, h);
+    doc.addImage(logo.data, "JPEG", (W * 0.38 - w) / 2, H / 2 - h / 2, w, h);
   }
   // right side
   doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold"); doc.setFontSize(48);
@@ -148,7 +172,7 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     doc.circle(cx, cy, r + 0.4, "S");
   } else if (contact && logo) {
     const ratio = logo.w / logo.h; const w = 40; const h = w / ratio;
-    doc.addImage(logo.data, "PNG", (W - w) / 2, cardY, w, h);
+    doc.addImage(logo.data, "JPEG", (W - w) / 2, cardY, w, h);
   }
 
   let ty = cardY + avatarSize + 12;
@@ -434,7 +458,7 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
 
   // Preload logos
   const logos = await Promise.all(
-    partners.map(p => (showLogos && p.logo_url) ? loadImg(p.logo_url) : Promise.resolve(null))
+    partners.map(p => (showLogos && p.logo_url) ? loadLogo(p.logo_url) : Promise.resolve(null))
   );
 
   const startNewPartnersPage = () => {
@@ -473,7 +497,7 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
       if (dh > maxH) { dh = maxH; dw = maxH * ratio; }
       const ix = x + (cellW - dw) / 2;
       const iy = y + (cellH - dh) / 2;
-      try { doc.addImage(img.data, "PNG", ix, iy, dw, dh, undefined, "FAST"); } catch {}
+      try { doc.addImage(img.data, "JPEG", ix, iy, dw, dh, undefined, "FAST"); } catch {}
     } else {
       doc.setFont("Montserrat", "bold"); doc.setFontSize(fontSize); doc.setTextColor(BRAND.ink);
       doc.text(p.name, x + cellW / 2, y + cellH / 2 + 2, { align: "center" });
@@ -500,7 +524,7 @@ async function resolveContact(explicit?: any): Promise<any | null> {
 export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}, contact?: any, companyFields?: CompanyFooterFields) {
   const doc = await newDoc();
   const tpls = await loadTemplates("portfolio");
-  const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
+  const logo = company?.logo_url ? await loadLogo(company.logo_url) : null;
   const c = await resolveContact(contact);
   await addCover(doc, company, `Portfolio - ${list.length} Projects`, logo, tpls.cover);
   const page = { n: 1 };
@@ -521,7 +545,7 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
   const tpls = await loadTemplates("profile");
-  const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
+  const logo = company?.logo_url ? await loadLogo(company.logo_url) : null;
   const c = await resolveContact(contact);
   await addCover(doc, company, "Company Profile", logo, tpls.cover);
   const page = { n: 1 };
@@ -582,7 +606,7 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
 export async function exportProjectPDF(p: any, company: any, contact?: any, companyFields?: CompanyFooterFields) {
   const doc = await newDoc();
   const tpls = await loadTemplates("project");
-  const logo = company?.logo_url ? await loadImg(company.logo_url) : null;
+  const logo = company?.logo_url ? await loadLogo(company.logo_url) : null;
   const c = await resolveContact(contact);
   await addCover(doc, company, "Project Case Study", logo, tpls.cover);
   const page = { n: 1 };

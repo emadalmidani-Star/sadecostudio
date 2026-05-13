@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Upload, X, ArrowUp, ArrowDown, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { flattenToWhite } from "@/lib/flattenImage";
 
 type Partner = { id: string; name: string; logo_url: string | null; sort_order: number };
 
@@ -34,8 +35,9 @@ export default function CompanyProfile() {
 
   async function handleLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return;
-    const path = `logo-${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from("company-assets").upload(path, file);
+    const { blob, filename } = await flattenToWhite(file);
+    const path = `logo-${Date.now()}-${filename}`;
+    const { error } = await supabase.storage.from("company-assets").upload(path, blob, { contentType: blob.type });
     if (error) return toast.error(error.message);
     const { data } = supabase.storage.from("company-assets").getPublicUrl(path);
     set("logo_url", data.publicUrl);
@@ -97,8 +99,9 @@ export default function CompanyProfile() {
   }
 
   async function uploadPartnerLogo(p: Partner, file: File) {
-    const path = `partner-${p.id}-${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from("company-assets").upload(path, file);
+    const { blob, filename } = await flattenToWhite(file);
+    const path = `partner-${p.id}-${Date.now()}-${filename}`;
+    const { error } = await supabase.storage.from("company-assets").upload(path, blob, { contentType: blob.type });
     if (error) return toast.error(error.message);
     const { data } = supabase.storage.from("company-assets").getPublicUrl(path);
     const { error: e2 } = await supabase.from("partners").update({ logo_url: data.publicUrl }).eq("id", p.id);
