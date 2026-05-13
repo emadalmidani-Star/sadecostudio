@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Upload, X, ArrowUp, ArrowDown, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { flattenToWhite } from "@/lib/flattenImage";
 
 type Partner = { id: string; name: string; logo_url: string | null; sort_order: number };
 
