@@ -133,7 +133,7 @@ export default function CompanyProfile() {
               {c.logo_url ? <img src={c.logo_url} className="w-full h-full object-contain p-2" /> : <span className="text-xs text-muted-foreground">No logo</span>}
             </div>
             <label className="cursor-pointer">
-              <input type="file" accept="image/*" className="hidden" onChange={handleLogo} />
+              <input type="file" accept="image/*,.svg,image/svg+xml" className="hidden" onChange={handleLogo} />
               <span className="inline-flex items-center px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:opacity-90"><Upload className="w-4 h-4 mr-2" />Upload Logo</span>
             </label>
           </div>
@@ -242,7 +242,7 @@ export default function CompanyProfile() {
                   onBlur={() => commitPartner(p)}
                 />
                 <label className="cursor-pointer">
-                  <input type="file" accept="image/*" className="hidden"
+                  <input type="file" accept="image/*,.svg,image/svg+xml" className="hidden"
                     onChange={e => { const f = e.target.files?.[0]; if (f) uploadPartnerLogo(p, f); }} />
                   <span className="inline-flex items-center px-3 py-2 text-xs bg-secondary text-secondary-foreground rounded hover:opacity-90">
                     <Upload className="w-3 h-3 mr-1" />Logo
