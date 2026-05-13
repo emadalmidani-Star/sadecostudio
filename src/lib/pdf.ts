@@ -56,6 +56,20 @@ async function loadImg(url: string, opts: CompressOpts = CURRENT_COMPRESS): Prom
   } catch { return null; }
 }
 
+// Load a logo while preserving transparency (PNG output, no white fill).
+async function loadLogoTransparent(url: string): Promise<{ data: string; w: number; h: number } | null> {
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    const blob = await res.blob();
+    const rawData = await new Promise<string>((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(blob); });
+    const img = await new Promise<HTMLImageElement | null>((r) => {
+      const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = rawData;
+    });
+    if (!img) return null;
+    return { data: rawData, w: img.width, h: img.height };
+  } catch { return null; }
+}
+
 // Always flatten logos onto white to avoid transparent-PNG fringing in PDFs.
 async function loadLogo(url: string): Promise<{ data: string; w: number; h: number } | null> {
   try {
@@ -100,11 +114,7 @@ async function addCover(doc: jsPDF, company: any, subtitle: string, logo: any, t
     const w = 70; const h = w / ratio;
     const x = (W * 0.38 - w) / 2;
     const y = H / 2 - h / 2;
-    // White panel behind the logo so a white-flattened logo reads cleanly on the black band
-    const padX = 8, padY = 8;
-    doc.setFillColor("#ffffff");
-    doc.roundedRect(x - padX, y - padY, w + padX * 2, h + padY * 2, 3, 3, "F");
-    doc.addImage(logo.data, "JPEG", x, y, w, h);
+    doc.addImage(logo.data, "PNG", x, y, w, h);
   }
   // right side
   doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold"); doc.setFontSize(48);
@@ -531,7 +541,7 @@ async function resolveContact(explicit?: any): Promise<any | null> {
 export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}, contact?: any, companyFields?: CompanyFooterFields) {
   const doc = await newDoc();
   const tpls = await loadTemplates("portfolio");
-  const logo = company?.logo_url ? await loadLogo(company.logo_url) : null;
+  const logo = company?.logo_url ? await loadLogoTransparent(company.logo_url) : null;
   const c = await resolveContact(contact);
   await addCover(doc, company, `Portfolio - ${list.length} Projects`, logo, tpls.cover);
   const page = { n: 1 };
@@ -552,7 +562,7 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
   const tpls = await loadTemplates("profile");
-  const logo = company?.logo_url ? await loadLogo(company.logo_url) : null;
+  const logo = company?.logo_url ? await loadLogoTransparent(company.logo_url) : null;
   const c = await resolveContact(contact);
   await addCover(doc, company, "Company Profile", logo, tpls.cover);
   const page = { n: 1 };
@@ -613,7 +623,7 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
 export async function exportProjectPDF(p: any, company: any, contact?: any, companyFields?: CompanyFooterFields) {
   const doc = await newDoc();
   const tpls = await loadTemplates("project");
-  const logo = company?.logo_url ? await loadLogo(company.logo_url) : null;
+  const logo = company?.logo_url ? await loadLogoTransparent(company.logo_url) : null;
   const c = await resolveContact(contact);
   await addCover(doc, company, "Project Case Study", logo, tpls.cover);
   const page = { n: 1 };
