@@ -56,6 +56,30 @@ async function loadImg(url: string, opts: CompressOpts = CURRENT_COMPRESS): Prom
   } catch { return null; }
 }
 
+// Always flatten logos onto white to avoid transparent-PNG fringing in PDFs.
+async function loadLogo(url: string): Promise<{ data: string; w: number; h: number } | null> {
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    const blob = await res.blob();
+    const rawData = await new Promise<string>((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(blob); });
+    const img = await new Promise<HTMLImageElement | null>((r) => {
+      const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = rawData;
+    });
+    if (!img) return null;
+    const maxDim = 600;
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return { data: rawData, w: img.width, h: img.height };
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    return { data: canvas.toDataURL("image/jpeg", 0.95), w, h };
+  } catch { return null; }
+}
+
 function fmt(s?: string | null) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ""; }
 
 async function newDoc() {
