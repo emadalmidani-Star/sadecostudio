@@ -97,7 +97,7 @@ async function addCover(doc: jsPDF, company: any, subtitle: string, logo: any, t
   doc.setFillColor(BRAND.ink); doc.rect(0, 0, W * 0.38, H, "F");
   if (logo) {
     const ratio = logo.w / logo.h; const w = 60; const h = w / ratio;
-    doc.addImage(logo.data, "PNG", (W * 0.38 - w) / 2, H / 2 - h / 2, w, h);
+    doc.addImage(logo.data, "JPEG", (W * 0.38 - w) / 2, H / 2 - h / 2, w, h);
   }
   // right side
   doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold"); doc.setFontSize(48);
@@ -172,7 +172,7 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     doc.circle(cx, cy, r + 0.4, "S");
   } else if (contact && logo) {
     const ratio = logo.w / logo.h; const w = 40; const h = w / ratio;
-    doc.addImage(logo.data, "PNG", (W - w) / 2, cardY, w, h);
+    doc.addImage(logo.data, "JPEG", (W - w) / 2, cardY, w, h);
   }
 
   let ty = cardY + avatarSize + 12;
@@ -497,7 +497,7 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
       if (dh > maxH) { dh = maxH; dw = maxH * ratio; }
       const ix = x + (cellW - dw) / 2;
       const iy = y + (cellH - dh) / 2;
-      try { doc.addImage(img.data, "PNG", ix, iy, dw, dh, undefined, "FAST"); } catch {}
+      try { doc.addImage(img.data, "JPEG", ix, iy, dw, dh, undefined, "FAST"); } catch {}
     } else {
       doc.setFont("Montserrat", "bold"); doc.setFontSize(fontSize); doc.setTextColor(BRAND.ink);
       doc.text(p.name, x + cellW / 2, y + cellH / 2 + 2, { align: "center" });
