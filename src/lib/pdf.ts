@@ -96,8 +96,15 @@ async function addCover(doc: jsPDF, company: any, subtitle: string, logo: any, t
   // black band on the left
   doc.setFillColor(BRAND.ink); doc.rect(0, 0, W * 0.38, H, "F");
   if (logo) {
-    const ratio = logo.w / logo.h; const w = 60; const h = w / ratio;
-    doc.addImage(logo.data, "JPEG", (W * 0.38 - w) / 2, H / 2 - h / 2, w, h);
+    const ratio = logo.w / logo.h;
+    const w = 70; const h = w / ratio;
+    const x = (W * 0.38 - w) / 2;
+    const y = H / 2 - h / 2;
+    // White panel behind the logo so a white-flattened logo reads cleanly on the black band
+    const padX = 8, padY = 8;
+    doc.setFillColor("#ffffff");
+    doc.roundedRect(x - padX, y - padY, w + padX * 2, h + padY * 2, 3, 3, "F");
+    doc.addImage(logo.data, "JPEG", x, y, w, h);
   }
   // right side
   doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold"); doc.setFontSize(48);
