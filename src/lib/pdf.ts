@@ -493,22 +493,8 @@ async function addCategoryCover(doc: jsPDF, type: string, count: number, image: 
     doc.rect(0, H * 0.55, W, H * 0.45, "F");
     (doc as any).setGState && (doc as any).setGState(new (doc as any).GState({ opacity: 1 }));
   }
-  doc.setTextColor(BRAND.paper); doc.setFont("Montserrat", "normal"); doc.setFontSize(10);
-  doc.text("CATEGORY", 20, H - 60, { charSpace: 3 });
-  // Auto-shrink long category titles
-  const titleText = fmt(type) || "Projects";
-  let tSize = 56; let tLines: string[] = [];
-  doc.setFont("Montserrat", "bold");
-  while (tSize >= 24) {
-    doc.setFontSize(tSize);
-    tLines = doc.splitTextToSize(titleText, W - 40);
-    if (tLines.length <= 2) break;
-    tSize -= 4;
-  }
-  const tlh = tSize * 0.42;
-  doc.text(tLines, 20, H - 28 - (tLines.length - 1) * tlh);
-  doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor("#cccccc");
-  doc.text(`${count} project${count === 1 ? "" : "s"}`, 20, H - 18);
+  // Title intentionally omitted — divider page is purely visual.
+
 }
 
 function groupByType(list: any[], preserveOrder = false): Array<{ type: string; items: any[] }> {
