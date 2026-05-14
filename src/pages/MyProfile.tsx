@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Camera, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import ImageCropDialog from "@/components/ImageCropDialog";
+import { safeStorageFilename } from "@/lib/storagePath";
 
 export default function MyProfile() {
   const { user } = useAuth();
@@ -34,7 +35,7 @@ export default function MyProfile() {
   async function uploadBlob(blob: Blob, name: string) {
     if (!user) return;
     setUploading(true);
-    const path = `${user.id}/avatar-${Date.now()}-${name.replace(/\.[^.]+$/, "")}.jpg`;
+    const path = `${user.id}/avatar-${Date.now()}-${safeStorageFilename(name, "avatar.jpg").replace(/\.[^.]+$/, "")}.jpg`;
     const { error } = await supabase.storage.from("company-assets").upload(path, blob, { upsert: true, contentType: "image/jpeg" });
     setUploading(false);
     if (error) return toast.error(error.message);
