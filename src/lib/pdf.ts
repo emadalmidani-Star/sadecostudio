@@ -394,8 +394,7 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
   addPageFooter(doc, company, page.n);
 
   // Detail page — only when there is description or highlights
-  if (!hasInfo) return;
-
+  if (hasInfo) {
   doc.addPage(); page.n++;
   addPageHeader(doc, company);
   let y = sectionTitle(doc, "Case Study", "Overview", 28);
