@@ -440,8 +440,9 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     });
   }
   addPageFooter(doc, company, page.n);
+  } // end if(hasInfo)
 
-  // Gallery — include cover image first
+  // Gallery — include cover image first (always shown when images exist)
   const allImages = Array.from(new Set([
     ...(p.cover_image ? [p.cover_image] : []),
     ...((p.images || []) as string[]),
