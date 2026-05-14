@@ -11,6 +11,7 @@ import { Loader2, Plus, Save, Trash2, Upload, X, FilePlus2 } from "lucide-react"
 import { toast } from "sonner";
 import { FIELDS_BY_TYPE, type Slot, type Template } from "@/lib/templateRender";
 import { uploadTemplateFiles } from "@/lib/pdfRasterize";
+import { safeStorageFilename } from "@/lib/storagePath";
 import TemplatePagesStrip, { type TemplatePage } from "@/components/TemplatePagesStrip";
 
 type PageType = Template["page_type"];
@@ -104,7 +105,7 @@ export default function TemplateDesigner() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not signed in");
-      const path = `${user.id}/template-${pageType}-${Date.now()}-${file.name}`;
+      const path = `${user.id}/template-${pageType}-${Date.now()}-${safeStorageFilename(file.name)}`;
       const { error: upErr } = await supabase.storage.from("project-images").upload(path, file);
       if (upErr) throw upErr;
       const { publicUrl } = supabase.storage.from("project-images").getPublicUrl(path).data;
