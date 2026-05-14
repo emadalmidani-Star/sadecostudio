@@ -9,6 +9,7 @@ import { FileDown, FileText, Files, GripVertical, Loader2, Search, Upload, X } f
 import { exportFullProfilePDF, exportSelectedPDF, setPdfCompression, type CompressOpts, type CompanyFooterFields } from "@/lib/pdf";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
+import { safeStorageFilename } from "@/lib/storagePath";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core";
@@ -164,7 +165,7 @@ export default function Exports() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not signed in");
       const safe = type.replace(/[^a-z0-9]/gi, "_");
-      const path = `${user.id}/category-${safe}-${Date.now()}-${file.name}`;
+      const path = `${user.id}/category-${safe}-${Date.now()}-${safeStorageFilename(file.name)}`;
       const { error: upErr } = await supabase.storage.from("project-images").upload(path, file);
       if (upErr) throw upErr;
       const { data: { publicUrl } } = supabase.storage.from("project-images").getPublicUrl(path);

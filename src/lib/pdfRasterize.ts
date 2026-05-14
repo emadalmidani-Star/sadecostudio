@@ -2,6 +2,7 @@ import * as pdfjsLib from "pdfjs-dist";
 // @ts-ignore
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { supabase } from "@/integrations/supabase/client";
+import { safeStorageFilename } from "@/lib/storagePath";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerSrc;
 
@@ -38,7 +39,8 @@ export async function uploadTemplateFiles(files: File[]): Promise<string[]> {
       const pageUrls = await rasterizePdf(f, user.id);
       urls.push(...pageUrls);
     } else if (f.type.startsWith("image/")) {
-      urls.push(await uploadBlob(user.id, "img", f, (f.name.split(".").pop() || "png").toLowerCase()));
+      const ext = safeStorageFilename(f.name, "image.png").split(".").pop() || "png";
+      urls.push(await uploadBlob(user.id, "img", f, ext));
     }
   }
   return urls;
