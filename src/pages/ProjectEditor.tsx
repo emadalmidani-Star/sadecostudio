@@ -12,6 +12,7 @@ import { ArrowLeft, Sparkles, Upload, X, FileDown, Trash2, Loader2, GripVertical
 import { toast } from "sonner";
 import { exportProjectPDF } from "@/lib/pdf";
 import ImageCropDialog from "@/components/ImageCropDialog";
+import { safeStorageFilename } from "@/lib/storagePath";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -122,7 +123,7 @@ export default function ProjectEditor() {
   async function uploadOne(file: File | Blob, name: string) {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     setUploads(prev => [...prev, { id, name, progress: 10 }]);
-    const path = `${Date.now()}-${name}`;
+    const path = `${Date.now()}-${safeStorageFilename(name)}`;
     // Simulated progress (Supabase JS doesn't expose real progress)
     const tick = setInterval(() => {
       setUploads(prev => prev.map(u => u.id === id ? { ...u, progress: Math.min(90, u.progress + 10) } : u));
@@ -131,7 +132,7 @@ export default function ProjectEditor() {
     clearInterval(tick);
     if (error) {
       setUploads(prev => prev.filter(u => u.id !== id));
-      toast.error(error.message);
+      toast.error("Upload failed. Please try another image or rename the file.");
       return null;
     }
     const { data } = supabase.storage.from("project-images").getPublicUrl(path);
