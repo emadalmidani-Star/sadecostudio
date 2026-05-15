@@ -80,6 +80,10 @@ function extractSheetId(url: string): string | null {
   return m ? m[1] : null;
 }
 
+function sheetRangeName(name: string): string {
+  return `'${String(name).replace(/'/g, "''")}'`;
+}
+
 async function gatewayFetch(path: string, init?: RequestInit) {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const GS_KEY = Deno.env.get("GOOGLE_SHEETS_API_KEY");
@@ -145,7 +149,7 @@ Deno.serve(async (req) => {
       if (!worksheet) throw new Error("No worksheets found in spreadsheet");
     }
 
-    const range = `${worksheet}!A${cfg.header_row || 1}:Z10000`;
+    const range = `${sheetRangeName(worksheet)}!A${cfg.header_row || 1}:Z10000`;
     const valuesRes = await gatewayFetch(`/spreadsheets/${sheetId}/values/${range}`);
     const values: any[][] = valuesRes.values || [];
     if (values.length < 1) throw new Error("Sheet is empty");
