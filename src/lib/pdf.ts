@@ -650,8 +650,8 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
       const iy = y + (cellH - dh) / 2;
       try { doc.addImage(img.data, "JPEG", ix, iy, dw, dh, undefined, "FAST"); } catch {}
     } else {
-      doc.setFont("Montserrat", "bold"); doc.setFontSize(fontSize); doc.setTextColor(BRAND.ink);
-      doc.text(p.name, x + cellW / 2, y + cellH / 2 + 2, { align: "center" });
+      doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.ink);
+      fitCenteredText(doc, p.name, x + cellW / 2, y + cellH / 2, cellW - 6, fontSize, 7);
     }
 
     col++;
