@@ -146,18 +146,34 @@ Deno.serve(async (req) => {
     }
 
     const range = `${worksheet}!A${cfg.header_row || 1}:Z`;
-    const valuesRes = await gatewayFetch(`/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}`);
+    const valuesRes = await gatewayFetch(`/spreadsheets/${sheetId}/values/${range}`);
     const values: any[][] = valuesRes.values || [];
     if (values.length < 1) throw new Error("Sheet is empty");
 
     const headerRow = values[0].map((h) => String(h ?? ""));
     const dataRows = values.slice(1);
 
-    const colMap: { idx: number; key: string }[] = [];
+    const colLetter = (i: number) => {
+      let s = ""; let n = i;
+      while (n >= 0) { s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26) - 1; }
+      return s;
+    };
+    const colMap: { idx: number; key: string; header: string; col: string }[] = [];
+    const unmappedHeaders: { col: string; header: string }[] = [];
     headerRow.forEach((h, idx) => {
       const k = HEADER_ALIASES[normHeader(h)];
-      if (k) colMap.push({ idx, key: k });
+      const col = colLetter(idx);
+      if (k) colMap.push({ idx, key: k, header: h, col });
+      else if (h.trim()) unmappedHeaders.push({ col, header: h });
     });
+
+    const requiredKeys = ["brand", "location"];
+    const missingRequired = requiredKeys.filter((k) => !colMap.some((c) => c.key === k));
+    if (missingRequired.length) {
+      throw new Error(
+        `Missing required column(s): ${missingRequired.map((k) => HEADER_LABELS[k]).join(", ")}. Found headers: ${headerRow.filter(Boolean).join(" | ")}`,
+      );
+    }
 
     const { data: existing } = await supabase.from("fitout_projects")
       .select("id, brand, location, city_province");
@@ -174,36 +190,44 @@ Deno.serve(async (req) => {
 
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
-      const rowNumber = i + 2 + (cfg.header_row - 1);
+      const rowNumber = i + 2 + ((cfg.header_row || 1) - 1);
       if (!row || row.every((v) => v == null || String(v).trim() === "")) { skipped++; continue; }
 
       const data: any = {};
-      const rowErrors: string[] = [];
-      for (const { idx, key } of colMap) {
+      const rowErrors: { column: string; header: string; value: string; problem: string }[] = [];
+      for (const { idx, key, header, col } of colMap) {
         const val = row[idx];
         if (val == null || val === "") { data[key] = null; continue; }
         if (DATE_KEYS.has(key)) {
           const d = parseDate(val);
-          if (!d) rowErrors.push(`${HEADER_LABELS[key]}: bad date "${val}"`);
+          if (!d) rowErrors.push({ column: col, header, value: String(val), problem: "Invalid date — use DD/MM/YYYY or YYYY-MM-DD" });
           data[key] = d;
         } else if (NUMERIC_KEYS.has(key)) {
           const n = parseNum(val);
-          if (n == null) rowErrors.push(`${HEADER_LABELS[key]}: not a number "${val}"`);
+          if (n == null) rowErrors.push({ column: col, header, value: String(val), problem: "Not a number" });
           data[key] = n;
         } else if (key === "status") {
           const s = String(val).trim();
           const m = STATUSES.find((x) => x.toLowerCase() === s.toLowerCase());
+          if (!m) rowErrors.push({ column: col, header, value: s, problem: `Unknown status — allowed: ${STATUSES.join(", ")}` });
           data[key] = m || "Planning";
         } else {
           data[key] = String(val).trim();
         }
       }
 
-      if (!data.brand && !data.location) {
-        rowErrors.push("Missing Brand and Location");
+      if (!data.brand || !data.location) {
+        const missing = [!data.brand && "Brand", !data.location && "Location"].filter(Boolean).join(" & ");
+        rowErrors.push({ column: "-", header: missing as string, value: "", problem: `${missing} is required` });
       }
       if (rowErrors.length) {
-        errors.push({ row: rowNumber, brand: data.brand, location: data.location, errors: rowErrors });
+        errors.push({
+          row: rowNumber,
+          brand: data.brand || "",
+          location: data.location || "",
+          city: data.city_province || "",
+          errors: rowErrors,
+        });
         skipped++;
         continue;
       }
@@ -213,16 +237,24 @@ Deno.serve(async (req) => {
 
       if (matchId) {
         const { error } = await supabase.from("fitout_projects").update(data).eq("id", matchId);
-        if (error) { errors.push({ row: rowNumber, errors: [error.message] }); skipped++; }
-        else updated++;
+        if (error) {
+          errors.push({ row: rowNumber, brand: data.brand, location: data.location, city: data.city_province, action: "update", errors: [{ column: "-", header: "Database", value: "", problem: error.message }] });
+          skipped++;
+        } else updated++;
       } else {
         const { error, data: ins } = await supabase.from("fitout_projects").insert(data).select("id").single();
-        if (error) { errors.push({ row: rowNumber, errors: [error.message] }); skipped++; }
-        else { inserted++; if (ins?.id) existingMap.set(k, ins.id); }
+        if (error) {
+          errors.push({ row: rowNumber, brand: data.brand, location: data.location, city: data.city_province, action: "insert", errors: [{ column: "-", header: "Database", value: "", problem: error.message }] });
+          skipped++;
+        } else { inserted++; if (ins?.id) existingMap.set(k, ins.id); }
       }
     }
 
-    const result = { inserted, updated, skipped, errors };
+    const result = {
+      inserted, updated, skipped, errors,
+      unmapped_headers: unmappedHeaders,
+      mapped_headers: colMap.map((c) => ({ col: c.col, header: c.header, field: HEADER_LABELS[c.key] })),
+    };
     await supabase.from("fitout_sheet_sync_runs").update({
       finished_at: new Date().toISOString(),
       inserted, updated, skipped, errors, status: "success",
