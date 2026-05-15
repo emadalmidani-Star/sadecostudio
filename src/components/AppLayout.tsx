@@ -5,7 +5,7 @@ import { useUserRole, PageKey } from "@/hooks/useUserRole";
 import logoWhite from "@/assets/sadeco-logo-white.png";
 import { Button } from "@/components/ui/button";
 
-type Link = { to: string; icon: any; label: string; end?: boolean; page?: PageKey; adminOnly?: boolean };
+type Link = { to: string; icon: any; label: string; end?: boolean; page?: PageKey; adminOnly?: boolean; group?: string };
 
 const links: Link[] = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", end: true },
@@ -16,9 +16,9 @@ const links: Link[] = [
   { to: "/company", icon: Building2, label: "Company Profile", page: "company" },
   { to: "/template", icon: LayoutTemplate, label: "Template Designer", page: "template" },
   { to: "/team", icon: Users, label: "Team", page: "team" },
-  { to: "/fitout", icon: BarChart3, label: "Fitout Dashboard", end: true, page: "fitout" },
-  { to: "/fitout/projects", icon: Hammer, label: "Fitout Tracker", page: "fitout" },
-  { to: "/fitout/team", icon: HardHat, label: "Fitout Team", page: "fitout" },
+  { to: "/fitout", icon: BarChart3, label: "Dashboard", end: true, page: "fitout", group: "Fitout Operations" },
+  { to: "/fitout/projects", icon: Hammer, label: "Tracker", page: "fitout", group: "Fitout Operations" },
+  { to: "/fitout/team", icon: HardHat, label: "Team", page: "fitout", group: "Fitout Operations" },
   { to: "/permissions", icon: ShieldCheck, label: "Permissions", adminOnly: true },
 ];
 
