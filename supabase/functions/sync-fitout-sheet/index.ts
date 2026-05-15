@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
       if (!worksheet) throw new Error("No worksheets found in spreadsheet");
     }
 
-    const range = `${worksheet}!A${cfg.header_row || 1}:Z`;
+    const range = `${worksheet}!A${cfg.header_row || 1}:Z10000`;
     const valuesRes = await gatewayFetch(`/spreadsheets/${sheetId}/values/${range}`);
     const values: any[][] = valuesRes.values || [];
     if (values.length < 1) throw new Error("Sheet is empty");
