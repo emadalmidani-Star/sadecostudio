@@ -63,6 +63,7 @@ export default function Exports() {
   const [sets, setSets] = useState<TplSet[]>([]);
   const [assignments, setAssignments] = useState<Record<string, string | null>>({});
   const [quality, setQuality] = useState<keyof typeof QUALITY_PRESETS>("balanced");
+  const [galleryCols, setGalleryCols] = useState<GalleryColumns>(3);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [contactId, setContactId] = useState<string>("__none__");
   const [companyFields, setCompanyFields] = useState<CompanyFooterFields>({ phone: true, email: true, website: true, address: false });
