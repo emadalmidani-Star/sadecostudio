@@ -34,27 +34,68 @@ export default function Tracker() {
   const [drawer, setDrawer] = useState<{ open: boolean; project: FitoutProject | null }>({ open: false, project: null });
   const [del, setDel] = useState<FitoutProject | null>(null);
   const [importing, setImporting] = useState(false);
+  const [committing, setCommitting] = useState(false);
+  const [preview, setPreview] = useState<{ open: boolean; rows: ParsedRow[]; unknownHeaders: string[] }>({
+    open: false, rows: [], unknownHeaders: [],
+  });
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleImport(file: File) {
     setImporting(true);
     try {
-      const { rows: parsed, unknownHeaders } = await parseFitoutFile(file);
-      if (parsed.length === 0) { toast.error("No rows found in file"); return; }
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { toast.error("Not signed in"); return; }
-      const payload = parsed.map((r) => ({ ...r, status: r.status || "Planning", created_by: user.id }));
-      const { error } = await supabase.from("fitout_projects" as any).insert(payload as any);
-      if (error) { toast.error(error.message); return; }
-      let msg = `Imported ${parsed.length} project${parsed.length === 1 ? "" : "s"}`;
-      if (unknownHeaders.length) msg += ` (ignored columns: ${unknownHeaders.join(", ")})`;
-      toast.success(msg);
-      load();
+      const result = await parseFitoutFile(file);
+      if (result.rows.length === 0) { toast.error("No rows found in file"); return; }
+      const { data: existing } = await supabase
+        .from("fitout_projects" as any)
+        .select("id,brand,location");
+      const matched = matchExistingProjects(result.rows, (existing || []) as any);
+      setPreview({ open: true, rows: matched, unknownHeaders: result.unknownHeaders });
     } catch (e: any) {
       toast.error(e.message || "Import failed");
     } finally {
       setImporting(false);
       if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function commitImport(rows: ParsedRow[], mode: "insert" | "upsert") {
+    setCommitting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Not signed in"); return; }
+      const selected = rows.filter((r) => r.include && r.errors.length === 0);
+      if (selected.length === 0) { toast.error("Nothing to commit"); return; }
+
+      const inserts = selected.filter((r) => mode === "insert" || !r.matchedId);
+      const updates = mode === "upsert" ? selected.filter((r) => r.matchedId) : [];
+
+      let inserted = 0, updated = 0, failed: { row: number; error: string }[] = [];
+
+      if (inserts.length) {
+        const payload = inserts.map((r) => ({ ...r.data, status: r.data.status || "Planning", created_by: user.id }));
+        const { error, data } = await supabase.from("fitout_projects" as any).insert(payload as any).select("id");
+        if (error) failed.push(...inserts.map((r) => ({ row: r.rowNumber, error: error.message })));
+        else inserted = data?.length || inserts.length;
+      }
+      for (const r of updates) {
+        const { error } = await supabase.from("fitout_projects" as any).update(r.data as any).eq("id", r.matchedId!);
+        if (error) failed.push({ row: r.rowNumber, error: error.message });
+        else updated++;
+      }
+
+      const parts: string[] = [];
+      if (inserted) parts.push(`${inserted} inserted`);
+      if (updated) parts.push(`${updated} updated`);
+      if (failed.length) parts.push(`${failed.length} failed`);
+      if (failed.length) toast.error(`Import done with errors — ${parts.join(", ")}. Row ${failed[0].row}: ${failed[0].error}`);
+      else toast.success(`Import complete — ${parts.join(", ") || "no changes"}`);
+
+      setPreview({ open: false, rows: [], unknownHeaders: [] });
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Commit failed");
+    } finally {
+      setCommitting(false);
     }
   }
 
