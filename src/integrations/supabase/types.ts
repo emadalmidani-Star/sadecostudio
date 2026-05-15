@@ -205,6 +205,81 @@ export type Database = {
         }
         Relationships: []
       }
+      fitout_sheet_config: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          header_row: number
+          id: string
+          last_result: Json | null
+          last_synced_at: string | null
+          sheet_id: string | null
+          sheet_url: string | null
+          updated_at: string
+          worksheet_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          header_row?: number
+          id?: string
+          last_result?: Json | null
+          last_synced_at?: string | null
+          sheet_id?: string | null
+          sheet_url?: string | null
+          updated_at?: string
+          worksheet_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          header_row?: number
+          id?: string
+          last_result?: Json | null
+          last_synced_at?: string | null
+          sheet_id?: string | null
+          sheet_url?: string | null
+          updated_at?: string
+          worksheet_name?: string | null
+        }
+        Relationships: []
+      }
+      fitout_sheet_sync_runs: {
+        Row: {
+          errors: Json
+          finished_at: string | null
+          id: string
+          inserted: number
+          skipped: number
+          started_at: string
+          status: string
+          triggered_by: string
+          updated: number
+        }
+        Insert: {
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          inserted?: number
+          skipped?: number
+          started_at?: string
+          status?: string
+          triggered_by?: string
+          updated?: number
+        }
+        Update: {
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          inserted?: number
+          skipped?: number
+          started_at?: string
+          status?: string
+          triggered_by?: string
+          updated?: number
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           accepted: boolean
