@@ -504,12 +504,13 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     addPageHeader(doc, company);
     let yy = sectionTitle(doc, "Gallery", "Visual Story", SECTION_TOP);
 
-    // Stable grid: 1 image = full width, 2 = side-by-side, 3+ = three columns.
+    // Stable grid: respect user-chosen column count, except when 1 image (full width).
     const total = allImages.length;
-    const cols = total === 1 ? 1 : total === 2 ? 2 : 3;
+    const userCols = GALLERY_COLS;
+    const cols = total === 1 ? 1 : Math.min(userCols, total === 2 ? 2 : userCols);
     const gap = 5;
     const imgW = (W - 30 - gap * (cols - 1)) / cols;
-    const imgH = cols === 1 ? imgW * 0.6 : imgW * 0.7;
+    const imgH = cols === 1 ? imgW * 0.6 : cols === 2 ? imgW * 0.66 : imgW * 0.7;
 
     // Pre-load every image so we can center under-filled final rows.
     const imgs = await Promise.all(allImages.map((u) => loadImg(u)));
