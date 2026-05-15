@@ -269,6 +269,8 @@ export default function Tracker() {
 
       <ProjectFormDrawer open={drawer.open} onOpenChange={(o) => setDrawer({ open: o, project: o ? drawer.project : null })} project={drawer.project} onSaved={load} />
 
+      <SheetSyncDialog open={syncOpen} onOpenChange={setSyncOpen} onSynced={load} />
+
       <ImportPreviewDialog
         open={preview.open}
         onOpenChange={(o) => !committing && setPreview((p) => ({ ...p, open: o }))}
