@@ -43,6 +43,15 @@ export const STATUS_TOKEN: Record<FitoutStatus, string> = {
   Cancelled: "bg-red-500/15 text-red-300 border-red-500/40",
 };
 
+/** Split a people field like "Sadik / Samir" or "John, Jane & Bob" into individual names. */
+export function splitPeople(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(/\s*(?:\/|,|&|\band\b)\s*/i)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export function daysBetween(a: Date, b: Date) {
   return Math.round((b.getTime() - a.getTime()) / 86400000);
 }
