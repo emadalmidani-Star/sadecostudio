@@ -546,9 +546,38 @@ async function addCategoryCover(doc: jsPDF, type: string, count: number, image: 
     doc.rect(0, H * 0.55, W, H * 0.45, "F");
     (doc as any).setGState && (doc as any).setGState(new (doc as any).GState({ opacity: 1 }));
   }
-  // Title intentionally omitted — divider page is purely visual.
 
+  // Centered category title with tracked letter spacing.
+  // Auto-shrink the font and the letter-spacing together so long labels
+  // (e.g. "RESTAURANTS & CAFE'S") stay on one line and stay centered.
+  const title = (type || "").toUpperCase();
+  if (title) {
+    const maxW = W - 30;          // 15mm side margins
+    const cy = H * 0.78;          // sits inside the dark band
+    doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.paper);
+
+    let size = 28;
+    let charSpace = 4;
+    doc.setFontSize(size);
+    while ((doc.getTextWidth(title) + charSpace * (title.length - 1)) > maxW) {
+      if (charSpace > 1) { charSpace -= 0.5; continue; }
+      if (size > 12) { size -= 1; doc.setFontSize(size); continue; }
+      break;
+    }
+    doc.text(title, W / 2, cy, { align: "center", charSpace });
+
+    // Thin accent rule under the title for visual anchor.
+    doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.4);
+    doc.line(W / 2 - 18, cy + 6, W / 2 + 18, cy + 6);
+
+    // Optional small caption with project count
+    if (count > 0) {
+      doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#cccccc");
+      doc.text(`${count} PROJECT${count === 1 ? "" : "S"}`, W / 2, cy + 14, { align: "center", charSpace: 3 });
+    }
+  }
 }
+
 
 function groupByType(list: any[], preserveOrder = false): Array<{ type: string; items: any[] }> {
   const map = new Map<string, any[]>();
