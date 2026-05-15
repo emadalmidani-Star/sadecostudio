@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { FitoutProject } from "@/lib/fitout";
+import { FitoutProject, splitPeople } from "@/lib/fitout";
 import { UserCircle2 } from "lucide-react";
 
 type Role = "PM" | "HOD" | "Supervisor";
@@ -21,13 +21,14 @@ export default function FitoutTeam() {
 
   const members = useMemo<Member[]>(() => {
     const map = new Map<string, Member>();
-    const add = (name: string | null, role: Role, p: FitoutProject) => {
-      if (!name) return;
-      const key = `${role}::${name}`;
-      const m = map.get(key) || { name, role, projects: [], active: [] };
-      m.projects.push(p);
-      if (p.status !== "Completed" && p.status !== "Cancelled") m.active.push(p);
-      map.set(key, m);
+    const add = (raw: string | null, role: Role, p: FitoutProject) => {
+      for (const name of splitPeople(raw)) {
+        const key = `${role}::${name.toLowerCase()}`;
+        const m = map.get(key) || { name, role, projects: [], active: [] };
+        m.projects.push(p);
+        if (p.status !== "Completed" && p.status !== "Cancelled") m.active.push(p);
+        map.set(key, m);
+      }
     };
     rows.forEach((r) => {
       add(r.pm, "PM", r);
