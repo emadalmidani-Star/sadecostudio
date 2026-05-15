@@ -8,7 +8,8 @@ import { Plus, Download, Pencil, Trash2, ExternalLink, Upload, Loader2 } from "l
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import StatusBadge from "@/components/fitout/StatusBadge";
 import ProjectFormDrawer from "@/components/fitout/ProjectFormDrawer";
-import { FITOUT_STATUSES, FitoutProject, exportCsv, parseFitoutFile } from "@/lib/fitout";
+import { FITOUT_STATUSES, FitoutProject, exportCsv, parseFitoutFile, matchExistingProjects, type ParsedRow } from "@/lib/fitout";
+import ImportPreviewDialog from "@/components/fitout/ImportPreviewDialog";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
