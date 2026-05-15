@@ -127,6 +127,84 @@ export type Database = {
           },
         ]
       }
+      fitout_projects: {
+        Row: {
+          brand: string | null
+          city_province: string | null
+          comments: string | null
+          contract_period_days: number | null
+          created_at: string
+          created_by: string | null
+          date_added: string | null
+          fitout_completion: string | null
+          fitout_period_days: number | null
+          hod: string | null
+          id: string
+          location: string | null
+          pm: string | null
+          project_type: string | null
+          size_m2: number | null
+          snag_completion_date: string | null
+          snag_prep_date: string | null
+          start_on_site: string | null
+          status: string
+          store_handover: string | null
+          store_opening: string | null
+          supervisor: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          city_province?: string | null
+          comments?: string | null
+          contract_period_days?: number | null
+          created_at?: string
+          created_by?: string | null
+          date_added?: string | null
+          fitout_completion?: string | null
+          fitout_period_days?: number | null
+          hod?: string | null
+          id?: string
+          location?: string | null
+          pm?: string | null
+          project_type?: string | null
+          size_m2?: number | null
+          snag_completion_date?: string | null
+          snag_prep_date?: string | null
+          start_on_site?: string | null
+          status?: string
+          store_handover?: string | null
+          store_opening?: string | null
+          supervisor?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          city_province?: string | null
+          comments?: string | null
+          contract_period_days?: number | null
+          created_at?: string
+          created_by?: string | null
+          date_added?: string | null
+          fitout_completion?: string | null
+          fitout_period_days?: number | null
+          hod?: string | null
+          id?: string
+          location?: string | null
+          pm?: string | null
+          project_type?: string | null
+          size_m2?: number | null
+          snag_completion_date?: string | null
+          snag_prep_date?: string | null
+          start_on_site?: string | null
+          status?: string
+          store_handover?: string | null
+          store_opening?: string | null
+          supervisor?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           accepted: boolean

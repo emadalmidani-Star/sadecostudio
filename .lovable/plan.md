@@ -1,54 +1,129 @@
+## Fitout Tracker — Project Management Module
 
-# Make ID Card / QR Card a designable template
+Add a new "Fitout Tracker" section to the existing SADECO app as a separate Project Manager workspace, reusing current auth, sidebar shell, and dark theme. It will not replace the existing Projects (portfolio) feature — it lives alongside it under new routes.
 
-Add a fifth page type — `idcard` — to the Template Designer so SADECO can design custom ID-card layouts. The IdCards page then renders each member's badge using the designed template (background + positioned slots), instead of the current hardcoded React layout.
+### Scope
 
-## 1. Add `idcard` page type to the template system
+**New top-level area** in the sidebar: "Fitout Tracker" with sub-items Dashboard, Tracker, Team.
 
-In `src/lib/templateRender.ts`:
-- Extend `Template["page_type"]` union with `"idcard"`.
-- Add an `idcard` entry to `FIELDS_BY_TYPE` with these fields:
-  - text: `member_name`, `member_title`, `member_email`, `member_phone`, `member_whatsapp`, `company_name`, `company_website`, `company_phone`
-  - image: `member_photo`, `company_logo`, `qr_code`
-- Extend `resolveText` and `resolveImageUrl` with the new cases. `qr_code` resolves from `ctx.qrDataUrl` (the pre-generated QR data URL), `member_photo` from `ctx.member.avatar_url`, etc.
+Routes (all behind existing `ProtectedRoute` + `RoleRoute`):
+- `/fitout` — Dashboard (KPIs + charts + upcoming openings)
+- `/fitout/projects` — Tracker table (all columns, filters, CSV export)
+- `/fitout/projects/:id` — Detail page (timeline + progress)
+- `/fitout/team` — PM / HOD / Supervisor roster
 
-In `src/pages/TemplateDesigner.tsx`:
-- Add `{ key: "idcard", label: "ID Card" }` to `PAGE_TABS`.
-- Use a portrait card aspect ratio (e.g. `54/85.6` credit-card-vertical) when `pageType === "idcard"` instead of A4 `297/210`. The canvas auto-resizes accordingly.
+A new role page key `fitout` will be added so admins can grant access via the existing Permissions page.
 
-In `src/components/TemplatePagesStrip.tsx`:
-- Add `{ value: "idcard", label: "ID Card" }` to `ROLES` so an uploaded thumbnail can be mapped to the ID card layout.
+### Database (Supabase migration)
 
-## 2. Render IdCards from the designed template
+New table `public.fitout_projects` with the exact schema requested:
 
-Refactor `QrTile` in `src/pages/IdCards.tsx`:
-- After loading the active template set, fetch the `idcard` `pdf_template` row (background + slots).
-- If a template exists, render the badge as an absolutely-positioned div sized to the template's aspect ratio:
-  - Background image fills the card.
-  - Each slot becomes a positioned `<div>` (percent-based x/y/w/h) containing either text (with the slot's font size/align/color/bold) or an image (`object-contain`).
-  - The QR slot renders the generated `qr` data URL.
-  - The photo slot renders the member's avatar (rounded via slot styling on the background, or keep current avatar circle look by just using the photo as-is).
-- If no `idcard` template is set, fall back to the current hardcoded badge layout so nothing breaks.
+```
+id uuid pk default gen_random_uuid()
+date_added date
+hod text
+pm text
+city_province text
+brand text
+location text
+project_type text
+size_m2 numeric
+fitout_period_days integer
+start_on_site date
+fitout_completion date
+store_handover date
+snag_prep_date date
+contract_period_days integer
+store_opening date
+snag_completion_date date
+comments text
+status text  -- enforced via trigger to one of: Planning, In Progress, Snag, Completed, On Hold, Cancelled
+supervisor text
+created_by uuid          -- owner for RLS
+created_at timestamptz default now()
+updated_at timestamptz default now()
+```
 
-PNG/PDF/vCard download buttons keep working — `html2canvas` captures whatever is in `wrapRef`.
+- Status validated by a BEFORE INSERT/UPDATE trigger (not CHECK, per project rules).
+- `updated_at` maintained by existing `touch_updated_at` trigger.
+- RLS enabled. Policies:
+  - SELECT: any authenticated user
+  - INSERT: authenticated, `created_by = auth.uid()`
+  - UPDATE / DELETE: `created_by = auth.uid()` OR `has_role(auth.uid(),'admin')`
+- Index on `status`, `start_on_site`, `store_opening`.
 
-## 3. Theme selector
+(Used as the table to make role/permissions integration easy. If you'd rather any authenticated user can edit any record like the existing `projects` table, say so and I'll loosen the policies.)
 
-Templates supersede the gradient/black/white theme switcher (the design lives in the background image). Hide the theme selector when an `idcard` template is active; keep it when falling back to the legacy layout.
+### Pages
 
-## 4. Active template set
+**1. Dashboard `/fitout`**
+- KPI cards: Total, In Progress, Completed, Avg Fitout Period (days), Total Size (m²)
+- Recharts: Bar by Status, Bar by Brand, Bar by City/Province, Bar by Project Type, Line of projects started per month (from `start_on_site`)
+- Table: Upcoming Store Openings in next 30 days, sorted ascending
 
-The `template_sets` selector already exists. The IdCards page picks the user's currently selected set the same way `Exports.tsx` does (via `export_template_assignments`, or just the first set). Add a small "Template set" dropdown at the top of the IdCards page so admins can switch which designed layout is used.
+**2. Tracker `/fitout/projects`**
+- Horizontally scrollable shadcn `Table` showing all columns
+- Search input filtering Brand, Location, PM, HOD, City/Province, Supervisor
+- Filter `Select`s: Status, Brand, City/Province, Project Type, PM, HOD (options derived from data)
+- Color-coded status `Badge`: Planning=slate, In Progress=sky, Snag=amber, Completed=emerald, On Hold=orange, Cancelled=red
+- Row actions: Edit (opens drawer), Delete (confirm dialog)
+- "+ New Project" button → same drawer in create mode
+- "Export CSV" button (client-side serialization of current filtered rows)
 
-## 5. Out of scope
+**3. Add / Edit Drawer**
+- shadcn `Sheet` (drawer) form with all schema fields
+- Date pickers (shadcn Calendar in Popover, `pointer-events-auto`)
+- `Select` for Status
+- Number inputs for size_m2, fitout_period_days, contract_period_days
+- Live computed read-only fields:
+  - Days Remaining to Store Opening = `store_opening - today`
+  - Fitout Duration Progress % = `(today - start_on_site) / fitout_period_days * 100`, clamped 0–100, with shadcn `Progress`
+- `Textarea` for comments
+- Save / Cancel
 
-- No multi-tenant / company changes (deferred per your instruction).
-- No new database tables — `pdf_templates` already supports any `page_type` string.
-- No changes to PDF export pipeline in `src/lib/pdf.ts`; ID-card PDF stays as html2canvas → jsPDF.
+**4. Detail `/fitout/projects/:id`**
+- Card layout grouping: Identity, People, Schedule, Metrics, Comments
+- Timeline list with date + label + days-remaining/elapsed for: Date Added → Start on Site → Fitout Completion → Store Handover → Snag Prep Date → Snag Completion → Store Opening
+- Progress bar for fitout duration
+- Edit button reopens the drawer
 
-## Files touched
+**5. Team `/fitout/team`**
+- Aggregates unique PMs, HODs, Supervisors from `fitout_projects`
+- Cards: Name, Role tag, # assigned, list of active (non-Completed/Cancelled) projects
+- Click a card → navigates to `/fitout/projects?pm=Name` (or `hod=` / `supervisor=`) to pre-filter the tracker
 
-- `src/lib/templateRender.ts` — add `idcard` page type, fields, resolvers
-- `src/pages/TemplateDesigner.tsx` — new tab, portrait aspect ratio for ID card
-- `src/components/TemplatePagesStrip.tsx` — new role option
-- `src/pages/IdCards.tsx` — render from template when present, hide theme switcher in that mode, add set selector
+### Design
+
+- Reuse existing dark theme and design tokens in `index.css` / `tailwind.config.ts`. Add semantic tokens for status colors (`--status-planning`, `--status-progress`, `--status-snag`, `--status-completed`, `--status-hold`, `--status-cancelled`) so `Badge` variants stay token-driven (no raw hex in JSX). The requested palette (#020617 / #0f172a / #1e293b, sky #0ea5e9, indigo #6366f1) will be expressed as HSL tokens. Existing pages remain visually unchanged.
+- Sidebar (`AppLayout.tsx`) gains a "Fitout Tracker" group with Dashboard / Tracker / Team using Lucide icons (`LayoutDashboard`, `Hammer`, `Users`).
+
+### Auth & permissions
+
+- Auth already exists — no changes to login flow.
+- Add `fitout` page key to `role_page_permissions` seed and to `RoleRoute` page list.
+- Sidebar footer (already shows logged-in info) unchanged.
+
+### Files to add / change
+
+Add:
+- `src/pages/fitout/Dashboard.tsx`
+- `src/pages/fitout/Tracker.tsx`
+- `src/pages/fitout/ProjectDetail.tsx`
+- `src/pages/fitout/Team.tsx`
+- `src/components/fitout/ProjectFormDrawer.tsx`
+- `src/components/fitout/StatusBadge.tsx`
+- `src/lib/fitout.ts` (types, status enum, CSV export, date helpers)
+
+Edit:
+- `src/App.tsx` — register the four new routes
+- `src/components/AppLayout.tsx` — add sidebar group
+- `src/components/RoleRoute.tsx` — accept `fitout` page key
+- `src/index.css` / `tailwind.config.ts` — status color tokens
+- Migration via Supabase tool for the new table, trigger, and RLS
+
+### Out of scope (confirm if you want any of these)
+
+- Importing existing `projects` rows into `fitout_projects`
+- File attachments per fitout project
+- Notifications/reminders for upcoming dates
+- Changing the existing `/projects` (portfolio) feature

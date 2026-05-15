@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck, QrCode } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck, QrCode, Hammer, BarChart3, HardHat } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole, PageKey } from "@/hooks/useUserRole";
 import logoWhite from "@/assets/sadeco-logo-white.png";
@@ -16,6 +16,9 @@ const links: Link[] = [
   { to: "/company", icon: Building2, label: "Company Profile", page: "company" },
   { to: "/template", icon: LayoutTemplate, label: "Template Designer", page: "template" },
   { to: "/team", icon: Users, label: "Team", page: "team" },
+  { to: "/fitout", icon: BarChart3, label: "Fitout Dashboard", end: true, page: "fitout" },
+  { to: "/fitout/projects", icon: Hammer, label: "Fitout Tracker", page: "fitout" },
+  { to: "/fitout/team", icon: HardHat, label: "Fitout Team", page: "fitout" },
   { to: "/permissions", icon: ShieldCheck, label: "Permissions", adminOnly: true },
 ];
 
