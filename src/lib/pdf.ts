@@ -200,12 +200,20 @@ function addPageFooter(doc: jsPDF, company: any, page: number) {
   doc.text(String(page), W - 15, H - 7, { align: "right" });
 }
 
+// Vertical layout constants — keep all sections aligned across pages.
+// Header rule sits at y=15. Section title baseline at y+4, underline at y+7.
+// First content row always starts CONTENT_GAP mm below the underline.
+const CONTENT_GAP = 13;            // gap from underline to first content row
+const SECTION_TOP = 28;            // top y where every section title begins
+const SAFE_BOTTOM = 20;            // keep this much clearance above the footer
+
 function sectionTitle(doc: jsPDF, _label: string, title: string, y: number) {
   doc.setFontSize(26); doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold");
   doc.text(title, 15, y + 4);
   doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.4); doc.line(15, y + 7, 50, y + 7);
-  return y + 18;
+  return y + 7 + CONTENT_GAP;
 }
+
 
 export type CompanyFooterFields = { phone?: boolean; email?: boolean; website?: boolean; address?: boolean };
 async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, contact?: any, companyFields?: CompanyFooterFields) {
@@ -397,7 +405,7 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
   if (hasInfo) {
   doc.addPage(); page.n++;
   addPageHeader(doc, company);
-  let y = sectionTitle(doc, "Case Study", "Overview", 28);
+  let y = sectionTitle(doc, "Case Study", "Overview", SECTION_TOP);
 
   const facts = [
     ["Type", fmt(p.type)],
@@ -422,7 +430,7 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     const descLines = doc.splitTextToSize(p.description, W - 30);
     const descLh = 5.5;
     for (const ln of descLines) {
-      if (y > H - 25) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
+      if (y > H - SAFE_BOTTOM - 5) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = SECTION_TOP; }
       doc.text(ln, 15, y); y += descLh;
     }
     y += 8;
@@ -433,7 +441,7 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     doc.text("KEY HIGHLIGHTS", 15, y, { charSpace: 3 }); y += 7;
     doc.setFontSize(10); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.ink);
     p.highlights.forEach((h: string) => {
-      if (y > H - 25) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
+      if (y > H - SAFE_BOTTOM - 5) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = SECTION_TOP; }
       doc.text(BULLET, 15, y);
       const hl = doc.splitTextToSize(h, W - 35);
       doc.text(hl, 22, y); y += hl.length * 5 + 2;
@@ -450,16 +458,21 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
   if (allImages.length) {
     doc.addPage(); page.n++;
     addPageHeader(doc, company);
-    let yy = sectionTitle(doc, "Gallery", "Visual Story", 28);
+    let yy = sectionTitle(doc, "Gallery", "Visual Story", SECTION_TOP);
     const cols = allImages.length <= 4 ? 2 : 3;
     const gap = 5, imgW = (W - 30 - gap * (cols - 1)) / cols, imgH = imgW * 0.7;
     let x = 15, col = 0;
     for (let i = 0; i < allImages.length; i++) {
       const img = await loadImg(allImages[i]);
       if (!img) continue;
-      if (yy + imgH > H - 20) {
+      // Row break: if the next image would cross the safe bottom, start a new
+      // page AND re-render the section title so spacing matches page 1.
+      if (yy + imgH > H - SAFE_BOTTOM) {
         addPageFooter(doc, company, page.n);
-        doc.addPage(); page.n++; addPageHeader(doc, company); yy = 28; x = 15; col = 0;
+        doc.addPage(); page.n++;
+        addPageHeader(doc, company);
+        yy = sectionTitle(doc, "Gallery", "Visual Story (cont.)", SECTION_TOP);
+        x = 15; col = 0;
       }
       // fit image into slot preserving aspect ratio
       const ar = img.w / img.h;
@@ -537,7 +550,7 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
 
   doc.addPage(); page.n++;
   addPageHeader(doc, company);
-  let y = sectionTitle(doc, "Trusted Partners", "Clients & Partners", 28);
+  let y = sectionTitle(doc, "Trusted Partners", "Clients & Partners", SECTION_TOP);
 
   if (intro.trim()) {
     doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.ink);
@@ -563,12 +576,12 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
     addPageFooter(doc, company, page.n);
     doc.addPage(); page.n++;
     addPageHeader(doc, company);
-    y = sectionTitle(doc, "Trusted Partners", "Clients & Partners (cont.)", 28);
+    y = sectionTitle(doc, "Trusted Partners", "Clients & Partners (cont.)", SECTION_TOP);
   };
 
   let x = 15, col = 0;
   for (let i = 0; i < partners.length; i++) {
-    if (y + cellH > H - 20) {
+    if (y + cellH > H - SAFE_BOTTOM) {
       startNewPartnersPage();
       x = 15; col = 0;
     }
@@ -652,23 +665,23 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   doc.addPage(); page.n++;
   addPageHeader(doc, company);
   const H = doc.internal.pageSize.getHeight();
-  let y = sectionTitle(doc, "Introduction", "About " + (company?.name || "SADECO"), 28);
+  let y = sectionTitle(doc, "Introduction", "About " + (company?.name || "SADECO"), SECTION_TOP);
   doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.ink);
   const about = doc.splitTextToSize(company?.about || "", W - 30);
   for (const ln of about) {
-    if (y > H - 25) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
+    if (y > H - SAFE_BOTTOM - 5) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = SECTION_TOP; }
     doc.text(ln, 15, y); y += 6;
   }
   y += 10;
 
-  if (y > H - 50) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
+  if (y > H - 50) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = SECTION_TOP; }
   doc.setFont("Montserrat", "bold"); doc.setFontSize(9); doc.setTextColor(BRAND.muted);
   doc.text("CONTACT", 15, y, { charSpace: 3 }); y += 7;
   doc.setFontSize(10); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.ink);
   ([["Phone", company?.phone], ["Email", company?.email], ["Website", company?.website], ["Address", company?.address]] as [string, string][])
     .filter(([_, v]) => v).forEach(([k, v]) => {
       const lines = doc.splitTextToSize(String(v), W - 60);
-      if (y + lines.length * 6 > H - 18) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
+      if (y + lines.length * 6 > H - 18) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = SECTION_TOP; }
       doc.setTextColor(BRAND.muted); doc.text(k, 15, y);
       doc.setTextColor(BRAND.ink); doc.text(lines, 45, y); y += lines.length * 6;
     });
@@ -677,11 +690,11 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   // Services page
   doc.addPage(); page.n++;
   addPageHeader(doc, company);
-  y = sectionTitle(doc, "Capabilities", "Our Services", 28);
+  y = sectionTitle(doc, "Capabilities", "Our Services", SECTION_TOP);
   doc.setFontSize(13); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.ink);
   (company?.services || []).forEach((s: string) => {
     const lines = doc.splitTextToSize(s, W - 35);
-    if (y + lines.length * 6 > H - 18) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = 28; }
+    if (y + lines.length * 6 > H - 18) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = SECTION_TOP; }
     doc.text(BULLET, 15, y);
     doc.text(lines, 22, y); y += lines.length * 6 + 3;
   });
