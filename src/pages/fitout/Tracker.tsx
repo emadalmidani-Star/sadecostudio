@@ -8,7 +8,7 @@ import { Plus, Download, Pencil, Trash2, ExternalLink, Upload, Loader2 } from "l
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import StatusBadge from "@/components/fitout/StatusBadge";
 import ProjectFormDrawer from "@/components/fitout/ProjectFormDrawer";
-import { FITOUT_STATUSES, FitoutProject, exportCsv, parseFitoutFile, matchExistingProjects, downloadCsvTemplate, downloadXlsxTemplate, type ParsedRow } from "@/lib/fitout";
+import { FITOUT_STATUSES, FitoutProject, exportCsv, parseFitoutFile, matchExistingProjects, downloadCsvTemplate, downloadXlsxTemplate, splitPeople, type ParsedRow } from "@/lib/fitout";
 import ImportPreviewDialog from "@/components/fitout/ImportPreviewDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { FileSpreadsheet, FileText, ChevronDown } from "lucide-react";
@@ -108,8 +108,18 @@ export default function Tracker() {
   }
   useEffect(() => { load(); }, []);
 
-  const uniq = (k: keyof FitoutProject) =>
-    Array.from(new Set(rows.map((r) => r[k]).filter(Boolean) as string[])).sort();
+  const PEOPLE_KEYS = new Set(["pm", "hod", "supervisor"]);
+
+  const uniq = (k: keyof FitoutProject) => {
+    const set = new Set<string>();
+    for (const r of rows) {
+      const v = r[k] as string | null;
+      if (!v) continue;
+      if (PEOPLE_KEYS.has(k as string)) splitPeople(v).forEach((n) => set.add(n));
+      else set.add(v);
+    }
+    return Array.from(set).sort();
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -119,7 +129,11 @@ export default function Tracker() {
         if (!hay.includes(q)) return false;
       }
       for (const [k, v] of Object.entries(filters)) {
-        if (v !== ALL && (r as any)[k] !== v) return false;
+        if (v === ALL) continue;
+        if (PEOPLE_KEYS.has(k)) {
+          const names = splitPeople((r as any)[k]).map((n) => n.toLowerCase());
+          if (!names.includes(v.toLowerCase())) return false;
+        } else if ((r as any)[k] !== v) return false;
       }
       return true;
     });
