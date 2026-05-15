@@ -40,15 +40,33 @@ export default function AppLayout() {
           <p className="text-center text-xs tracking-[0.3em] text-accent mt-2 font-sans">PROJECT STUDIO</p>
         </div>
         <nav className="flex-1 p-4 space-y-1">
-          {!loading && visible.map(l => (
-            <NavLink key={l.to} to={l.to} end={l.end}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded text-sm transition-colors ${
-                  isActive ? "bg-sidebar-accent text-accent" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                }`}>
-              <l.icon className="w-4 h-4" />{l.label}
-            </NavLink>
-          ))}
+          {!loading && (() => {
+            const renderLink = (l: Link) => (
+              <NavLink key={l.to} to={l.to} end={l.end}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-3 rounded text-sm transition-colors ${
+                    isActive ? "bg-sidebar-accent text-accent" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                  }`}>
+                <l.icon className="w-4 h-4" />{l.label}
+              </NavLink>
+            );
+            const ungrouped = visible.filter(l => !l.group);
+            const groups = visible.reduce<Record<string, Link[]>>((acc, l) => {
+              if (l.group) (acc[l.group] = acc[l.group] || []).push(l);
+              return acc;
+            }, {});
+            return (
+              <>
+                {ungrouped.map(renderLink)}
+                {Object.entries(groups).map(([name, items]) => (
+                  <div key={name} className="pt-4">
+                    <p className="px-4 pb-2 text-[10px] tracking-[0.2em] text-sidebar-foreground/40 uppercase">{name}</p>
+                    {items.map(renderLink)}
+                  </div>
+                ))}
+              </>
+            );
+          })()}
         </nav>
         <div className="p-4 border-t border-sidebar-border">
           <div className="text-xs text-sidebar-foreground/50 mb-2 truncate">{user?.email}</div>
