@@ -30,6 +30,10 @@ export type CompressOpts = { maxDim: number; quality: number };
 let CURRENT_COMPRESS: CompressOpts = { maxDim: 1600, quality: 0.82 };
 export function setPdfCompression(opts: CompressOpts) { CURRENT_COMPRESS = opts; }
 
+export type GalleryColumns = 2 | 3;
+let GALLERY_COLS: GalleryColumns = 3;
+export function setGalleryColumns(cols: GalleryColumns) { GALLERY_COLS = cols; }
+
 async function loadImg(url: string, opts: CompressOpts = CURRENT_COMPRESS): Promise<{ data: string; w: number; h: number } | null> {
   try {
     const res = await fetch(url, { mode: "cors" });
