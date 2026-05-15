@@ -499,31 +499,43 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     doc.addPage(); page.n++;
     addPageHeader(doc, company);
     let yy = sectionTitle(doc, "Gallery", "Visual Story", SECTION_TOP);
-    const cols = allImages.length <= 4 ? 2 : 3;
-    const gap = 5, imgW = (W - 30 - gap * (cols - 1)) / cols, imgH = imgW * 0.7;
-    let x = 15, col = 0;
-    for (let i = 0; i < allImages.length; i++) {
-      const img = await loadImg(allImages[i]);
-      if (!img) continue;
-      // Row break: if the next image would cross the safe bottom, start a new
-      // page AND re-render the section title so spacing matches page 1.
+
+    // Stable grid: 1 image = full width, 2 = side-by-side, 3+ = three columns.
+    const total = allImages.length;
+    const cols = total === 1 ? 1 : total === 2 ? 2 : 3;
+    const gap = 5;
+    const imgW = (W - 30 - gap * (cols - 1)) / cols;
+    const imgH = cols === 1 ? imgW * 0.6 : imgW * 0.7;
+
+    // Pre-load every image so we can center under-filled final rows.
+    const imgs = await Promise.all(allImages.map((u) => loadImg(u)));
+    const valid = imgs.filter(Boolean) as { data: string; w: number; h: number }[];
+
+    let i = 0;
+    while (i < valid.length) {
+      // Row break + repeat heading on continuation pages so layout matches page 1.
       if (yy + imgH > H - SAFE_BOTTOM) {
         addPageFooter(doc, company, page.n);
         doc.addPage(); page.n++;
         addPageHeader(doc, company);
         yy = sectionTitle(doc, "Gallery", "Visual Story (cont.)", SECTION_TOP);
-        x = 15; col = 0;
       }
-      // fit image into slot preserving aspect ratio
-      const ar = img.w / img.h;
-      const slotAr = imgW / imgH;
-      let iw = imgW, ih = imgH;
-      if (ar > slotAr) { ih = imgW / ar; } else { iw = imgH * ar; }
-      doc.setFillColor("#f2f2f2"); doc.rect(x, yy, imgW, imgH, "F");
-      doc.addImage(img.data, "JPEG", x + (imgW - iw) / 2, yy + (imgH - ih) / 2, iw, ih);
-      col++;
-      if (col >= cols) { col = 0; x = 15; yy += imgH + gap; }
-      else { x += imgW + gap; }
+
+      const rowItems = valid.slice(i, i + cols);
+      const rowWidth = rowItems.length * imgW + (rowItems.length - 1) * gap;
+      let x = (W - rowWidth) / 2; // center the row (handles partial last row)
+
+      for (const img of rowItems) {
+        const ar = img.w / img.h;
+        const slotAr = imgW / imgH;
+        let iw = imgW, ih = imgH;
+        if (ar > slotAr) { ih = imgW / ar; } else { iw = imgH * ar; }
+        doc.setFillColor("#f2f2f2"); doc.rect(x, yy, imgW, imgH, "F");
+        doc.addImage(img.data, "JPEG", x + (imgW - iw) / 2, yy + (imgH - ih) / 2, iw, ih);
+        x += imgW + gap;
+      }
+      i += rowItems.length;
+      yy += imgH + gap;
     }
     addPageFooter(doc, company, page.n);
   }
@@ -546,9 +558,38 @@ async function addCategoryCover(doc: jsPDF, type: string, count: number, image: 
     doc.rect(0, H * 0.55, W, H * 0.45, "F");
     (doc as any).setGState && (doc as any).setGState(new (doc as any).GState({ opacity: 1 }));
   }
-  // Title intentionally omitted — divider page is purely visual.
 
+  // Centered category title with tracked letter spacing.
+  // Auto-shrink the font and the letter-spacing together so long labels
+  // (e.g. "RESTAURANTS & CAFE'S") stay on one line and stay centered.
+  const title = (type || "").toUpperCase();
+  if (title) {
+    const maxW = W - 30;          // 15mm side margins
+    const cy = H * 0.78;          // sits inside the dark band
+    doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.paper);
+
+    let size = 28;
+    let charSpace = 4;
+    doc.setFontSize(size);
+    while ((doc.getTextWidth(title) + charSpace * (title.length - 1)) > maxW) {
+      if (charSpace > 1) { charSpace -= 0.5; continue; }
+      if (size > 12) { size -= 1; doc.setFontSize(size); continue; }
+      break;
+    }
+    doc.text(title, W / 2, cy, { align: "center", charSpace });
+
+    // Thin accent rule under the title for visual anchor.
+    doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.4);
+    doc.line(W / 2 - 18, cy + 6, W / 2 + 18, cy + 6);
+
+    // Optional small caption with project count
+    if (count > 0) {
+      doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#cccccc");
+      doc.text(`${count} PROJECT${count === 1 ? "" : "S"}`, W / 2, cy + 14, { align: "center", charSpace: 3 });
+    }
+  }
 }
+
 
 function groupByType(list: any[], preserveOrder = false): Array<{ type: string; items: any[] }> {
   const map = new Map<string, any[]>();
