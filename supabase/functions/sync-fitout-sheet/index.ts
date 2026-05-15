@@ -36,7 +36,7 @@ const DATE_KEYS = new Set([
 ]);
 
 function normHeader(s: string) {
-  return s.toLowerCase().replace(/[\s_\\-/().²]+/g, "").replace(/m2|sqm|sqmeters?/g, "m2");
+  return s.toLowerCase().replace(/[\s_/().²\-\\]+/g, "").replace(/m2|sqm|sqmeters?/g, "m2");
 }
 const HEADER_ALIASES: Record<string, string> = {};
 function regAlias(key: string, ...aliases: string[]) {
