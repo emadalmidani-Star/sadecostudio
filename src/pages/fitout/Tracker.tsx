@@ -107,6 +107,12 @@ export default function Tracker() {
           <h1 className="font-serif text-4xl">Projects</h1>
         </div>
         <div className="flex gap-2">
+          <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImport(f); }} />
+          <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={importing}>
+            {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+            Import Excel
+          </Button>
           <Button variant="outline" onClick={() => exportCsv(filtered)}><Download className="w-4 h-4 mr-2" />Export CSV</Button>
           <Button onClick={() => setDrawer({ open: true, project: null })}><Plus className="w-4 h-4 mr-2" />New Project</Button>
         </div>
