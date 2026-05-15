@@ -142,12 +142,19 @@ Deno.serve(async (req) => {
     .insert({ triggered_by: triggeredBy, status: "running" }).select().single();
 
   try {
-    let worksheet = cfg.worksheet_name;
-    if (!worksheet) {
-      const meta = await gatewayFetch(`/spreadsheets/${sheetId}?fields=sheets.properties.title`);
-      worksheet = meta.sheets?.[0]?.properties?.title;
-      if (!worksheet) throw new Error("No worksheets found in spreadsheet");
-    }
+    const meta = await gatewayFetch(`/spreadsheets/${sheetId}?fields=sheets.properties.title`);
+    const worksheets = (meta.sheets || [])
+      .map((s: any) => s?.properties?.title)
+      .filter(Boolean);
+    if (!worksheets.length) throw new Error("No worksheets found in spreadsheet");
+
+    const requestedWorksheet = String(cfg.worksheet_name || "").trim();
+    const worksheet = requestedWorksheet
+      ? worksheets.find((title: string) => title.toLowerCase() === requestedWorksheet.toLowerCase()) || worksheets[0]
+      : worksheets[0];
+    const worksheetWarning = requestedWorksheet && worksheet.toLowerCase() !== requestedWorksheet.toLowerCase()
+      ? `Worksheet "${requestedWorksheet}" was not found. Used "${worksheet}" instead. Available worksheets: ${worksheets.join(", ")}`
+      : null;
 
     const range = `${sheetRangeName(worksheet)}!A${cfg.header_row || 1}:Z10000`;
     const valuesRes = await gatewayFetch(`/spreadsheets/${sheetId}/values/${range}`);
@@ -256,6 +263,7 @@ Deno.serve(async (req) => {
 
     const result = {
       inserted, updated, skipped, errors,
+      worksheet_warning: worksheetWarning,
       unmapped_headers: unmappedHeaders,
       mapped_headers: colMap.map((c) => ({ col: c.col, header: c.header, field: HEADER_LABELS[c.key] })),
     };
