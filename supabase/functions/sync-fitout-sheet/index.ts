@@ -219,7 +219,18 @@ Deno.serve(async (req) => {
           data[key] = n;
         } else if (key === "status") {
           const s = String(val).trim();
-          const m = STATUSES.find((x) => x.toLowerCase() === s.toLowerCase());
+          const sl = s.toLowerCase();
+          const aliases: Record<string, string> = {
+            "running": "In Progress", "in-progress": "In Progress", "in progress": "In Progress",
+            "ongoing": "In Progress", "active": "In Progress", "wip": "In Progress",
+            "upcoming": "Planning", "planned": "Planning", "to start": "Planning", "not started": "Planning",
+            "hold": "On Hold", "on-hold": "On Hold", "paused": "On Hold",
+            "done": "Completed", "complete": "Completed", "finished": "Completed", "handover": "Completed",
+            "snagging": "Snag", "snags": "Snag",
+            "cancel": "Cancelled", "canceled": "Cancelled", "cancelled": "Cancelled",
+          };
+          let m = STATUSES.find((x) => x.toLowerCase() === sl);
+          if (!m && aliases[sl]) m = aliases[sl];
           if (!m) rowErrors.push({ column: col, header, value: s, problem: `Unknown status — allowed: ${STATUSES.join(", ")}` });
           data[key] = m || "Planning";
         } else {
