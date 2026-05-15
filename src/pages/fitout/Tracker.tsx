@@ -188,6 +188,9 @@ export default function Tracker() {
             {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
             Import Excel
           </Button>
+          <Button variant="outline" onClick={() => setSyncOpen(true)}>
+            <RefreshCw className="w-4 h-4 mr-2" />Sheet Sync
+          </Button>
           <Button variant="outline" onClick={() => exportCsv(filtered)}><Download className="w-4 h-4 mr-2" />Export CSV</Button>
           <Button onClick={() => setDrawer({ open: true, project: null })}><Plus className="w-4 h-4 mr-2" />New Project</Button>
         </div>
