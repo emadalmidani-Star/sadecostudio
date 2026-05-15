@@ -129,25 +129,68 @@ export default function SheetSyncDialog({ open, onOpenChange, onSynced }: {
           </div>
 
           {last && (
-            <div className="rounded border p-3 text-sm">
+            <div className="rounded border p-3 text-sm space-y-2">
               <div className="flex justify-between">
                 <span className="font-medium">Last sync</span>
                 <span className="text-muted-foreground text-xs">
                   {last.finished_at ? new Date(last.finished_at).toLocaleString() : "running…"} ({last.triggered_by})
                 </span>
               </div>
-              <p className="text-muted-foreground text-xs mt-1">
+              <p className="text-muted-foreground text-xs">
                 {last.inserted} inserted · {last.updated} updated · {last.skipped} skipped
                 {last.status === "failed" && " · failed"}
               </p>
-              {Array.isArray(last.errors) && last.errors.length > 0 && (
-                <details className="mt-2">
-                  <summary className="text-xs cursor-pointer text-destructive">{last.errors.length} error(s)</summary>
-                  <ul className="text-xs mt-1 space-y-1 max-h-40 overflow-auto">
-                    {last.errors.map((er: any, i: number) => (
-                      <li key={i}>Row {er.row ?? "?"}: {(er.errors || [er.message]).join("; ")}</li>
+
+              {Array.isArray((cfg.last_result as any)?.unmapped_headers) && (cfg.last_result as any).unmapped_headers.length > 0 && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-amber-600 dark:text-amber-400">
+                    {(cfg.last_result as any).unmapped_headers.length} unmapped column(s) — ignored
+                  </summary>
+                  <ul className="mt-1 ml-4 list-disc">
+                    {(cfg.last_result as any).unmapped_headers.map((h: any, i: number) => (
+                      <li key={i}><span className="font-mono">{h.col}</span>: "{h.header}"</li>
                     ))}
                   </ul>
+                </details>
+              )}
+
+              {Array.isArray(last.errors) && last.errors.length > 0 && (
+                <details open className="text-xs">
+                  <summary className="cursor-pointer text-destructive font-medium">
+                    {last.errors.length} row(s) with errors — click to see details
+                  </summary>
+                  <div className="mt-2 max-h-72 overflow-auto rounded border">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/50 sticky top-0">
+                        <tr className="text-left">
+                          <th className="p-2">Row</th>
+                          <th className="p-2">Brand / Location</th>
+                          <th className="p-2">Column</th>
+                          <th className="p-2">Header</th>
+                          <th className="p-2">Value</th>
+                          <th className="p-2">Problem</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {last.errors.flatMap((er: any, i: number) => {
+                          const errs = Array.isArray(er.errors) ? er.errors : [{ problem: er.message || "Unknown" }];
+                          return errs.map((e: any, j: number) => (
+                            <tr key={`${i}-${j}`} className="border-t align-top">
+                              <td className="p-2 font-mono">{er.row ?? "?"}</td>
+                              <td className="p-2">
+                                {er.brand || "—"}
+                                {er.location && <div className="text-muted-foreground">{er.location}{er.city ? ` · ${er.city}` : ""}</div>}
+                              </td>
+                              <td className="p-2 font-mono">{e.column ?? "-"}</td>
+                              <td className="p-2">{e.header ?? "-"}</td>
+                              <td className="p-2 font-mono break-all max-w-[12rem]">{e.value ?? ""}</td>
+                              <td className="p-2 text-destructive">{e.problem ?? ""}</td>
+                            </tr>
+                          ));
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </details>
               )}
             </div>
