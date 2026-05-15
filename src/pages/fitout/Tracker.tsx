@@ -8,8 +8,10 @@ import { Plus, Download, Pencil, Trash2, ExternalLink, Upload, Loader2 } from "l
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import StatusBadge from "@/components/fitout/StatusBadge";
 import ProjectFormDrawer from "@/components/fitout/ProjectFormDrawer";
-import { FITOUT_STATUSES, FitoutProject, exportCsv, parseFitoutFile, matchExistingProjects, type ParsedRow } from "@/lib/fitout";
+import { FITOUT_STATUSES, FitoutProject, exportCsv, parseFitoutFile, matchExistingProjects, downloadCsvTemplate, downloadXlsxTemplate, type ParsedRow } from "@/lib/fitout";
 import ImportPreviewDialog from "@/components/fitout/ImportPreviewDialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { FileSpreadsheet, FileText, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -151,6 +153,21 @@ export default function Tracker() {
         <div className="flex gap-2">
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImport(f); }} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-xs">
+                <FileSpreadsheet className="w-4 h-4 mr-1" />Template<ChevronDown className="w-3 h-3 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => downloadXlsxTemplate()}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />Excel template (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => downloadCsvTemplate()}>
+                <FileText className="w-4 h-4 mr-2" />CSV template (.csv)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={importing}>
             {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
             Import Excel

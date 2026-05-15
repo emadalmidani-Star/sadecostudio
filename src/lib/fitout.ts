@@ -106,6 +106,91 @@ export function exportCsv(rows: FitoutProject[]) {
   URL.revokeObjectURL(url);
 }
 
+// ---------- Import template (blank file with headers + sample row) ----------
+
+const SAMPLE_ROW: Record<string, string | number> = {
+  date_added: new Date().toISOString().slice(0, 10),
+  hod: "Jane Smith",
+  pm: "John Doe",
+  city_province: "Dubai",
+  brand: "Acme Coffee",
+  location: "Mall of the Emirates",
+  project_type: "Cafe",
+  size_m2: 120,
+  fitout_period_days: 45,
+  start_on_site: "2026-06-01",
+  fitout_completion: "2026-07-15",
+  store_handover: "2026-07-20",
+  snag_prep_date: "2026-07-22",
+  contract_period_days: 60,
+  store_opening: "2026-08-01",
+  snag_completion_date: "2026-08-10",
+  supervisor: "Mike Lee",
+  status: "Planning",
+  comments: "Replace this row with your data — the header row above must stay intact.",
+};
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function downloadCsvTemplate() {
+  const headers = COLUMNS.map((c) => c.label);
+  const sample = COLUMNS.map((c) => {
+    const v = SAMPLE_ROW[c.key as string] ?? "";
+    const s = String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  });
+  const csv = [headers.join(","), sample.join(",")].join("\n");
+  downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), "fitout-tracker-template.csv");
+}
+
+export async function downloadXlsxTemplate() {
+  const XLSX = await import("xlsx");
+  const headers = COLUMNS.map((c) => c.label);
+  const sampleRow: Record<string, any> = {};
+  COLUMNS.forEach((c) => { sampleRow[c.label] = SAMPLE_ROW[c.key as string] ?? ""; });
+
+  const ws = XLSX.utils.json_to_sheet([sampleRow], { header: headers });
+  // Set reasonable column widths
+  (ws as any)["!cols"] = headers.map((h) => ({ wch: Math.max(14, h.length + 2) }));
+
+  // Instructions sheet so users know how the importer reads each column.
+  const instructions = [
+    ["Fitout Tracker — Import Template"],
+    [],
+    ["1. Keep the header row in 'Projects' exactly as provided."],
+    ["2. One project per row. Replace the example row with your data."],
+    ["3. Dates can be Excel dates, YYYY-MM-DD, or DD/MM/YYYY."],
+    ["4. Status must be one of: " + (FITOUT_STATUSES as readonly string[]).join(", ") + "."],
+    ["5. At minimum each row needs Brand or Location."],
+    ["6. Numeric fields: Size (m²), Fitout Period (Days), Contract Period (Days)."],
+    ["7. Unknown columns are ignored. Empty cells are saved as blank."],
+    [],
+    ["Column", "Required", "Type", "Notes"],
+    ...COLUMNS.map((c) => {
+      const required = c.key === "brand" || c.key === "location" ? "Brand or Location" : "";
+      const type = ["size_m2", "fitout_period_days", "contract_period_days"].includes(c.key as string)
+        ? "Number"
+        : ["date_added", "start_on_site", "fitout_completion", "store_handover", "snag_prep_date", "store_opening", "snag_completion_date"].includes(c.key as string)
+          ? "Date"
+          : c.key === "status" ? "Enum" : "Text";
+      return [c.label, required, type, ""];
+    }),
+  ];
+  const wsInfo = XLSX.utils.aoa_to_sheet(instructions);
+  (wsInfo as any)["!cols"] = [{ wch: 28 }, { wch: 18 }, { wch: 10 }, { wch: 40 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Projects");
+  XLSX.utils.book_append_sheet(wb, wsInfo, "Instructions");
+  const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  downloadBlob(new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), "fitout-tracker-template.xlsx");
+}
+
 // ---------- Excel / CSV import ----------
 
 const NUMERIC_KEYS = new Set<keyof FitoutProject>(["size_m2", "fitout_period_days", "contract_period_days"]);
