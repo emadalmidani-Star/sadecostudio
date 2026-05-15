@@ -42,6 +42,7 @@ export default function Tracker() {
     open: false, rows: [], unknownHeaders: [],
   });
   const fileRef = useRef<HTMLInputElement>(null);
+  const [syncOpen, setSyncOpen] = useState(false);
 
   async function handleImport(file: File) {
     setImporting(true);
