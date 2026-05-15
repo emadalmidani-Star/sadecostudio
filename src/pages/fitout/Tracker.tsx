@@ -233,6 +233,15 @@ export default function Tracker() {
 
       <ProjectFormDrawer open={drawer.open} onOpenChange={(o) => setDrawer({ open: o, project: o ? drawer.project : null })} project={drawer.project} onSaved={load} />
 
+      <ImportPreviewDialog
+        open={preview.open}
+        onOpenChange={(o) => !committing && setPreview((p) => ({ ...p, open: o }))}
+        rows={preview.rows}
+        unknownHeaders={preview.unknownHeaders}
+        busy={committing}
+        onConfirm={commitImport}
+      />
+
       <AlertDialog open={!!del} onOpenChange={(o) => !o && setDel(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
