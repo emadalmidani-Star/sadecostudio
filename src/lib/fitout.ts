@@ -169,35 +169,99 @@ function parseNumberCell(v: any): number | null {
   return isNaN(n) ? null : n;
 }
 
-export type ImportRowResult = { row: number; ok: boolean; error?: string; data?: Partial<FitoutProject> };
+export type ParsedRow = {
+  rowNumber: number; // 1-based row in source file (excluding header)
+  data: Partial<FitoutProject>;
+  errors: string[];   // hard errors — block this row from being committed
+  warnings: string[]; // soft notes (e.g. status defaulted)
+  include: boolean;   // user toggle in preview
+  matchedId?: string | null; // existing project id when upsert mode finds a match
+};
 
-export async function parseFitoutFile(file: File): Promise<{ rows: Partial<FitoutProject>[]; unknownHeaders: string[] }> {
+export type ParseResult = {
+  rows: ParsedRow[];
+  unknownHeaders: string[];
+  totalRows: number;
+};
+
+export async function parseFitoutFile(file: File): Promise<ParseResult> {
   const XLSX = await import("xlsx");
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array", cellDates: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const json = XLSX.utils.sheet_to_json<any>(ws, { defval: null, raw: true });
-  const rows: Partial<FitoutProject>[] = [];
+  const rows: ParsedRow[] = [];
   const unknown = new Set<string>();
   const validStatuses = new Set<string>(FITOUT_STATUSES as readonly string[]);
 
-  for (const obj of json) {
-    const out: any = {};
+  json.forEach((obj, idx) => {
+    const data: any = {};
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
     for (const [header, val] of Object.entries(obj)) {
       const key = HEADER_ALIASES[normalizeHeader(header)];
       if (!key) { unknown.add(header); continue; }
-      if (val == null || val === "") { out[key] = null; continue; }
-      if (DATE_KEYS.has(key)) out[key] = parseDateCell(val);
-      else if (NUMERIC_KEYS.has(key)) out[key] = parseNumberCell(val);
-      else if (key === "status") {
+      if (val == null || val === "") { data[key] = null; continue; }
+      if (DATE_KEYS.has(key)) {
+        const d = parseDateCell(val);
+        if (d == null) errors.push(`${header}: cannot parse date "${val}"`);
+        data[key] = d;
+      } else if (NUMERIC_KEYS.has(key)) {
+        const n = parseNumberCell(val);
+        if (n == null) errors.push(`${header}: not a number "${val}"`);
+        data[key] = n;
+      } else if (key === "status") {
         const s = String(val).trim();
         const match = [...validStatuses].find((x) => x.toLowerCase() === s.toLowerCase());
-        out[key] = match || "Planning";
-      } else out[key] = String(val).trim();
+        if (match) data[key] = match;
+        else { data[key] = "Planning"; warnings.push(`Status "${s}" not recognized — defaulted to Planning`); }
+      } else data[key] = String(val).trim();
     }
-    // Skip fully-empty rows
-    if (Object.values(out).some((v) => v != null && v !== "")) rows.push(out);
-  }
-  return { rows, unknownHeaders: [...unknown] };
+
+    // Skip fully-empty rows entirely
+    if (!Object.values(data).some((v) => v != null && v !== "")) return;
+
+    // Required fields
+    if (!data.brand && !data.location) {
+      errors.push("Missing both Brand and Location — at least one is required");
+    }
+
+    // Cross-field date sanity (warning, not error)
+    const start = data.start_on_site ? new Date(data.start_on_site) : null;
+    const done = data.fitout_completion ? new Date(data.fitout_completion) : null;
+    if (start && done && done < start) {
+      warnings.push("Fitout Completion is before Start on Site");
+    }
+
+    rows.push({
+      rowNumber: idx + 2, // +1 header, +1 to be 1-based
+      data,
+      errors,
+      warnings,
+      include: errors.length === 0,
+    });
+  });
+
+  return { rows, unknownHeaders: [...unknown], totalRows: json.length };
 }
+
+// Match an imported row against existing projects by brand + location (case-insensitive).
+export function matchExistingProjects(
+  parsed: ParsedRow[],
+  existing: Pick<FitoutProject, "id" | "brand" | "location">[],
+): ParsedRow[] {
+  const key = (b?: string | null, l?: string | null) =>
+    `${(b || "").trim().toLowerCase()}|${(l || "").trim().toLowerCase()}`;
+  const map = new Map<string, string>();
+  existing.forEach((e) => {
+    const k = key(e.brand, e.location);
+    if (k !== "|") map.set(k, e.id);
+  });
+  return parsed.map((r) => {
+    const k = key(r.data.brand as string, r.data.location as string);
+    return { ...r, matchedId: k === "|" ? null : map.get(k) || null };
+  });
+}
+
 
