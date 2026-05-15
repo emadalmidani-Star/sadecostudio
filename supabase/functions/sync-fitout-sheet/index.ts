@@ -60,7 +60,7 @@ regAlias("date_added", "Added", "Created");
 function parseDate(v: any): string | null {
   if (v == null || v === "") return null;
   const s = String(v).trim();
-  const m = s.match(/^(\d{1,2})[/\\-.](\d{1,2})[/\\-.](\d{2,4})$/);
+  const m = s.match(/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})$/);
   if (m) {
     let [_, dd, mm, yy] = m;
     if (yy.length === 2) yy = (Number(yy) > 50 ? "19" : "20") + yy;
