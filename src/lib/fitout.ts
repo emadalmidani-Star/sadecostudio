@@ -105,3 +105,99 @@ export function exportCsv(rows: FitoutProject[]) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+// ---------- Excel / CSV import ----------
+
+const NUMERIC_KEYS = new Set<keyof FitoutProject>(["size_m2", "fitout_period_days", "contract_period_days"]);
+const DATE_KEYS = new Set<keyof FitoutProject>([
+  "date_added", "start_on_site", "fitout_completion", "store_handover",
+  "snag_prep_date", "store_opening", "snag_completion_date",
+]);
+
+// Map common header variants -> canonical column key
+const HEADER_ALIASES: Record<string, keyof FitoutProject> = {};
+function regAlias(key: keyof FitoutProject, ...aliases: string[]) {
+  for (const a of aliases) HEADER_ALIASES[normalizeHeader(a)] = key;
+}
+function normalizeHeader(s: string) {
+  return s.toLowerCase().replace(/[\s_\-/().²]+/g, "").replace(/m2|sqm|sqmeters?/g, "m2");
+}
+COLUMNS.forEach((c) => regAlias(c.key, c.label, c.key));
+regAlias("size_m2", "Size", "Area", "Area m2", "Sqm", "Size sqm");
+regAlias("fitout_period_days", "Fitout Days", "Fitout Period", "Fit-out Period (Days)");
+regAlias("contract_period_days", "Contract Days", "Contract Period");
+regAlias("city_province", "City", "Province", "City / Province");
+regAlias("project_type", "Type", "Project Type");
+regAlias("start_on_site", "Start", "Start Date", "Site Start");
+regAlias("fitout_completion", "Fitout Done", "Fit-out Completion");
+regAlias("store_handover", "Handover", "Store Hand Over");
+regAlias("snag_prep_date", "Snag Prep");
+regAlias("store_opening", "Opening", "Store Open");
+regAlias("snag_completion_date", "Snag Completion", "Snag Done");
+regAlias("hod", "Head of Department", "H.O.D");
+regAlias("pm", "Project Manager", "P.M");
+regAlias("date_added", "Added", "Created");
+
+function excelSerialToISO(n: number): string | null {
+  // Excel epoch (with the 1900 leap-year bug)
+  const ms = Math.round((n - 25569) * 86400 * 1000);
+  const d = new Date(ms);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
+}
+function parseDateCell(v: any): string | null {
+  if (v == null || v === "") return null;
+  if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+  if (typeof v === "number") return excelSerialToISO(v);
+  const s = String(v).trim();
+  if (!s) return null;
+  // dd/mm/yyyy or dd-mm-yyyy
+  const m = s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
+  if (m) {
+    let [_, dd, mm, yy] = m;
+    if (yy.length === 2) yy = (Number(yy) > 50 ? "19" : "20") + yy;
+    return `${yy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+  }
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  return null;
+}
+function parseNumberCell(v: any): number | null {
+  if (v == null || v === "") return null;
+  if (typeof v === "number") return v;
+  const n = Number(String(v).replace(/[^\d.\-]/g, ""));
+  return isNaN(n) ? null : n;
+}
+
+export type ImportRowResult = { row: number; ok: boolean; error?: string; data?: Partial<FitoutProject> };
+
+export async function parseFitoutFile(file: File): Promise<{ rows: Partial<FitoutProject>[]; unknownHeaders: string[] }> {
+  const XLSX = await import("xlsx");
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: "array", cellDates: true });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const json = XLSX.utils.sheet_to_json<any>(ws, { defval: null, raw: true });
+  const rows: Partial<FitoutProject>[] = [];
+  const unknown = new Set<string>();
+  const validStatuses = new Set<string>(FITOUT_STATUSES as readonly string[]);
+
+  for (const obj of json) {
+    const out: any = {};
+    for (const [header, val] of Object.entries(obj)) {
+      const key = HEADER_ALIASES[normalizeHeader(header)];
+      if (!key) { unknown.add(header); continue; }
+      if (val == null || val === "") { out[key] = null; continue; }
+      if (DATE_KEYS.has(key)) out[key] = parseDateCell(val);
+      else if (NUMERIC_KEYS.has(key)) out[key] = parseNumberCell(val);
+      else if (key === "status") {
+        const s = String(val).trim();
+        const match = [...validStatuses].find((x) => x.toLowerCase() === s.toLowerCase());
+        out[key] = match || "Planning";
+      } else out[key] = String(val).trim();
+    }
+    // Skip fully-empty rows
+    if (Object.values(out).some((v) => v != null && v !== "")) rows.push(out);
+  }
+  return { rows, unknownHeaders: [...unknown] };
+}
+

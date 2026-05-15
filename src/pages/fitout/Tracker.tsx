@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Download, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Download, Pencil, Trash2, ExternalLink, Upload, Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import StatusBadge from "@/components/fitout/StatusBadge";
 import ProjectFormDrawer from "@/components/fitout/ProjectFormDrawer";
-import { FITOUT_STATUSES, FitoutProject, exportCsv } from "@/lib/fitout";
+import { FITOUT_STATUSES, FitoutProject, exportCsv, parseFitoutFile } from "@/lib/fitout";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -32,6 +32,30 @@ export default function Tracker() {
   });
   const [drawer, setDrawer] = useState<{ open: boolean; project: FitoutProject | null }>({ open: false, project: null });
   const [del, setDel] = useState<FitoutProject | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleImport(file: File) {
+    setImporting(true);
+    try {
+      const { rows: parsed, unknownHeaders } = await parseFitoutFile(file);
+      if (parsed.length === 0) { toast.error("No rows found in file"); return; }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Not signed in"); return; }
+      const payload = parsed.map((r) => ({ ...r, status: r.status || "Planning", created_by: user.id }));
+      const { error } = await supabase.from("fitout_projects" as any).insert(payload as any);
+      if (error) { toast.error(error.message); return; }
+      let msg = `Imported ${parsed.length} project${parsed.length === 1 ? "" : "s"}`;
+      if (unknownHeaders.length) msg += ` (ignored columns: ${unknownHeaders.join(", ")})`;
+      toast.success(msg);
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Import failed");
+    } finally {
+      setImporting(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   async function load() {
     const { data, error } = await supabase.from("fitout_projects" as any).select("*").order("created_at", { ascending: false });
@@ -83,6 +107,12 @@ export default function Tracker() {
           <h1 className="font-serif text-4xl">Projects</h1>
         </div>
         <div className="flex gap-2">
+          <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImport(f); }} />
+          <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={importing}>
+            {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+            Import Excel
+          </Button>
           <Button variant="outline" onClick={() => exportCsv(filtered)}><Download className="w-4 h-4 mr-2" />Export CSV</Button>
           <Button onClick={() => setDrawer({ open: true, project: null })}><Plus className="w-4 h-4 mr-2" />New Project</Button>
         </div>
