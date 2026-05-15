@@ -32,6 +32,30 @@ export default function Tracker() {
   });
   const [drawer, setDrawer] = useState<{ open: boolean; project: FitoutProject | null }>({ open: false, project: null });
   const [del, setDel] = useState<FitoutProject | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleImport(file: File) {
+    setImporting(true);
+    try {
+      const { rows: parsed, unknownHeaders } = await parseFitoutFile(file);
+      if (parsed.length === 0) { toast.error("No rows found in file"); return; }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Not signed in"); return; }
+      const payload = parsed.map((r) => ({ ...r, status: r.status || "Planning", created_by: user.id }));
+      const { error } = await supabase.from("fitout_projects" as any).insert(payload as any);
+      if (error) { toast.error(error.message); return; }
+      let msg = `Imported ${parsed.length} project${parsed.length === 1 ? "" : "s"}`;
+      if (unknownHeaders.length) msg += ` (ignored columns: ${unknownHeaders.join(", ")})`;
+      toast.success(msg);
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Import failed");
+    } finally {
+      setImporting(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   async function load() {
     const { data, error } = await supabase.from("fitout_projects" as any).select("*").order("created_at", { ascending: false });
