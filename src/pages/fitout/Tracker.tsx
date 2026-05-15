@@ -10,7 +10,6 @@ import StatusBadge from "@/components/fitout/StatusBadge";
 import ProjectFormDrawer from "@/components/fitout/ProjectFormDrawer";
 import { FITOUT_STATUSES, FitoutProject, exportCsv, parseFitoutFile } from "@/lib/fitout";
 import { toast } from "sonner";
-import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
