@@ -137,7 +137,7 @@ export default function Exports() {
 
   async function fullProfile() {
     setBusy("full");
-    setPdfCompression(QUALITY_PRESETS[quality]);
+    setPdfCompression(QUALITY_PRESETS[quality]); setGalleryColumns(galleryCols);
     try {
       const c = await resolveSelectedContact();
       await exportFullProfilePDF(company, projects, covers, c, companyFields);
@@ -149,7 +149,7 @@ export default function Exports() {
   async function selectedExport() {
     if (selectedOrder.length === 0) return toast.error("Select at least one project");
     setBusy("selected");
-    setPdfCompression(QUALITY_PRESETS[quality]);
+    setPdfCompression(QUALITY_PRESETS[quality]); setGalleryColumns(galleryCols);
     try {
       const byId = new Map(projects.map(p => [p.id, p]));
       const list = selectedOrder.map(id => byId.get(id)).filter(Boolean);
