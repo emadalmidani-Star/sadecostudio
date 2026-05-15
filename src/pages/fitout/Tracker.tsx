@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Download, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Download, Pencil, Trash2, ExternalLink, Upload, Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import StatusBadge from "@/components/fitout/StatusBadge";
 import ProjectFormDrawer from "@/components/fitout/ProjectFormDrawer";
-import { FITOUT_STATUSES, FitoutProject, exportCsv } from "@/lib/fitout";
+import { FITOUT_STATUSES, FitoutProject, exportCsv, parseFitoutFile } from "@/lib/fitout";
+import { useRef, useState as useStateImport } from "react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
