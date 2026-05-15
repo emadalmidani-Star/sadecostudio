@@ -306,6 +306,20 @@ export default function Exports() {
             </SelectContent>
           </Select>
         </div>
+
+        <div className="mt-4 pt-4 border-t flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 className="font-serif text-lg mb-1">Visual Story gallery layout</h2>
+            <p className="text-xs text-muted-foreground">Choose how many images appear per row in the project gallery.</p>
+          </div>
+          <Select value={String(galleryCols)} onValueChange={(v) => setGalleryCols(Number(v) as GalleryColumns)}>
+            <SelectTrigger className="md:w-64"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2">2 columns — larger images</SelectItem>
+              <SelectItem value="3">3 columns — denser layout</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </Card>
 
       {selectedOrder.length > 0 && (
