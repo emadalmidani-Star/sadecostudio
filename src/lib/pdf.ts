@@ -208,11 +208,51 @@ const SECTION_TOP = 28;            // top y where every section title begins
 const SAFE_BOTTOM = 20;            // keep this much clearance above the footer
 
 function sectionTitle(doc: jsPDF, _label: string, title: string, y: number) {
-  doc.setFontSize(26); doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold");
-  doc.text(title, 15, y + 4);
-  doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.4); doc.line(15, y + 7, 50, y + 7);
-  return y + 7 + CONTENT_GAP;
+  const W = doc.internal.pageSize.getWidth();
+  const maxW = W - 30; // 15mm side margins
+  doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.ink);
+
+  // Auto-shrink font (26 → 16) so long titles fit on a single line.
+  let size = 26;
+  doc.setFontSize(size);
+  while (size > 16 && doc.getTextWidth(title) > maxW) {
+    size -= 1; doc.setFontSize(size);
+  }
+
+  // If still too wide at the minimum size, wrap to a second line.
+  let lines = [title];
+  if (doc.getTextWidth(title) > maxW) {
+    lines = doc.splitTextToSize(title, maxW).slice(0, 2);
+  }
+
+  // Render. Reserve a constant block height (two-line slot) so the underline
+  // and the first content row stay at identical positions on every page,
+  // regardless of how long the heading is.
+  const lineH = size * 0.45; // mm per line at this font size
+  lines.forEach((ln, i) => doc.text(ln, 15, y + 4 + i * lineH));
+  const underlineY = y + 7 + (lines.length - 1) * lineH;
+  doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.4); doc.line(15, underlineY, 50, underlineY);
+  return underlineY + CONTENT_GAP;
 }
+
+// Draw text centered inside a box, shrinking the font until it fits.
+function fitCenteredText(doc: jsPDF, text: string, cx: number, cy: number, maxW: number, startSize = 13, minSize = 7) {
+  let size = startSize;
+  doc.setFontSize(size);
+  while (size > minSize && doc.getTextWidth(text) > maxW) {
+    size -= 1; doc.setFontSize(size);
+  }
+  // If still too wide, wrap to up to 2 lines.
+  if (doc.getTextWidth(text) > maxW) {
+    const lines = doc.splitTextToSize(text, maxW).slice(0, 2);
+    const lineH = size * 0.42;
+    const startY = cy - ((lines.length - 1) * lineH) / 2 + 1.5;
+    lines.forEach((ln: string, i: number) => doc.text(ln, cx, startY + i * lineH, { align: "center" }));
+  } else {
+    doc.text(text, cx, cy + 1.5, { align: "center" });
+  }
+}
+
 
 
 export type CompanyFooterFields = { phone?: boolean; email?: boolean; website?: boolean; address?: boolean };
@@ -610,8 +650,8 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
       const iy = y + (cellH - dh) / 2;
       try { doc.addImage(img.data, "JPEG", ix, iy, dw, dh, undefined, "FAST"); } catch {}
     } else {
-      doc.setFont("Montserrat", "bold"); doc.setFontSize(fontSize); doc.setTextColor(BRAND.ink);
-      doc.text(p.name, x + cellW / 2, y + cellH / 2 + 2, { align: "center" });
+      doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.ink);
+      fitCenteredText(doc, p.name, x + cellW / 2, y + cellH / 2, cellW - 6, fontSize, 7);
     }
 
     col++;
