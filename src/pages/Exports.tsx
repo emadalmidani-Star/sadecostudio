@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileDown, FileText, Files, GripVertical, Loader2, Search, Upload, X } from "lucide-react";
-import { exportFullProfilePDF, exportSelectedPDF, setPdfCompression, type CompressOpts, type CompanyFooterFields } from "@/lib/pdf";
+import { exportFullProfilePDF, exportSelectedPDF, setPdfCompression, setGalleryColumns, type CompressOpts, type GalleryColumns, type CompanyFooterFields } from "@/lib/pdf";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import { safeStorageFilename } from "@/lib/storagePath";
@@ -63,6 +63,7 @@ export default function Exports() {
   const [sets, setSets] = useState<TplSet[]>([]);
   const [assignments, setAssignments] = useState<Record<string, string | null>>({});
   const [quality, setQuality] = useState<keyof typeof QUALITY_PRESETS>("balanced");
+  const [galleryCols, setGalleryCols] = useState<GalleryColumns>(3);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [contactId, setContactId] = useState<string>("__none__");
   const [companyFields, setCompanyFields] = useState<CompanyFooterFields>({ phone: true, email: true, website: true, address: false });
@@ -136,7 +137,7 @@ export default function Exports() {
 
   async function fullProfile() {
     setBusy("full");
-    setPdfCompression(QUALITY_PRESETS[quality]);
+    setPdfCompression(QUALITY_PRESETS[quality]); setGalleryColumns(galleryCols);
     try {
       const c = await resolveSelectedContact();
       await exportFullProfilePDF(company, projects, covers, c, companyFields);
@@ -148,7 +149,7 @@ export default function Exports() {
   async function selectedExport() {
     if (selectedOrder.length === 0) return toast.error("Select at least one project");
     setBusy("selected");
-    setPdfCompression(QUALITY_PRESETS[quality]);
+    setPdfCompression(QUALITY_PRESETS[quality]); setGalleryColumns(galleryCols);
     try {
       const byId = new Map(projects.map(p => [p.id, p]));
       const list = selectedOrder.map(id => byId.get(id)).filter(Boolean);
@@ -302,6 +303,20 @@ export default function Exports() {
               {Object.entries(QUALITY_PRESETS).map(([k, v]) => (
                 <SelectItem key={k} value={k}>{v.label}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="mt-4 pt-4 border-t flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 className="font-serif text-lg mb-1">Visual Story gallery layout</h2>
+            <p className="text-xs text-muted-foreground">Choose how many images appear per row in the project gallery.</p>
+          </div>
+          <Select value={String(galleryCols)} onValueChange={(v) => setGalleryCols(Number(v) as GalleryColumns)}>
+            <SelectTrigger className="md:w-64"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2">2 columns — larger images</SelectItem>
+              <SelectItem value="3">3 columns — denser layout</SelectItem>
             </SelectContent>
           </Select>
         </div>
