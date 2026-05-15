@@ -17,6 +17,10 @@ import Team from "./pages/Team";
 import MyProfile from "./pages/MyProfile";
 import Permissions from "./pages/Permissions";
 import IdCards from "./pages/IdCards";
+import FitoutDashboard from "./pages/fitout/Dashboard";
+import FitoutTracker from "./pages/fitout/Tracker";
+import FitoutProjectDetail from "./pages/fitout/ProjectDetail";
+import FitoutTeam from "./pages/fitout/Team";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +45,10 @@ const App = () => (
               <Route path="/me" element={<RoleRoute page="me"><MyProfile /></RoleRoute>} />
               <Route path="/id-cards" element={<RoleRoute page="idcards"><IdCards /></RoleRoute>} />
               <Route path="/permissions" element={<RoleRoute page="team"><Permissions /></RoleRoute>} />
+              <Route path="/fitout" element={<RoleRoute page="fitout"><FitoutDashboard /></RoleRoute>} />
+              <Route path="/fitout/projects" element={<RoleRoute page="fitout"><FitoutTracker /></RoleRoute>} />
+              <Route path="/fitout/projects/:id" element={<RoleRoute page="fitout"><FitoutProjectDetail /></RoleRoute>} />
+              <Route path="/fitout/team" element={<RoleRoute page="fitout"><FitoutTeam /></RoleRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

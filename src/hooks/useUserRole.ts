@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type AppRole = "admin" | "user";
-export type PageKey = "dashboard" | "projects" | "exports" | "company" | "template" | "team" | "me" | "idcards";
+export type PageKey = "dashboard" | "projects" | "exports" | "company" | "template" | "team" | "me" | "idcards" | "fitout";
 
 export const ALL_ROLES: AppRole[] = ["admin", "user"];
 export const ALL_PAGES: { key: PageKey; label: string }[] = [
@@ -15,6 +15,7 @@ export const ALL_PAGES: { key: PageKey; label: string }[] = [
   { key: "company", label: "Company Profile" },
   { key: "template", label: "Template Designer" },
   { key: "team", label: "Team" },
+  { key: "fitout", label: "Fitout Tracker" },
 ];
 
 type PermRow = { role: AppRole; page: PageKey; allowed: boolean };
