@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Download, Pencil, Trash2, ExternalLink, Upload, Loader2 } from "lucide-react";
+import { Plus, Download, Pencil, Trash2, ExternalLink, Upload, Loader2, RefreshCw } from "lucide-react";
+import SheetSyncDialog from "@/components/fitout/SheetSyncDialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import StatusBadge from "@/components/fitout/StatusBadge";
 import ProjectFormDrawer from "@/components/fitout/ProjectFormDrawer";
@@ -41,6 +42,7 @@ export default function Tracker() {
     open: false, rows: [], unknownHeaders: [],
   });
   const fileRef = useRef<HTMLInputElement>(null);
+  const [syncOpen, setSyncOpen] = useState(false);
 
   async function handleImport(file: File) {
     setImporting(true);
@@ -186,6 +188,9 @@ export default function Tracker() {
             {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
             Import Excel
           </Button>
+          <Button variant="outline" onClick={() => setSyncOpen(true)}>
+            <RefreshCw className="w-4 h-4 mr-2" />Sheet Sync
+          </Button>
           <Button variant="outline" onClick={() => exportCsv(filtered)}><Download className="w-4 h-4 mr-2" />Export CSV</Button>
           <Button onClick={() => setDrawer({ open: true, project: null })}><Plus className="w-4 h-4 mr-2" />New Project</Button>
         </div>
@@ -263,6 +268,8 @@ export default function Tracker() {
       </div>
 
       <ProjectFormDrawer open={drawer.open} onOpenChange={(o) => setDrawer({ open: o, project: o ? drawer.project : null })} project={drawer.project} onSaved={load} />
+
+      <SheetSyncDialog open={syncOpen} onOpenChange={setSyncOpen} onSynced={load} />
 
       <ImportPreviewDialog
         open={preview.open}
