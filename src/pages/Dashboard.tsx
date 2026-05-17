@@ -18,8 +18,6 @@ const LOCATIONS = ["Dubai", "Sharjah", "Ajman", "Abu Dhabi", "Bahrain", "Saudi A
 
 export default function Dashboard() {
   const [projects, setProjects] = useState<any[]>([]);
-  const [fitout, setFitout] = useState<FitoutProject[]>([]);
-  const [meName, setMeName] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter | { kind: "location"; value: string }>("all");
@@ -27,16 +25,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     (async () => {
-      const [{ data: p }, { data: f }] = await Promise.all([
-        supabase.from("projects").select("*").order("updated_at", { ascending: false }),
-        supabase.from("fitout_projects" as any).select("*"),
-      ]);
+      const { data: p } = await supabase.from("projects").select("*").order("updated_at", { ascending: false });
       setProjects(p || []);
-      setFitout((f || []) as any);
-      if (user) {
-        const { data: me } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
-        setMeName(me?.full_name || "");
-      }
       setLoading(false);
     })();
   }, [user]);
