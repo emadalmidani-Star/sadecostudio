@@ -114,9 +114,11 @@ Deno.serve(async (req) => {
   );
 
   let triggeredBy = "manual";
+  let dryRun = false;
   try {
     const body = await req.json().catch(() => ({}));
     triggeredBy = body?.triggered_by ?? "manual";
+    dryRun = body?.dry_run === true;
   } catch (_) {}
 
   const { data: cfg } = await supabase.from("fitout_sheet_config").select("*").limit(1).maybeSingle();
@@ -138,8 +140,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { data: run } = await supabase.from("fitout_sheet_sync_runs")
-    .insert({ triggered_by: triggeredBy, status: "running" }).select().single();
+  const run = dryRun ? null : (await supabase.from("fitout_sheet_sync_runs")
+    .insert({ triggered_by: triggeredBy, status: "running" }).select().single()).data;
 
   try {
     const meta = await gatewayFetch(`/spreadsheets/${sheetId}?fields=sheets.properties.title`);
