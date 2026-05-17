@@ -294,65 +294,20 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setFillColor(BRAND.ink); doc.rect(0, 0, W, H, "F");
 
-  // Headline
-  doc.setTextColor(BRAND.paper); doc.setFont("Montserrat", "bold"); doc.setFontSize(56);
-  doc.text("Thank You", W / 2, 50, { align: "center" });
-  doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor("#bbbbbb");
-  doc.text("We look forward to building with you.", W / 2, 62, { align: "center" });
+  // Vertically centered Thank You + brand tagline
+  doc.setTextColor(BRAND.paper); doc.setFont("Montserrat", "bold"); doc.setFontSize(72);
+  doc.text("Thank You", W / 2, H / 2 - 6, { align: "center" });
 
-  // Contact card (centered) — circular avatar
-  const cardY = 78;
-  const avatarSize = 42;
-  const cx = W / 2;
-  const cy = cardY + avatarSize / 2;
-  const r = avatarSize / 2;
+  doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.4);
+  doc.line(W / 2 - 22, H / 2 + 2, W / 2 + 22, H / 2 + 2);
 
-  const avatar = contact?.avatar_url ? await loadImg(contact.avatar_url) : null;
-  if (avatar) {
-    try {
-      const px = 512;
-      const cv = document.createElement("canvas"); cv.width = px; cv.height = px;
-      const ctx = cv.getContext("2d")!;
-      ctx.save();
-      ctx.beginPath(); ctx.arc(px / 2, px / 2, px / 2, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
-      const img = new Image(); img.crossOrigin = "anonymous";
-      await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; img.src = contact.avatar_url; });
-      const ar = img.width / img.height;
-      let sw = img.width, sh = img.height, sx = 0, sy = 0;
-      if (ar > 1) { sw = img.height; sx = (img.width - sw) / 2; }
-      else if (ar < 1) { sh = img.width; sy = (img.height - sh) / 2; }
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, px, px);
-      ctx.restore();
-      doc.addImage(cv.toDataURL("image/png"), "PNG", cx - r, cy - r, avatarSize, avatarSize);
-    } catch {
-      doc.addImage(avatar.data, "JPEG", cx - r, cy - r, avatarSize, avatarSize);
-    }
-    doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.8);
-    doc.circle(cx, cy, r + 0.4, "S");
-  } else if (contact && logo) {
-    const ratio = logo.w / logo.h; const w = 40; const h = w / ratio;
-    doc.addImage(logo.data, "JPEG", (W - w) / 2, cardY, w, h);
-  }
+  doc.setFont("Montserrat", "bold"); doc.setFontSize(13); doc.setTextColor(BRAND.paper);
+  doc.text((company?.name || "SADECO Decor").toUpperCase(), W / 2, H / 2 + 14, { align: "center", charSpace: 3 });
 
-  let ty = cardY + avatarSize + 12;
-  if (contact?.full_name) {
-    doc.setFont("Montserrat", "bold"); doc.setFontSize(16); doc.setTextColor(BRAND.paper);
-    doc.text(contact.full_name, W / 2, ty, { align: "center" }); ty += 6;
-  }
-  if (contact?.job_title) {
-    doc.setFont("Montserrat", "normal"); doc.setFontSize(10); doc.setTextColor("#bbbbbb");
-    doc.text(contact.job_title, W / 2, ty, { align: "center" }); ty += 8;
-  }
+  doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor("#cccccc");
+  doc.text("Bridging your ideas into real spaces.", W / 2, H / 2 + 24, { align: "center" });
 
-  // Contact lines (no WhatsApp on the export footer)
-  doc.setFontSize(10); doc.setTextColor("#dddddd"); doc.setFont("Montserrat", "normal");
-  const lines = [
-    contact?.phone ? `Phone  ${contact.phone}` : null,
-    contact?.email ? `Email  ${contact.email}` : null,
-  ].filter(Boolean) as string[];
-  lines.forEach(l => { doc.text(l, W / 2, ty, { align: "center" }); ty += 6; });
-
-  // Company contact row (configurable fields)
+  // Optional minimal contact footer (only if any field is enabled and present)
   const cf: CompanyFooterFields = companyFields || { phone: true, email: true, website: true, address: false };
   const parts = [
     cf.phone ? company?.phone : null,
@@ -360,32 +315,11 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     cf.website ? company?.website : null,
     cf.address ? company?.address : null,
   ].filter(Boolean).join("   |   ");
-  doc.setFontSize(9); doc.setTextColor("#999999");
-  const partLines = doc.splitTextToSize(parts, W - 40);
-  partLines.forEach((ln: string, i: number) => {
-    doc.text(ln, W / 2, H - 28 + i * 5, { align: "center" });
-  });
-
-  // Social icons row (drawn as labeled circles since icon fonts aren't embedded)
-  const socials = [
-    { url: company?.linkedin_url, letter: "in" },
-    { url: company?.facebook_url, letter: "f" },
-    { url: company?.instagram_url, letter: "ig" },
-    { url: company?.youtube_url, letter: "yt" },
-  ].filter(s => s.url);
-  if (socials.length) {
-    const r = 4;
-    const gap = 14;
-    const totalW = socials.length * (r * 2) + (socials.length - 1) * gap;
-    let sx = (W - totalW) / 2 + r;
-    const sy = H - 16;
-    socials.forEach(s => {
-      doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.4);
-      doc.circle(sx, sy, r, "S");
-      doc.setFont("Montserrat", "bold"); doc.setFontSize(7); doc.setTextColor(BRAND.paper);
-      doc.text(s.letter, sx, sy + 1.2, { align: "center" });
-      (doc as any).link(sx - r, sy - r, r * 2, r * 2, { url: s.url });
-      sx += r * 2 + gap;
+  if (parts) {
+    doc.setFontSize(9); doc.setTextColor("#999999");
+    const partLines = doc.splitTextToSize(parts, W - 40);
+    partLines.forEach((ln: string, i: number) => {
+      doc.text(ln, W / 2, H - 18 + i * 5, { align: "center" });
     });
   }
 }
