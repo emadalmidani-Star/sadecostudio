@@ -61,21 +61,45 @@ export default function SheetSyncDialog({ open, onOpenChange, onSynced }: {
     else toast.success("Settings saved");
   }
 
+  async function saveLatest() {
+    if (!cfg) return;
+    await supabase.from("fitout_sheet_config" as any).update({
+      sheet_url: cfg.sheet_url, worksheet_name: cfg.worksheet_name,
+      header_row: cfg.header_row || 1, enabled: cfg.enabled, sheet_id: null,
+    }).eq("id", cfg.id);
+  }
+
+  async function previewSync() {
+    if (!cfg?.sheet_url) { toast.error("Set the Google Sheet URL first"); return; }
+    setPreviewing(true);
+    setPreview(null);
+    try {
+      await saveLatest();
+      const { data, error } = await supabase.functions.invoke("sync-fitout-sheet", {
+        body: { triggered_by: "manual", dry_run: true },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setPreview(data);
+    } catch (e: any) {
+      toast.error(e.message || "Preview failed");
+    } finally {
+      setPreviewing(false);
+    }
+  }
+
   async function syncNow() {
     if (!cfg?.sheet_url) { toast.error("Set the Google Sheet URL first"); return; }
     setSyncing(true);
     try {
-      // Save first to ensure latest values are used.
-      await supabase.from("fitout_sheet_config" as any).update({
-        sheet_url: cfg.sheet_url, worksheet_name: cfg.worksheet_name,
-        header_row: cfg.header_row || 1, enabled: cfg.enabled, sheet_id: null,
-      }).eq("id", cfg.id);
+      await saveLatest();
       const { data, error } = await supabase.functions.invoke("sync-fitout-sheet", {
         body: { triggered_by: "manual" },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast.success(`Synced — ${data.inserted} new, ${data.updated} updated, ${data.skipped} skipped`);
+      setPreview(null);
       await load();
       onSynced?.();
     } catch (e: any) {
@@ -83,6 +107,11 @@ export default function SheetSyncDialog({ open, onOpenChange, onSynced }: {
     } finally {
       setSyncing(false);
     }
+  }
+
+  function fmt(v: any) {
+    if (v == null || v === "") return <span className="text-muted-foreground">—</span>;
+    return String(v);
   }
 
   if (!cfg) return null;
