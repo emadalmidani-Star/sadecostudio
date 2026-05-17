@@ -21,6 +21,7 @@ import FitoutDashboard from "./pages/fitout/Dashboard";
 import FitoutTracker from "./pages/fitout/Tracker";
 import FitoutProjectDetail from "./pages/fitout/ProjectDetail";
 import FitoutTeam from "./pages/fitout/Team";
+import FitoutProjectManagers from "./pages/fitout/ProjectManagers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
