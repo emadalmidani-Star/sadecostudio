@@ -5,15 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Progress } from "@/components/ui/progress";
-import { Plus, FolderKanban, CheckCircle2, Clock, Hammer, Search, UserCog, Star } from "lucide-react";
+import { Plus, FolderKanban, CheckCircle2, Clock, Hammer, Search } from "lucide-react";
 import LazyImage from "@/components/LazyImage";
 import EmptyState from "@/components/EmptyState";
-import StatusBadge from "@/components/fitout/StatusBadge";
-import PMAvatar from "@/components/PMAvatar";
 import { useAuth } from "@/contexts/AuthContext";
-import { fitoutProgress, splitPeople, daysFromToday, type FitoutProject } from "@/lib/fitout";
+import { type FitoutProject } from "@/lib/fitout";
 
 type Filter = "all" | "ongoing" | "in_progress" | "completed";
 
