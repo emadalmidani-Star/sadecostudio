@@ -187,13 +187,13 @@ Deno.serve(async (req) => {
     }
 
     const { data: existing } = await supabase.from("fitout_projects")
-      .select("id, brand, location, city_province");
-    const dedupKey = (b: any, l: any, c: any) =>
-      `${(b || "").toString().trim().toLowerCase()}|${(l || "").toString().trim().toLowerCase()}|${(c || "").toString().trim().toLowerCase()}`;
+      .select("id, brand, city_province, store_opening");
+    const dedupKey = (b: any, c: any, o: any) =>
+      `${(b || "").toString().trim().toLowerCase()}|${(c || "").toString().trim().toLowerCase()}|${(o || "").toString().trim().toLowerCase()}`;
     const existingMap = new Map<string, string>();
     (existing || []).forEach((e) => {
-      const k = dedupKey(e.brand, e.location, e.city_province);
-      if (k !== "||") existingMap.set(k, e.id);
+      const k = dedupKey(e.brand, e.city_province, e.store_opening);
+      if (!k.startsWith("|")) existingMap.set(k, e.id);
     });
 
     let inserted = 0, updated = 0, skipped = 0;
@@ -254,7 +254,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const k = dedupKey(data.brand, data.location, data.city_province);
+      const k = dedupKey(data.brand, data.city_province, data.store_opening);
       const matchId = existingMap.get(k);
 
       if (matchId) {
