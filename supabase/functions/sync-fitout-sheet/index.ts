@@ -114,9 +114,11 @@ Deno.serve(async (req) => {
   );
 
   let triggeredBy = "manual";
+  let dryRun = false;
   try {
     const body = await req.json().catch(() => ({}));
     triggeredBy = body?.triggered_by ?? "manual";
+    dryRun = body?.dry_run === true;
   } catch (_) {}
 
   const { data: cfg } = await supabase.from("fitout_sheet_config").select("*").limit(1).maybeSingle();
@@ -138,8 +140,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { data: run } = await supabase.from("fitout_sheet_sync_runs")
-    .insert({ triggered_by: triggeredBy, status: "running" }).select().single();
+  const run = dryRun ? null : (await supabase.from("fitout_sheet_sync_runs")
+    .insert({ triggered_by: triggeredBy, status: "running" }).select().single()).data;
 
   try {
     const meta = await gatewayFetch(`/spreadsheets/${sheetId}?fields=sheets.properties.title`);
@@ -187,17 +189,19 @@ Deno.serve(async (req) => {
     }
 
     const { data: existing } = await supabase.from("fitout_projects")
-      .select("id, brand, city_province, store_opening");
+      .select("*");
     const dedupKey = (b: any, c: any, o: any) =>
       `${(b || "").toString().trim().toLowerCase()}|${(c || "").toString().trim().toLowerCase()}|${(o || "").toString().trim().toLowerCase()}`;
-    const existingMap = new Map<string, string>();
+    const existingMap = new Map<string, any>();
     (existing || []).forEach((e) => {
       const k = dedupKey(e.brand, e.city_province, e.store_opening);
-      if (!k.startsWith("|")) existingMap.set(k, e.id);
+      if (!k.startsWith("|")) existingMap.set(k, e);
     });
+    const matchedKeys = new Set<string>();
 
     let inserted = 0, updated = 0, skipped = 0;
     const errors: any[] = [];
+    const preview = { creates: [] as any[], updates: [] as any[], unchanged: 0 };
 
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
@@ -255,21 +259,64 @@ Deno.serve(async (req) => {
       }
 
       const k = dedupKey(data.brand, data.city_province, data.store_opening);
-      const matchId = existingMap.get(k);
+      const match = existingMap.get(k);
+      if (match) matchedKeys.add(k);
 
-      if (matchId) {
-        const { error } = await supabase.from("fitout_projects").update(data).eq("id", matchId);
-        if (error) {
-          errors.push({ row: rowNumber, brand: data.brand, location: data.location, city: data.city_province, action: "update", errors: [{ column: "-", header: "Database", value: "", problem: error.message }] });
-          skipped++;
-        } else updated++;
+      if (match) {
+        // Compute diff
+        const changes: { field: string; from: any; to: any }[] = [];
+        for (const key of Object.keys(data)) {
+          const a = match[key]; const b = data[key];
+          const aa = a == null ? "" : String(a);
+          const bb = b == null ? "" : String(b);
+          if (aa !== bb) changes.push({ field: HEADER_LABELS[key] || key, from: a, to: b });
+        }
+        if (changes.length === 0) {
+          preview.unchanged++;
+          if (!dryRun) updated++; // no-op but counted as matched
+          continue;
+        }
+        if (dryRun) {
+          preview.updates.push({ row: rowNumber, id: match.id, brand: data.brand, location: data.location, city: data.city_province, changes });
+        } else {
+          const { error } = await supabase.from("fitout_projects").update(data).eq("id", match.id);
+          if (error) {
+            errors.push({ row: rowNumber, brand: data.brand, location: data.location, city: data.city_province, action: "update", errors: [{ column: "-", header: "Database", value: "", problem: error.message }] });
+            skipped++;
+          } else updated++;
+        }
       } else {
-        const { error, data: ins } = await supabase.from("fitout_projects").insert(data).select("id").single();
-        if (error) {
-          errors.push({ row: rowNumber, brand: data.brand, location: data.location, city: data.city_province, action: "insert", errors: [{ column: "-", header: "Database", value: "", problem: error.message }] });
-          skipped++;
-        } else { inserted++; if (ins?.id) existingMap.set(k, ins.id); }
+        if (dryRun) {
+          preview.creates.push({ row: rowNumber, brand: data.brand, location: data.location, city: data.city_province, store_opening: data.store_opening, status: data.status });
+        } else {
+          const { error, data: ins } = await supabase.from("fitout_projects").insert(data).select("id").single();
+          if (error) {
+            errors.push({ row: rowNumber, brand: data.brand, location: data.location, city: data.city_province, action: "insert", errors: [{ column: "-", header: "Database", value: "", problem: error.message }] });
+            skipped++;
+          } else { inserted++; if (ins?.id) existingMap.set(k, { ...data, id: ins.id }); }
+        }
       }
+    }
+
+    // Rows that exist in tracker but not in sheet (kept as-is by current policy)
+    const missingFromSheet: any[] = [];
+    for (const [k, e] of existingMap.entries()) {
+      if (!matchedKeys.has(k)) {
+        missingFromSheet.push({ id: e.id, brand: e.brand, location: e.location, city: e.city_province, store_opening: e.store_opening });
+      }
+    }
+
+    if (dryRun) {
+      return new Response(JSON.stringify({
+        ok: true, dry_run: true,
+        creates: preview.creates,
+        updates: preview.updates,
+        unchanged: preview.unchanged,
+        missing_from_sheet: missingFromSheet,
+        errors,
+        worksheet_warning: worksheetWarning,
+        unmapped_headers: unmappedHeaders,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const result = {
@@ -294,10 +341,12 @@ Deno.serve(async (req) => {
     });
   } catch (err: any) {
     const msg = err?.message || String(err);
-    await supabase.from("fitout_sheet_sync_runs").update({
-      finished_at: new Date().toISOString(),
-      status: "failed", errors: [{ message: msg }],
-    }).eq("id", run!.id);
+    if (run) {
+      await supabase.from("fitout_sheet_sync_runs").update({
+        finished_at: new Date().toISOString(),
+        status: "failed", errors: [{ message: msg }],
+      }).eq("id", run.id);
+    }
     return new Response(JSON.stringify({ error: msg }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
