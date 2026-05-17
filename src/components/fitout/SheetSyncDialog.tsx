@@ -159,6 +159,90 @@ export default function SheetSyncDialog({ open, onOpenChange, onSynced }: {
             <Switch checked={cfg.enabled} onCheckedChange={(v) => setCfg({ ...cfg, enabled: v })} />
           </div>
 
+          {preview && (
+            <div className="rounded border p-3 text-sm space-y-3 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Sync preview</span>
+                <button type="button" className="text-xs text-muted-foreground hover:underline" onClick={() => setPreview(null)}>Dismiss</button>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2 py-1">
+                  <Plus className="w-3 h-3" /> {preview.creates?.length || 0} to create
+                </span>
+                <span className="inline-flex items-center gap-1 rounded bg-blue-500/10 text-blue-700 dark:text-blue-400 px-2 py-1">
+                  <PencilLine className="w-3 h-3" /> {preview.updates?.length || 0} to update
+                </span>
+                <span className="inline-flex items-center gap-1 rounded bg-muted px-2 py-1">
+                  {preview.unchanged || 0} unchanged
+                </span>
+                <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2 py-1">
+                  <AlertTriangle className="w-3 h-3" /> {preview.missing_from_sheet?.length || 0} not in sheet (kept)
+                </span>
+                {Array.isArray(preview.errors) && preview.errors.length > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded bg-destructive/10 text-destructive px-2 py-1">
+                    {preview.errors.length} row(s) with errors
+                  </span>
+                )}
+              </div>
+
+              {preview.creates?.length > 0 && (
+                <details open className="text-xs">
+                  <summary className="cursor-pointer font-medium text-emerald-700 dark:text-emerald-400">To create ({preview.creates.length})</summary>
+                  <div className="mt-2 max-h-48 overflow-auto rounded border bg-background">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/50 sticky top-0"><tr className="text-left"><th className="p-2">Row</th><th className="p-2">Brand</th><th className="p-2">Location</th><th className="p-2">City</th><th className="p-2">Store Opening</th><th className="p-2">Status</th></tr></thead>
+                      <tbody>
+                        {preview.creates.map((c: any, i: number) => (
+                          <tr key={i} className="border-t"><td className="p-2 font-mono">{c.row}</td><td className="p-2">{fmt(c.brand)}</td><td className="p-2">{fmt(c.location)}</td><td className="p-2">{fmt(c.city)}</td><td className="p-2 font-mono">{fmt(c.store_opening)}</td><td className="p-2">{fmt(c.status)}</td></tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              )}
+
+              {preview.updates?.length > 0 && (
+                <details open className="text-xs">
+                  <summary className="cursor-pointer font-medium text-blue-700 dark:text-blue-400">To update ({preview.updates.length})</summary>
+                  <div className="mt-2 max-h-72 overflow-auto rounded border bg-background">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/50 sticky top-0"><tr className="text-left"><th className="p-2">Row</th><th className="p-2">Project</th><th className="p-2">Field</th><th className="p-2">From</th><th className="p-2">To</th></tr></thead>
+                      <tbody>
+                        {preview.updates.flatMap((u: any, i: number) =>
+                          u.changes.map((ch: any, j: number) => (
+                            <tr key={`${i}-${j}`} className="border-t align-top">
+                              <td className="p-2 font-mono">{u.row}</td>
+                              <td className="p-2">{u.brand}<div className="text-muted-foreground">{u.location}{u.city ? ` · ${u.city}` : ""}</div></td>
+                              <td className="p-2">{ch.field}</td>
+                              <td className="p-2 font-mono text-muted-foreground line-through max-w-[12rem] break-all">{fmt(ch.from)}</td>
+                              <td className="p-2 font-mono text-emerald-700 dark:text-emerald-400 max-w-[12rem] break-all">{fmt(ch.to)}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              )}
+
+              {preview.missing_from_sheet?.length > 0 && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer font-medium text-amber-700 dark:text-amber-400">In tracker but not in sheet ({preview.missing_from_sheet.length}) — kept as-is</summary>
+                  <div className="mt-2 max-h-48 overflow-auto rounded border bg-background">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/50 sticky top-0"><tr className="text-left"><th className="p-2">Brand</th><th className="p-2">Location</th><th className="p-2">City</th><th className="p-2">Store Opening</th></tr></thead>
+                      <tbody>
+                        {preview.missing_from_sheet.map((m: any, i: number) => (
+                          <tr key={i} className="border-t"><td className="p-2">{fmt(m.brand)}</td><td className="p-2">{fmt(m.location)}</td><td className="p-2">{fmt(m.city)}</td><td className="p-2 font-mono">{fmt(m.store_opening)}</td></tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              )}
+            </div>
+          )}
+
           {last && (
             <div className="rounded border p-3 text-sm space-y-2">
               <div className="flex justify-between">
