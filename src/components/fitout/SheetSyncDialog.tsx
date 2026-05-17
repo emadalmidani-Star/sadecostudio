@@ -316,7 +316,11 @@ export default function SheetSyncDialog({ open, onOpenChange, onSynced }: {
           <Button variant="outline" onClick={save} disabled={saving}>
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Save
           </Button>
-          <Button onClick={syncNow} disabled={syncing}>
+          <Button variant="outline" onClick={previewSync} disabled={previewing || syncing}>
+            {previewing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
+            Preview changes
+          </Button>
+          <Button onClick={syncNow} disabled={syncing || previewing}>
             {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
             Sync now
           </Button>
