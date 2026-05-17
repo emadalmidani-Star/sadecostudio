@@ -56,30 +56,7 @@ export default function Dashboard() {
       .slice(0, 9);
   }, [projects, q, filter]);
 
-  // Group fitout projects by Project Manager (each PM cell may list 1-2 names)
-  const pmGroups = useMemo(() => {
-    const map = new Map<string, FitoutProject[]>();
-    for (const r of fitout) {
-      const names = splitPeople(r.pm);
-      if (names.length === 0) continue;
-      for (const n of names) {
-        if (!map.has(n)) map.set(n, []);
-        map.get(n)!.push(r);
-      }
-    }
-    return Array.from(map, ([name, items]) => ({
-      name,
-      items: items.sort((a, b) => (a.store_opening || "").localeCompare(b.store_opening || "")),
-      active: items.filter(i => i.status === "In Progress" || i.status === "Planning").length,
-      completed: items.filter(i => i.status === "Completed").length,
-    })).sort((a, b) => b.items.length - a.items.length);
-  }, [fitout]);
 
-  const myPmName = useMemo(() => {
-    if (!meName) return null;
-    const first = meName.trim().split(/\s+/)[0]?.toLowerCase();
-    return pmGroups.find(g => g.name.toLowerCase().includes(first))?.name || null;
-  }, [meName, pmGroups]);
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto">
