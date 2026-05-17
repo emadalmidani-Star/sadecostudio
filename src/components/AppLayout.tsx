@@ -24,6 +24,7 @@ const links: Link[] = [
   { to: "/fitout", icon: BarChart3, label: "Dashboard", end: true, page: "fitout", group: "Fitout Operations" },
   { to: "/fitout/projects", icon: Hammer, label: "Tracker", page: "fitout", group: "Fitout Operations" },
   { to: "/fitout/team", icon: HardHat, label: "Team", page: "fitout", group: "Fitout Operations" },
+  { to: "/fitout/managers", icon: UserCog, label: "Project Managers", page: "fitout", group: "Fitout Operations" },
   { to: "/permissions", icon: ShieldCheck, label: "Permissions", adminOnly: true },
 ];
 
