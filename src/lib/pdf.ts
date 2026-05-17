@@ -169,8 +169,8 @@ async function newDoc() {
   return doc;
 }
 
-async function addCover(doc: jsPDF, company: any, subtitle: string, logo: any, tpl?: Template) {
-  if (tpl) { await renderTemplatePage(doc, tpl, { company, subtitle }); return; }
+async function addCover(doc: jsPDF, company: any, subtitle: string, logo: any, tpl?: Template, project?: any) {
+  if (tpl) { await renderTemplatePage(doc, tpl, { company, subtitle, project }); return; }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setFillColor(BRAND.paper); doc.rect(0, 0, W, H, "F");
   // black band on the left
@@ -187,6 +187,34 @@ async function addCover(doc: jsPDF, company: any, subtitle: string, logo: any, t
   doc.text(company?.name || "SADECO", W * 0.42, H / 2 - 6);
   // accent rule
   doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.6); doc.line(W * 0.42, H / 2 + 6, W * 0.42 + 30, H / 2 + 6);
+
+  // Subtitle / context line
+  doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor(BRAND.muted);
+  doc.text(subtitle, W * 0.42, H / 2 + 16);
+
+  // When the cover is for a single project, surface its key facts inline
+  if (project) {
+    const facts: [string, string][] = [
+      ["PROJECT", project.name || "-"],
+      ["LOCATION", project.location || "-"],
+      ["TYPE", fmt(project.type) || "-"],
+      ["CLIENT", project.client_name || "Confidential"],
+      ["AREA", project.area_sqm ? `${project.area_sqm} sqm` : "-"],
+      ["STATUS", fmt(project.status) || "-"],
+    ];
+    const startY = H - 55;
+    const colW = (W - W * 0.42 - 15) / 3;
+    facts.forEach((f, i) => {
+      const col = i % 3, row = Math.floor(i / 3);
+      const x = W * 0.42 + col * colW;
+      const y = startY + row * 16;
+      doc.setFont("Montserrat", "normal"); doc.setFontSize(7); doc.setTextColor(BRAND.muted);
+      doc.text(f[0], x, y, { charSpace: 1.5 });
+      doc.setFont("Montserrat", "bold"); doc.setFontSize(10); doc.setTextColor(BRAND.ink);
+      const lines = doc.splitTextToSize(f[1], colW - 4);
+      doc.text(lines.slice(0, 2), x, y + 5);
+    });
+  }
 }
 
 function addPageHeader(doc: jsPDF, company: any) {
@@ -266,65 +294,20 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setFillColor(BRAND.ink); doc.rect(0, 0, W, H, "F");
 
-  // Headline
-  doc.setTextColor(BRAND.paper); doc.setFont("Montserrat", "bold"); doc.setFontSize(56);
-  doc.text("Thank You", W / 2, 50, { align: "center" });
-  doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor("#bbbbbb");
-  doc.text("We look forward to building with you.", W / 2, 62, { align: "center" });
+  // Vertically centered Thank You + brand tagline
+  doc.setTextColor(BRAND.paper); doc.setFont("Montserrat", "bold"); doc.setFontSize(72);
+  doc.text("Thank You", W / 2, H / 2 - 6, { align: "center" });
 
-  // Contact card (centered) — circular avatar
-  const cardY = 78;
-  const avatarSize = 42;
-  const cx = W / 2;
-  const cy = cardY + avatarSize / 2;
-  const r = avatarSize / 2;
+  doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.4);
+  doc.line(W / 2 - 22, H / 2 + 2, W / 2 + 22, H / 2 + 2);
 
-  const avatar = contact?.avatar_url ? await loadImg(contact.avatar_url) : null;
-  if (avatar) {
-    try {
-      const px = 512;
-      const cv = document.createElement("canvas"); cv.width = px; cv.height = px;
-      const ctx = cv.getContext("2d")!;
-      ctx.save();
-      ctx.beginPath(); ctx.arc(px / 2, px / 2, px / 2, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
-      const img = new Image(); img.crossOrigin = "anonymous";
-      await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; img.src = contact.avatar_url; });
-      const ar = img.width / img.height;
-      let sw = img.width, sh = img.height, sx = 0, sy = 0;
-      if (ar > 1) { sw = img.height; sx = (img.width - sw) / 2; }
-      else if (ar < 1) { sh = img.width; sy = (img.height - sh) / 2; }
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, px, px);
-      ctx.restore();
-      doc.addImage(cv.toDataURL("image/png"), "PNG", cx - r, cy - r, avatarSize, avatarSize);
-    } catch {
-      doc.addImage(avatar.data, "JPEG", cx - r, cy - r, avatarSize, avatarSize);
-    }
-    doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.8);
-    doc.circle(cx, cy, r + 0.4, "S");
-  } else if (contact && logo) {
-    const ratio = logo.w / logo.h; const w = 40; const h = w / ratio;
-    doc.addImage(logo.data, "JPEG", (W - w) / 2, cardY, w, h);
-  }
+  doc.setFont("Montserrat", "bold"); doc.setFontSize(13); doc.setTextColor(BRAND.paper);
+  doc.text((company?.name || "SADECO Decor").toUpperCase(), W / 2, H / 2 + 14, { align: "center", charSpace: 3 });
 
-  let ty = cardY + avatarSize + 12;
-  if (contact?.full_name) {
-    doc.setFont("Montserrat", "bold"); doc.setFontSize(16); doc.setTextColor(BRAND.paper);
-    doc.text(contact.full_name, W / 2, ty, { align: "center" }); ty += 6;
-  }
-  if (contact?.job_title) {
-    doc.setFont("Montserrat", "normal"); doc.setFontSize(10); doc.setTextColor("#bbbbbb");
-    doc.text(contact.job_title, W / 2, ty, { align: "center" }); ty += 8;
-  }
+  doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor("#cccccc");
+  doc.text("Bridging your ideas into real spaces.", W / 2, H / 2 + 24, { align: "center" });
 
-  // Contact lines (no WhatsApp on the export footer)
-  doc.setFontSize(10); doc.setTextColor("#dddddd"); doc.setFont("Montserrat", "normal");
-  const lines = [
-    contact?.phone ? `Phone  ${contact.phone}` : null,
-    contact?.email ? `Email  ${contact.email}` : null,
-  ].filter(Boolean) as string[];
-  lines.forEach(l => { doc.text(l, W / 2, ty, { align: "center" }); ty += 6; });
-
-  // Company contact row (configurable fields)
+  // Optional minimal contact footer (only if any field is enabled and present)
   const cf: CompanyFooterFields = companyFields || { phone: true, email: true, website: true, address: false };
   const parts = [
     cf.phone ? company?.phone : null,
@@ -332,32 +315,11 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     cf.website ? company?.website : null,
     cf.address ? company?.address : null,
   ].filter(Boolean).join("   |   ");
-  doc.setFontSize(9); doc.setTextColor("#999999");
-  const partLines = doc.splitTextToSize(parts, W - 40);
-  partLines.forEach((ln: string, i: number) => {
-    doc.text(ln, W / 2, H - 28 + i * 5, { align: "center" });
-  });
-
-  // Social icons row (drawn as labeled circles since icon fonts aren't embedded)
-  const socials = [
-    { url: company?.linkedin_url, letter: "in" },
-    { url: company?.facebook_url, letter: "f" },
-    { url: company?.instagram_url, letter: "ig" },
-    { url: company?.youtube_url, letter: "yt" },
-  ].filter(s => s.url);
-  if (socials.length) {
-    const r = 4;
-    const gap = 14;
-    const totalW = socials.length * (r * 2) + (socials.length - 1) * gap;
-    let sx = (W - totalW) / 2 + r;
-    const sy = H - 16;
-    socials.forEach(s => {
-      doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.4);
-      doc.circle(sx, sy, r, "S");
-      doc.setFont("Montserrat", "bold"); doc.setFontSize(7); doc.setTextColor(BRAND.paper);
-      doc.text(s.letter, sx, sy + 1.2, { align: "center" });
-      (doc as any).link(sx - r, sy - r, r * 2, r * 2, { url: s.url });
-      sx += r * 2 + gap;
+  if (parts) {
+    doc.setFontSize(9); doc.setTextColor("#999999");
+    const partLines = doc.splitTextToSize(parts, W - 40);
+    partLines.forEach((ln: string, i: number) => {
+      doc.text(ln, W / 2, H - 18 + i * 5, { align: "center" });
     });
   }
 }
@@ -535,7 +497,6 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
         const slotAr = imgW / imgH;
         let iw = imgW, ih = imgH;
         if (ar > slotAr) { ih = imgW / ar; } else { iw = imgH * ar; }
-        doc.setFillColor("#f2f2f2"); doc.rect(x, yy, imgW, imgH, "F");
         doc.addImage(img.data, "JPEG", x + (imgW - iw) / 2, yy + (imgH - ih) / 2, iw, ih);
         x += imgW + gap;
       }
@@ -653,9 +614,9 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
   const baseH = showLogos ? Math.max(20, Math.min(38, cellW * 0.55)) : 18;
   const cellH = baseH;
 
-  // Preload logos
+  // Preload logos — keep transparency so logos don't pick up a white/gray box
   const logos = await Promise.all(
-    partners.map(p => (showLogos && p.logo_url) ? loadLogo(p.logo_url) : Promise.resolve(null))
+    partners.map(p => (showLogos && p.logo_url) ? loadLogoTransparent(p.logo_url) : Promise.resolve(null))
   );
 
   const startNewPartnersPage = () => {
@@ -674,10 +635,8 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
     const p = partners[i];
     const img = logos[i];
 
-    // Use a soft off-white tile so logos with white backgrounds still read as a tile
-    doc.setFillColor("#f7f7f8");
-    doc.rect(x, y, cellW, cellH, "F");
-
+    // No fill — logos sit cleanly on the paper. Only the explicit "filled"
+    // style retains a tile background; "outlined" draws just a hairline border.
     if (tileStyle === "filled") {
       doc.setFillColor("#eeeef0"); doc.rect(x, y, cellW, cellH, "F");
     } else if (tileStyle === "outlined") {
@@ -694,7 +653,7 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
       if (dh > maxH) { dh = maxH; dw = maxH * ratio; }
       const ix = x + (cellW - dw) / 2;
       const iy = y + (cellH - dh) / 2;
-      try { doc.addImage(img.data, "JPEG", ix, iy, dw, dh, undefined, "FAST"); } catch {}
+      try { doc.addImage(img.data, "PNG", ix, iy, dw, dh, undefined, "FAST"); } catch {}
     } else {
       doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.ink);
       fitCenteredText(doc, p.name, x + cellW / 2, y + cellH / 2, cellW - 6, fontSize, 7);
@@ -723,7 +682,9 @@ export async function exportSelectedPDF(company: any, list: any[], categoryCover
   const tpls = await loadTemplates("portfolio");
   const logo = company?.logo_url ? await loadLogoTransparent(company.logo_url) : null;
   const c = await resolveContact(contact);
-  await addCover(doc, company, `Portfolio - ${list.length} Projects`, logo, tpls.cover);
+  // When the portfolio is a single project, surface its facts directly on the cover
+  const coverProject = list.length === 1 ? list[0] : undefined;
+  await addCover(doc, company, `Portfolio - ${list.length} Project${list.length === 1 ? "" : "s"}`, logo, tpls.cover, coverProject);
   const page = { n: 1 };
   const groups = groupByType(list, true);
   for (const g of groups) {
@@ -805,7 +766,7 @@ export async function exportProjectPDF(p: any, company: any, contact?: any, comp
   const tpls = await loadTemplates("project");
   const logo = company?.logo_url ? await loadLogoTransparent(company.logo_url) : null;
   const c = await resolveContact(contact);
-  await addCover(doc, company, "Project Case Study", logo, tpls.cover);
+  await addCover(doc, company, "Project Case Study", logo, tpls.cover, p);
   const page = { n: 1 };
   await renderProject(doc, p, company, page, tpls.project);
   await addThankYou(doc, company, logo, tpls.thankyou, c, companyFields);

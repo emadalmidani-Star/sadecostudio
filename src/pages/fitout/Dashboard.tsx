@@ -21,7 +21,7 @@ type Range = "30" | "90" | "180" | "custom" | "all";
 export default function FitoutDashboard() {
   const [rows, setRows] = useState<FitoutProject[]>([]);
   const [loading, setLoading] = useState(true);
-  const [range, setRange] = useState<Range>("90");
+  const [range, setRange] = useState<Range>("all");
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [chartFilter, setChartFilter] = useState<{ field: keyof FitoutProject; value: string } | null>(null);
@@ -56,7 +56,7 @@ export default function FitoutDashboard() {
   const ranged = useMemo(() => rows.filter(r => inRange(r.start_on_site) || inRange(r.store_opening)), [rows, from, to]);
 
   const stats = useMemo(() => {
-    const total = ranged.length;
+    const total = rows.length;
     const inProg = ranged.filter((r) => r.status === "In Progress").length;
     const done = ranged.filter((r) => r.status === "Completed").length;
     const periods = ranged.map((r) => r.fitout_period_days).filter((x): x is number => !!x);
