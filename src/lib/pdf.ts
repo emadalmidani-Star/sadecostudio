@@ -682,7 +682,9 @@ export async function exportSelectedPDF(company: any, list: any[], categoryCover
   const tpls = await loadTemplates("portfolio");
   const logo = company?.logo_url ? await loadLogoTransparent(company.logo_url) : null;
   const c = await resolveContact(contact);
-  await addCover(doc, company, `Portfolio - ${list.length} Projects`, logo, tpls.cover);
+  // When the portfolio is a single project, surface its facts directly on the cover
+  const coverProject = list.length === 1 ? list[0] : undefined;
+  await addCover(doc, company, `Portfolio - ${list.length} Project${list.length === 1 ? "" : "s"}`, logo, tpls.cover, coverProject);
   const page = { n: 1 };
   const groups = groupByType(list, true);
   for (const g of groups) {
