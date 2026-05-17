@@ -89,4 +89,7 @@
   .brass-gradient { background: var(--gradient-brass); }
   .shadow-elegant { box-shadow: var(--shadow-elegant); }
   .shadow-card { box-shadow: var(--shadow-card); }
+  .eyebrow { @apply text-xs tracking-[0.3em] uppercase text-accent; }
+  .page-title { @apply font-serif text-4xl md:text-5xl; }
+  .progress-gold { background: linear-gradient(90deg, hsl(35 45% 60%) 0%, hsl(35 55% 70%) 50%, hsl(30 40% 50%) 100%); }
 }
