@@ -189,14 +189,15 @@ Deno.serve(async (req) => {
     }
 
     const { data: existing } = await supabase.from("fitout_projects")
-      .select("id, brand, city_province, store_opening");
+      .select("*");
     const dedupKey = (b: any, c: any, o: any) =>
       `${(b || "").toString().trim().toLowerCase()}|${(c || "").toString().trim().toLowerCase()}|${(o || "").toString().trim().toLowerCase()}`;
-    const existingMap = new Map<string, string>();
+    const existingMap = new Map<string, any>();
     (existing || []).forEach((e) => {
       const k = dedupKey(e.brand, e.city_province, e.store_opening);
-      if (!k.startsWith("|")) existingMap.set(k, e.id);
+      if (!k.startsWith("|")) existingMap.set(k, e);
     });
+    const matchedKeys = new Set<string>();
 
     let inserted = 0, updated = 0, skipped = 0;
     const errors: any[] = [];
