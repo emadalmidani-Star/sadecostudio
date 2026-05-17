@@ -169,8 +169,8 @@ async function newDoc() {
   return doc;
 }
 
-async function addCover(doc: jsPDF, company: any, subtitle: string, logo: any, tpl?: Template) {
-  if (tpl) { await renderTemplatePage(doc, tpl, { company, subtitle }); return; }
+async function addCover(doc: jsPDF, company: any, subtitle: string, logo: any, tpl?: Template, project?: any) {
+  if (tpl) { await renderTemplatePage(doc, tpl, { company, subtitle, project }); return; }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setFillColor(BRAND.paper); doc.rect(0, 0, W, H, "F");
   // black band on the left
@@ -187,6 +187,34 @@ async function addCover(doc: jsPDF, company: any, subtitle: string, logo: any, t
   doc.text(company?.name || "SADECO", W * 0.42, H / 2 - 6);
   // accent rule
   doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.6); doc.line(W * 0.42, H / 2 + 6, W * 0.42 + 30, H / 2 + 6);
+
+  // Subtitle / context line
+  doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor(BRAND.muted);
+  doc.text(subtitle, W * 0.42, H / 2 + 16);
+
+  // When the cover is for a single project, surface its key facts inline
+  if (project) {
+    const facts: [string, string][] = [
+      ["PROJECT", project.name || "-"],
+      ["LOCATION", project.location || "-"],
+      ["TYPE", fmt(project.type) || "-"],
+      ["CLIENT", project.client_name || "Confidential"],
+      ["AREA", project.area_sqm ? `${project.area_sqm} sqm` : "-"],
+      ["STATUS", fmt(project.status) || "-"],
+    ];
+    const startY = H - 55;
+    const colW = (W - W * 0.42 - 15) / 3;
+    facts.forEach((f, i) => {
+      const col = i % 3, row = Math.floor(i / 3);
+      const x = W * 0.42 + col * colW;
+      const y = startY + row * 16;
+      doc.setFont("Montserrat", "normal"); doc.setFontSize(7); doc.setTextColor(BRAND.muted);
+      doc.text(f[0], x, y, { charSpace: 1.5 });
+      doc.setFont("Montserrat", "bold"); doc.setFontSize(10); doc.setTextColor(BRAND.ink);
+      const lines = doc.splitTextToSize(f[1], colW - 4);
+      doc.text(lines.slice(0, 2), x, y + 5);
+    });
+  }
 }
 
 function addPageHeader(doc: jsPDF, company: any) {
