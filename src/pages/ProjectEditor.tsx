@@ -262,9 +262,29 @@ export default function ProjectEditor() {
             <div><Label>Status</Label>
               <Select value={p.status} onValueChange={v => set("status", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="ongoing">Ongoing</SelectItem><SelectItem value="completed">Completed</SelectItem></SelectContent>
+                <SelectContent>
+                  <SelectItem value="ongoing">Ongoing</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div><Label>Phase</Label>
+              <Select value={p.phase || ""} onValueChange={v => set("phase", v)}>
+                <SelectTrigger><SelectValue placeholder="Select phase" /></SelectTrigger>
+                <SelectContent>
+                  {["Inquiry","Design","Approval","Execution","Finishing","Handover"].map(ph => (
+                    <SelectItem key={ph} value={ph}>{ph}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Progress (%)</Label><Input type="number" min={0} max={100} value={p.progress_pct ?? 0}
+              onChange={e => set("progress_pct", Math.min(100, Math.max(0, Number(e.target.value) || 0)))} /></div>
+            <div><Label>Estimated Completion</Label><Input type="date" value={p.estimated_completion || ""}
+              onChange={e => set("estimated_completion", e.target.value || null)} /></div>
           </div>
         </Card>
 
