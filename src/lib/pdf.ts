@@ -615,9 +615,9 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
   const baseH = showLogos ? Math.max(20, Math.min(38, cellW * 0.55)) : 18;
   const cellH = baseH;
 
-  // Preload logos
+  // Preload logos — keep transparency so logos don't pick up a white/gray box
   const logos = await Promise.all(
-    partners.map(p => (showLogos && p.logo_url) ? loadLogo(p.logo_url) : Promise.resolve(null))
+    partners.map(p => (showLogos && p.logo_url) ? loadLogoTransparent(p.logo_url) : Promise.resolve(null))
   );
 
   const startNewPartnersPage = () => {
@@ -636,10 +636,8 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
     const p = partners[i];
     const img = logos[i];
 
-    // Use a soft off-white tile so logos with white backgrounds still read as a tile
-    doc.setFillColor("#f7f7f8");
-    doc.rect(x, y, cellW, cellH, "F");
-
+    // No fill — logos sit cleanly on the paper. Only the explicit "filled"
+    // style retains a tile background; "outlined" draws just a hairline border.
     if (tileStyle === "filled") {
       doc.setFillColor("#eeeef0"); doc.rect(x, y, cellW, cellH, "F");
     } else if (tileStyle === "outlined") {
@@ -656,7 +654,7 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
       if (dh > maxH) { dh = maxH; dw = maxH * ratio; }
       const ix = x + (cellW - dw) / 2;
       const iy = y + (cellH - dh) / 2;
-      try { doc.addImage(img.data, "JPEG", ix, iy, dw, dh, undefined, "FAST"); } catch {}
+      try { doc.addImage(img.data, "PNG", ix, iy, dw, dh, undefined, "FAST"); } catch {}
     } else {
       doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.ink);
       fitCenteredText(doc, p.name, x + cellW / 2, y + cellH / 2, cellW - 6, fontSize, 7);
