@@ -40,7 +40,7 @@ export default function AppLayout() {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(LS_KEY) : null;
     if (stored !== null) return stored === "1";
-    return typeof window !== "undefined" ? window.innerWidth < 1280 : false;
+    return false;
   });
   useEffect(() => { localStorage.setItem(LS_KEY, collapsed ? "1" : "0"); }, [collapsed]);
 
