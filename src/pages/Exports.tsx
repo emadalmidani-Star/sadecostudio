@@ -260,6 +260,7 @@ export default function Exports() {
             {busy === "full" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
             Export Profile PDF
           </Button>
+          {lastGen.profile && <p className="text-[11px] text-primary-foreground/50 mt-3">Last generated {new Date(lastGen.profile).toLocaleString()}</p>}
         </Card>
 
         <Card className="p-8 border-accent/40">
@@ -270,6 +271,7 @@ export default function Exports() {
             {busy === "selected" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
             Export {selectedOrder.length > 0 ? `(${selectedOrder.length})` : ""}
           </Button>
+          {lastGen.portfolio && <p className="text-[11px] text-muted-foreground mt-3">Last generated {new Date(lastGen.portfolio).toLocaleString()}</p>}
         </Card>
       </div>
 
