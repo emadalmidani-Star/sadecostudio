@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Eye, Plus, PencilLine, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 type Cfg = {
