@@ -44,6 +44,14 @@ export default function AppLayout() {
   });
   useEffect(() => { localStorage.setItem(LS_KEY, collapsed ? "1" : "0"); }, [collapsed]);
 
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem(LS_GROUPS_KEY) : null;
+      return stored ? JSON.parse(stored) : {};
+    } catch { return {}; }
+  });
+  useEffect(() => { localStorage.setItem(LS_GROUPS_KEY, JSON.stringify(openGroups)); }, [openGroups]);
+
   const visible = links.filter(l => {
     if (l.adminOnly) return isAdmin;
     if (!l.page) return true;
