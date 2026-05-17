@@ -1,58 +1,78 @@
-## Goal
+# SADECO Project Studio — UI/UX Overhaul + Project Progress
 
-Pull rows from a Google Sheet into the Fitout Tracker automatically (and on demand), without creating duplicate projects. Matching uses **Brand + Location + City** (case-insensitive, trimmed).
+Scope: frontend only (components, pages, styling, client state). No data-layer changes except one small schema addition required for project progress (see Section 8). All existing dark sidebar + cream content palette and gold accent preserved.
 
-## How it will work
+---
 
-```text
- Google Sheet  ──▶  Edge Function (sync-fitout-sheet)  ──▶  fitout_projects table
-       ▲                       ▲                                    │
-       │                       │                                    ▼
-       │              cron (every X min)                    Tracker UI shows rows
-       │                       ▲
-       └────────── "Sync now" button in Tracker ◀──────────
-```
+## 1. Sidebar (`src/components/AppLayout.tsx`)
+- Rename top-level "Dashboard" → "Overview".
+- Add a labeled horizontal divider between Project Studio links and the Fitout Operations group ("PROJECT STUDIO" label above, gold hairline `<hr>`, then existing "FITOUT OPERATIONS" label).
+- Wrap every nav icon+link in shadcn `Tooltip` (label shown on hover, always shown when collapsed).
+- Active route: add `border-l-2 border-accent` + subtle bg, instead of bg-only.
+- Responsive collapse: under `xl` (1280px) sidebar defaults to `w-16` icon-only mode; a `PanelLeft` toggle button in the sidebar header (and a floating trigger in the top-left of `<main>` when collapsed) toggles `w-64`. State stored in `localStorage`.
 
-1. You connect your Google account once (OAuth via the Lovable Google Sheets connector).
-2. In a new **Sheet Sync** settings panel on the Tracker page you paste the **Google Sheet URL** and pick the worksheet/tab + header row.
-3. The system reads the rows, validates them with the same parser used by the Excel importer, and **upserts** into `fitout_projects`:
-   - If a row matches an existing project on Brand+Location+City → update only changed fields.
-   - If no match → insert a new project.
-   - Rows already in the tracker but missing from the sheet are **left untouched** (we don't delete).
-4. Sync runs:
-   - **Manual** "Sync now" button (with progress + result toast).
-   - **Scheduled** every 15 min via `pg_cron` calling the edge function.
-5. A small **Sync Log** shows last run time, rows inserted/updated/skipped, and any per-row errors.
+## 2. Project Studio Dashboard (`src/pages/Dashboard.tsx`)
+- 4 KPI cards: Total, Ongoing, In Progress (status = `in_progress`), Completed. Each card becomes a `<Link>` to `/projects?status=...`.
+- Recent Projects: add search `Input` + filter chips (All / Ongoing / Completed / By City / By Brand). "By City"/"By Brand" open a small `Popover` with a list of distinct values.
+- Empty state: illustration (lucide `SearchX`) + CTA button.
+- Cards: `<img loading="lazy">` + `Skeleton` placeholder while image not yet loaded (track via `onLoad`).
+- Add page-level skeleton while Supabase loads.
 
-## What gets built
+## 3. Fitout Dashboard (`src/pages/fitout/Dashboard.tsx`)
+- Add a date-range control (shadcn `Select`: 30 / 90 / 180 days / Custom → `Popover` + `Calendar` range). Filters all charts and upcoming list by `start_on_site` / `store_opening` falling inside range.
+- Bar charts: `onClick` on a bar dispatches a `cityFilter` / `brandFilter` etc. that scopes the "Upcoming Store Openings" list below. Active filter shown as a removable chip.
+- "Export to Excel" button on the openings table, uses existing `xlsx` dep.
+- "Days Until Opening" column with color-coded badge: red <7, amber 7–14, green >14.
+- PM avatar/initials chip (small circle, gold ring) next to PM name.
 
-### Backend
-- New table `fitout_sheet_config` (one row per workspace): `sheet_url`, `sheet_id`, `worksheet_name`, `header_row`, `enabled`, `last_synced_at`, `last_result` (jsonb).
-- New table `fitout_sheet_sync_runs`: `started_at`, `finished_at`, `inserted`, `updated`, `skipped`, `errors` (jsonb), `triggered_by` ('manual' | 'cron').
-- RLS: both tables readable/writable by authenticated users (admin-only for write if you prefer — tell me if so).
-- Edge function `sync-fitout-sheet`:
-  - Reads config, fetches rows from Google Sheets via the Lovable connector gateway.
-  - Reuses parsing/validation logic mirroring `src/lib/fitout.ts` (`parseFitoutFile`, `splitPeople`, status normalization, date parsing).
-  - Dedup key: `lower(trim(brand)) | lower(trim(location)) | lower(trim(city_province))`.
-  - Performs insert/update in batches; writes a sync run record.
-- `pg_cron` job hitting the edge function every 15 minutes.
+## 4. Projects List (`src/pages/Projects.tsx`)
+- View toggle: Grid (current) / Table (shadcn `Table`). Persist choice in `localStorage`.
+- Table columns sortable by header click: Name, Brand (from `type` or new field — uses `client_name`), City (`location`), PM, Status, Size (`area_sqm`), Start Date (`created_at` fallback), Target Opening. Columns without data show "—".
+- Multi-select mode: toggle button reveals checkboxes on cards/rows; floating action bar with "Export Selected to PDF" (reuses existing PDF pipeline in `src/lib/pdf.ts`).
+- Inline status badge: clicking badge opens `DropdownMenu` to switch status; updates Supabase + optimistic UI.
+- Read query string `?status=` from KPI navigation.
 
-### Frontend (Tracker page)
-- New **"Sheet Sync"** dropdown/dialog beside the existing Import/Template buttons:
-  - Connect Google (one-click connector flow).
-  - Paste Sheet URL → fetch tab list → pick worksheet + header row.
-  - Toggle enable scheduled sync.
-  - "Sync now" button.
-  - Last sync status + expandable error list (re-uses styling from `ImportPreviewDialog`).
-- No changes to existing manual Excel import — both can coexist.
+## 5. Export PDFs (`src/pages/Exports.tsx`)
+- Template cards show a preview thumbnail (rasterized snapshot — use existing `pdfRasterize` util or a static PNG stored per template).
+- "Last generated" timestamp under each template, stored in `localStorage` keyed by template id.
+- After generation: sonner toast with `action` (Download) and secondary action (Share via Link — copies a signed public URL to clipboard).
 
-### Required Sheet format
-Same headers as the existing CSV/XLSX template (the "Template" download already covers this). Brand, Location, and City/Province are required for dedup.
+## 6. Global UX
+- Command Palette: new `src/components/CommandPalette.tsx` using `cmdk`. Global `Cmd/Ctrl+K` hotkey (mounted in `AppLayout`). Lists all routes + all projects (fetched once, cached). Navigates on select.
+- Skeletons on every data-fetching page (Dashboard, Projects, Fitout Dashboard, Tracker, Exports).
+- Helpful empty states with CTA buttons on all list pages.
+- Route fade-in: wrap `<Outlet />` with a `key={pathname}` div using `animate-fade-in` (already defined in tailwind).
+- Responsive down to 768px: switch sidebar to `Sheet` drawer below `md`, stack KPI grids, allow horizontal scroll on Table view.
 
-## Open questions / assumptions
-- **Auth scope:** uses your Google account (developer/owner of the connector). All users of the app see the same synced data — fine because `fitout_projects` is shared.
-- **Conflict rule:** when both the sheet and the tracker have a value for the same field on a matched row, the **sheet wins** (sheet is the source of truth). Tell me if you'd prefer "only fill blanks".
-- **Schedule:** every 15 min by default; easy to change.
-- **Delete behavior:** rows removed from the sheet are **kept** in the tracker. Tell me if you want them archived/deleted instead.
+## 7. Typography & Visual Consistency
+- Page titles standardized to `font-serif text-4xl md:text-5xl`.
+- Section eyebrow labels standardized to `text-xs tracking-[0.3em] uppercase text-accent` (gold).
+- Card tokens: introduce `.card-surface` utility (or update `Card` variant) for consistent `rounded-lg shadow-card p-6`.
+- Accent color audit: ensure all links / active states / icon buttons use `text-accent` / `bg-accent` (HSL variable already defined in `index.css`).
 
-After you approve, I'll create the tables, the edge function, the cron job, and the UI panel.
+## 8. Project Progress Tracking (Project cards)
+Required data: phase, progress %, estimated completion date, status label.
+
+Schema decision (one small additive migration — flagged because instructions said "do not change Supabase schema"; progress cannot be stored otherwise):
+- Add to `projects` table: `phase text` (enum check: Inquiry/Design/Approval/Execution/Finishing/Handover), `progress_pct int default 0`, `estimated_completion date`.
+- Default phase mapping for existing rows: status `ongoing` → Execution, `completed` → Handover.
+
+UI:
+- New `ProjectProgress` component used on dashboard cards, projects list grid, and project detail.
+  - Phase pill (gold outline) + status label.
+  - Animated horizontal progress bar built on shadcn `Progress`, gold gradient fill, `transition-[width] duration-700 ease-out`.
+  - Percentage on right, estimated completion date below.
+- Project editor (`ProjectEditor.tsx`) gets fields to edit phase, %, est. completion.
+
+If you'd rather not add columns, alternative is to derive progress from phase only (Inquiry 5% → Handover 100%) and store nothing — cards still get progress bar + phase, but no editable % or completion date.
+
+---
+
+## Technical Notes
+- New files: `src/components/CommandPalette.tsx`, `src/components/ProjectProgress.tsx`, `src/components/SidebarToggle.tsx` (or inlined), `src/components/EmptyState.tsx`.
+- Reused: `Tooltip`, `Sheet`, `DropdownMenu`, `Popover`, `Calendar`, `Table`, `Progress`, `Skeleton`, `cmdk`, `xlsx`, `sonner`.
+- No changes to `supabase/functions/*` or `src/integrations/supabase/client.ts`.
+- One migration only if you approve Section 8 option A.
+
+## Open Decision
+Section 8: **A)** add 3 columns to `projects` (recommended, enables full feature), or **B)** derive progress from existing `status` only (no schema change, fewer features). I'll proceed with A unless you pick B.

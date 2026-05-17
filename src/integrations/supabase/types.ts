@@ -411,11 +411,14 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          estimated_completion: string | null
           highlights: Json
           id: string
           images: Json
           location: string | null
           name: string
+          phase: string | null
+          progress_pct: number
           status: string
           type: string
           updated_at: string
@@ -427,11 +430,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          estimated_completion?: string | null
           highlights?: Json
           id?: string
           images?: Json
           location?: string | null
           name: string
+          phase?: string | null
+          progress_pct?: number
           status?: string
           type?: string
           updated_at?: string
@@ -443,11 +449,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          estimated_completion?: string | null
           highlights?: Json
           id?: string
           images?: Json
           location?: string | null
           name?: string
+          phase?: string | null
+          progress_pct?: number
           status?: string
           type?: string
           updated_at?: string
