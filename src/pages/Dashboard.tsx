@@ -9,7 +9,7 @@ import { Plus, FolderKanban, CheckCircle2, Clock, Hammer, Search } from "lucide-
 import LazyImage from "@/components/LazyImage";
 import EmptyState from "@/components/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
-import { type FitoutProject } from "@/lib/fitout";
+
 
 type Filter = "all" | "ongoing" | "in_progress" | "completed";
 
