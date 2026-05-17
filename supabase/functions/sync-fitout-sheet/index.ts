@@ -201,6 +201,7 @@ Deno.serve(async (req) => {
 
     let inserted = 0, updated = 0, skipped = 0;
     const errors: any[] = [];
+    const preview = { creates: [] as any[], updates: [] as any[], unchanged: 0 };
 
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
@@ -258,21 +259,64 @@ Deno.serve(async (req) => {
       }
 
       const k = dedupKey(data.brand, data.city_province, data.store_opening);
-      const matchId = existingMap.get(k);
+      const match = existingMap.get(k);
+      if (match) matchedKeys.add(k);
 
-      if (matchId) {
-        const { error } = await supabase.from("fitout_projects").update(data).eq("id", matchId);
-        if (error) {
-          errors.push({ row: rowNumber, brand: data.brand, location: data.location, city: data.city_province, action: "update", errors: [{ column: "-", header: "Database", value: "", problem: error.message }] });
-          skipped++;
-        } else updated++;
+      if (match) {
+        // Compute diff
+        const changes: { field: string; from: any; to: any }[] = [];
+        for (const key of Object.keys(data)) {
+          const a = match[key]; const b = data[key];
+          const aa = a == null ? "" : String(a);
+          const bb = b == null ? "" : String(b);
+          if (aa !== bb) changes.push({ field: HEADER_LABELS[key] || key, from: a, to: b });
+        }
+        if (changes.length === 0) {
+          preview.unchanged++;
+          if (!dryRun) updated++; // no-op but counted as matched
+          continue;
+        }
+        if (dryRun) {
+          preview.updates.push({ row: rowNumber, id: match.id, brand: data.brand, location: data.location, city: data.city_province, changes });
+        } else {
+          const { error } = await supabase.from("fitout_projects").update(data).eq("id", match.id);
+          if (error) {
+            errors.push({ row: rowNumber, brand: data.brand, location: data.location, city: data.city_province, action: "update", errors: [{ column: "-", header: "Database", value: "", problem: error.message }] });
+            skipped++;
+          } else updated++;
+        }
       } else {
-        const { error, data: ins } = await supabase.from("fitout_projects").insert(data).select("id").single();
-        if (error) {
-          errors.push({ row: rowNumber, brand: data.brand, location: data.location, city: data.city_province, action: "insert", errors: [{ column: "-", header: "Database", value: "", problem: error.message }] });
-          skipped++;
-        } else { inserted++; if (ins?.id) existingMap.set(k, ins.id); }
+        if (dryRun) {
+          preview.creates.push({ row: rowNumber, brand: data.brand, location: data.location, city: data.city_province, store_opening: data.store_opening, status: data.status });
+        } else {
+          const { error, data: ins } = await supabase.from("fitout_projects").insert(data).select("id").single();
+          if (error) {
+            errors.push({ row: rowNumber, brand: data.brand, location: data.location, city: data.city_province, action: "insert", errors: [{ column: "-", header: "Database", value: "", problem: error.message }] });
+            skipped++;
+          } else { inserted++; if (ins?.id) existingMap.set(k, { ...data, id: ins.id }); }
+        }
       }
+    }
+
+    // Rows that exist in tracker but not in sheet (kept as-is by current policy)
+    const missingFromSheet: any[] = [];
+    for (const [k, e] of existingMap.entries()) {
+      if (!matchedKeys.has(k)) {
+        missingFromSheet.push({ id: e.id, brand: e.brand, location: e.location, city: e.city_province, store_opening: e.store_opening });
+      }
+    }
+
+    if (dryRun) {
+      return new Response(JSON.stringify({
+        ok: true, dry_run: true,
+        creates: preview.creates,
+        updates: preview.updates,
+        unchanged: preview.unchanged,
+        missing_from_sheet: missingFromSheet,
+        errors,
+        worksheet_warning: worksheetWarning,
+        unmapped_headers: unmappedHeaders,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const result = {
