@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck, QrCode, Hammer, BarChart3, HardHat, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck, QrCode, Hammer, BarChart3, HardHat, PanelLeftClose, PanelLeftOpen, Search, UserCog, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole, PageKey } from "@/hooks/useUserRole";
 import logoWhite from "@/assets/sadeco-logo-white.png";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import CommandPalette from "@/components/CommandPalette";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type Link = { to: string; icon: any; label: string; end?: boolean; page?: PageKey; adminOnly?: boolean; group?: string };
 
@@ -23,10 +24,12 @@ const links: Link[] = [
   { to: "/fitout", icon: BarChart3, label: "Dashboard", end: true, page: "fitout", group: "Fitout Operations" },
   { to: "/fitout/projects", icon: Hammer, label: "Tracker", page: "fitout", group: "Fitout Operations" },
   { to: "/fitout/team", icon: HardHat, label: "Team", page: "fitout", group: "Fitout Operations" },
+  { to: "/fitout/managers", icon: UserCog, label: "Project Managers", page: "fitout", group: "Fitout Operations" },
   { to: "/permissions", icon: ShieldCheck, label: "Permissions", adminOnly: true },
 ];
 
 const LS_KEY = "sadeco.sidebar.collapsed";
+const LS_GROUPS_KEY = "sadeco.sidebar.groups";
 
 export default function AppLayout() {
   const { signOut, user } = useAuth();
@@ -40,6 +43,14 @@ export default function AppLayout() {
     return typeof window !== "undefined" ? window.innerWidth < 1280 : false;
   });
   useEffect(() => { localStorage.setItem(LS_KEY, collapsed ? "1" : "0"); }, [collapsed]);
+
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem(LS_GROUPS_KEY) : null;
+      return stored ? JSON.parse(stored) : {};
+    } catch { return {}; }
+  });
+  useEffect(() => { localStorage.setItem(LS_GROUPS_KEY, JSON.stringify(openGroups)); }, [openGroups]);
 
   const visible = links.filter(l => {
     if (l.adminOnly) return isAdmin;
@@ -110,14 +121,30 @@ export default function AppLayout() {
               )}
               {ungrouped.map(renderLink)}
 
-              {Object.entries(groups).map(([name, items]) => (
-                <div key={name} className="pt-3 mt-3 border-t border-sidebar-border/60">
-                  {!collapsed && (
-                    <p className="px-4 pb-2 text-[10px] tracking-[0.25em] text-sidebar-foreground/40 uppercase">{name}</p>
-                  )}
-                  {items.map(renderLink)}
-                </div>
-              ))}
+              {Object.entries(groups).map(([name, items]) => {
+                const hasActive = items.some(i => i.end ? loc.pathname === i.to : loc.pathname.startsWith(i.to));
+                const isOpen = collapsed ? true : (openGroups[name] ?? hasActive ?? true);
+                if (collapsed) {
+                  return (
+                    <div key={name} className="pt-3 mt-3 border-t border-sidebar-border/60">
+                      {items.map(renderLink)}
+                    </div>
+                  );
+                }
+                return (
+                  <Collapsible key={name} open={isOpen} onOpenChange={(v) => setOpenGroups(g => ({ ...g, [name]: v }))}>
+                    <div className="pt-3 mt-3 border-t border-sidebar-border/60">
+                      <CollapsibleTrigger className="w-full flex items-center justify-between px-4 pb-2 text-[10px] tracking-[0.25em] text-sidebar-foreground/40 uppercase hover:text-sidebar-foreground/70">
+                        <span>{name}</span>
+                        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen ? "" : "-rotate-90")} />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-0.5">
+                        {items.map(renderLink)}
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                );
+              })}
             </>
           )}
         </nav>
