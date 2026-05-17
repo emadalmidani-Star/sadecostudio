@@ -341,10 +341,12 @@ Deno.serve(async (req) => {
     });
   } catch (err: any) {
     const msg = err?.message || String(err);
-    await supabase.from("fitout_sheet_sync_runs").update({
-      finished_at: new Date().toISOString(),
-      status: "failed", errors: [{ message: msg }],
-    }).eq("id", run!.id);
+    if (run) {
+      await supabase.from("fitout_sheet_sync_runs").update({
+        finished_at: new Date().toISOString(),
+        status: "failed", errors: [{ message: msg }],
+      }).eq("id", run.id);
+    }
     return new Response(JSON.stringify({ error: msg }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
