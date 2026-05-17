@@ -121,14 +121,30 @@ export default function AppLayout() {
               )}
               {ungrouped.map(renderLink)}
 
-              {Object.entries(groups).map(([name, items]) => (
-                <div key={name} className="pt-3 mt-3 border-t border-sidebar-border/60">
-                  {!collapsed && (
-                    <p className="px-4 pb-2 text-[10px] tracking-[0.25em] text-sidebar-foreground/40 uppercase">{name}</p>
-                  )}
-                  {items.map(renderLink)}
-                </div>
-              ))}
+              {Object.entries(groups).map(([name, items]) => {
+                const hasActive = items.some(i => i.end ? loc.pathname === i.to : loc.pathname.startsWith(i.to));
+                const isOpen = collapsed ? true : (openGroups[name] ?? hasActive ?? true);
+                if (collapsed) {
+                  return (
+                    <div key={name} className="pt-3 mt-3 border-t border-sidebar-border/60">
+                      {items.map(renderLink)}
+                    </div>
+                  );
+                }
+                return (
+                  <Collapsible key={name} open={isOpen} onOpenChange={(v) => setOpenGroups(g => ({ ...g, [name]: v }))}>
+                    <div className="pt-3 mt-3 border-t border-sidebar-border/60">
+                      <CollapsibleTrigger className="w-full flex items-center justify-between px-4 pb-2 text-[10px] tracking-[0.25em] text-sidebar-foreground/40 uppercase hover:text-sidebar-foreground/70">
+                        <span>{name}</span>
+                        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen ? "" : "-rotate-90")} />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-0.5">
+                        {items.map(renderLink)}
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                );
+              })}
             </>
           )}
         </nav>
