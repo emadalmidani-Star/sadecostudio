@@ -766,7 +766,7 @@ export async function exportProjectPDF(p: any, company: any, contact?: any, comp
   const tpls = await loadTemplates("project");
   const logo = company?.logo_url ? await loadLogoTransparent(company.logo_url) : null;
   const c = await resolveContact(contact);
-  await addCover(doc, company, "Project Case Study", logo, tpls.cover);
+  await addCover(doc, company, "Project Case Study", logo, tpls.cover, p);
   const page = { n: 1 };
   await renderProject(doc, p, company, page, tpls.project);
   await addThankYou(doc, company, logo, tpls.thankyou, c, companyFields);
