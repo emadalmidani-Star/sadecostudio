@@ -29,6 +29,7 @@ const links: Link[] = [
 ];
 
 const LS_KEY = "sadeco.sidebar.collapsed";
+const LS_GROUPS_KEY = "sadeco.sidebar.groups";
 
 export default function AppLayout() {
   const { signOut, user } = useAuth();
