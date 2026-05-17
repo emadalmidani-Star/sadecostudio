@@ -34,6 +34,8 @@ export default function SheetSyncDialog({ open, onOpenChange, onSynced }: {
   const [runs, setRuns] = useState<Run[]>([]);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [preview, setPreview] = useState<any>(null);
 
   async function load() {
     const { data: c } = await supabase.from("fitout_sheet_config" as any).select("*").limit(1).maybeSingle();
