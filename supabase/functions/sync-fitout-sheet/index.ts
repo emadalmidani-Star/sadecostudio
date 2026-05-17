@@ -254,7 +254,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const k = dedupKey(data.brand, data.location, data.city_province);
+      const k = dedupKey(data.brand, data.city_province, data.store_opening);
       const matchId = existingMap.get(k);
 
       if (matchId) {
