@@ -28,7 +28,7 @@ const links: Link[] = [
   { to: "/permissions", icon: ShieldCheck, label: "Permissions", adminOnly: true },
 ];
 
-const LS_KEY = "sadeco.sidebar.collapsed";
+const LS_KEY = "sadeco.sidebar.collapsed.v2";
 const LS_GROUPS_KEY = "sadeco.sidebar.groups";
 
 export default function AppLayout() {
