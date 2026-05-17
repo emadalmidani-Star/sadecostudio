@@ -67,6 +67,15 @@ export default function Exports() {
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [contactId, setContactId] = useState<string>("__none__");
   const [companyFields, setCompanyFields] = useState<CompanyFooterFields>({ phone: true, email: true, website: true, address: false });
+  const [lastGen, setLastGen] = useState<Record<string, string>>(() => {
+    if (typeof window === "undefined") return {};
+    const out: Record<string, string> = {};
+    ["profile", "portfolio", "project"].forEach(k => {
+      const v = localStorage.getItem(`sadeco.lastGen.${k}`);
+      if (v) out[k] = v;
+    });
+    return out;
+  });
   const selected = useMemo(() => new Set(selectedOrder), [selectedOrder]);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const { isAdmin } = useUserRole();
@@ -135,13 +144,21 @@ export default function Exports() {
     });
   }
 
+  function markGenerated(kind: string) {
+    localStorage.setItem(`sadeco.lastGen.${kind}`, new Date().toISOString());
+    setLastGen(prev => ({ ...prev, [kind]: new Date().toISOString() }));
+  }
+
   async function fullProfile() {
     setBusy("full");
     setPdfCompression(QUALITY_PRESETS[quality]); setGalleryColumns(galleryCols);
     try {
       const c = await resolveSelectedContact();
       await exportFullProfilePDF(company, projects, covers, c, companyFields);
-      toast.success("Profile PDF generated");
+      markGenerated("profile");
+      toast.success("Profile PDF generated", {
+        action: { label: "Share link", onClick: () => { navigator.clipboard.writeText(window.location.origin); toast.success("Link copied"); } },
+      });
     } catch (e: any) { toast.error(e.message); }
     setBusy(null);
   }
@@ -155,7 +172,10 @@ export default function Exports() {
       const list = selectedOrder.map(id => byId.get(id)).filter(Boolean);
       const c = await resolveSelectedContact();
       await exportSelectedPDF(company, list, covers, c, companyFields);
-      toast.success("Portfolio PDF generated");
+      markGenerated("portfolio");
+      toast.success("Portfolio PDF generated", {
+        action: { label: "Share link", onClick: () => { navigator.clipboard.writeText(window.location.origin); toast.success("Link copied"); } },
+      });
     } catch (e: any) { toast.error(e.message); }
     setBusy(null);
   }
