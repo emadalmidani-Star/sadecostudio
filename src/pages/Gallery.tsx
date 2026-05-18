@@ -84,7 +84,7 @@ export default function Gallery() {
   // ---------- Project detail view ----------
   if (activeProject) {
     return (
-      <div className="p-6 md:p-10 max-w-7xl mx-auto">
+      <div className="p-6 md:p-10 max-w-screen-2xl mx-auto">
         <button
           onClick={() => { setActiveProject(null); setLightboxIdx(null); }}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
@@ -107,7 +107,7 @@ export default function Gallery() {
           </Button>
         </div>
 
-        <div className="columns-2 md:columns-3 lg:columns-4 gap-3 [column-fill:_balance]">
+        <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-3 [column-fill:_balance]">
           {activeImages.map((url, i) => (
             <button
               key={`${url}-${i}`}
@@ -142,7 +142,7 @@ export default function Gallery() {
 
   // ---------- Grid of project cards ----------
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto">
+    <div className="p-6 md:p-10 max-w-screen-2xl mx-auto">
       <div className="flex items-end justify-between mb-8 gap-4 flex-wrap">
         <div>
           <p className="eyebrow mb-2">PORTFOLIO</p>
@@ -168,7 +168,7 @@ export default function Gallery() {
       </div>
 
       {loading ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className="overflow-hidden shadow-card">
               <Skeleton className="aspect-[4/3] w-full" />
@@ -183,7 +183,7 @@ export default function Gallery() {
           actionTo={projectsWithImages.length === 0 ? "/projects" : undefined}
         />
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5">
           {filtered.map(p => (
             <button
               key={p.id}
