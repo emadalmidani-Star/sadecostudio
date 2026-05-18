@@ -168,7 +168,7 @@ export default function Gallery() {
       </div>
 
       {loading ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className="overflow-hidden shadow-card">
               <Skeleton className="aspect-[4/3] w-full" />
@@ -183,7 +183,7 @@ export default function Gallery() {
           actionTo={projectsWithImages.length === 0 ? "/projects" : undefined}
         />
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5">
           {filtered.map(p => (
             <button
               key={p.id}
