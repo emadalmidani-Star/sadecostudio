@@ -55,6 +55,10 @@ const App = () => (
               <Route path="/fitout/projects/:id" element={<RoleRoute page="fitout"><FitoutProjectDetail /></RoleRoute>} />
               <Route path="/fitout/team" element={<RoleRoute page="fitout"><FitoutTeam /></RoleRoute>} />
               <Route path="/fitout/managers" element={<RoleRoute page="fitout"><FitoutProjectManagers /></RoleRoute>} />
+              <Route path="/marketing" element={<RoleRoute page="marketing"><MarketingScheduler /></RoleRoute>} />
+              <Route path="/marketing/analytics" element={<RoleRoute page="marketing"><MarketingAnalytics /></RoleRoute>} />
+              <Route path="/marketing/competitors" element={<RoleRoute page="marketing"><MarketingCompetitors /></RoleRoute>} />
+              <Route path="/marketing/connections" element={<RoleRoute page="marketing"><MarketingConnections /></RoleRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
