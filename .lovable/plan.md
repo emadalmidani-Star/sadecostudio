@@ -1,78 +1,90 @@
-# SADECO Project Studio — UI/UX Overhaul + Project Progress
+## Marketing Hub — Plan
 
-Scope: frontend only (components, pages, styling, client state). No data-layer changes except one small schema addition required for project progress (see Section 8). All existing dark sidebar + cream content palette and gold accent preserved.
-
----
-
-## 1. Sidebar (`src/components/AppLayout.tsx`)
-- Rename top-level "Dashboard" → "Overview".
-- Add a labeled horizontal divider between Project Studio links and the Fitout Operations group ("PROJECT STUDIO" label above, gold hairline `<hr>`, then existing "FITOUT OPERATIONS" label).
-- Wrap every nav icon+link in shadcn `Tooltip` (label shown on hover, always shown when collapsed).
-- Active route: add `border-l-2 border-accent` + subtle bg, instead of bg-only.
-- Responsive collapse: under `xl` (1280px) sidebar defaults to `w-16` icon-only mode; a `PanelLeft` toggle button in the sidebar header (and a floating trigger in the top-left of `<main>` when collapsed) toggles `w-64`. State stored in `localStorage`.
-
-## 2. Project Studio Dashboard (`src/pages/Dashboard.tsx`)
-- 4 KPI cards: Total, Ongoing, In Progress (status = `in_progress`), Completed. Each card becomes a `<Link>` to `/projects?status=...`.
-- Recent Projects: add search `Input` + filter chips (All / Ongoing / Completed / By City / By Brand). "By City"/"By Brand" open a small `Popover` with a list of distinct values.
-- Empty state: illustration (lucide `SearchX`) + CTA button.
-- Cards: `<img loading="lazy">` + `Skeleton` placeholder while image not yet loaded (track via `onLoad`).
-- Add page-level skeleton while Supabase loads.
-
-## 3. Fitout Dashboard (`src/pages/fitout/Dashboard.tsx`)
-- Add a date-range control (shadcn `Select`: 30 / 90 / 180 days / Custom → `Popover` + `Calendar` range). Filters all charts and upcoming list by `start_on_site` / `store_opening` falling inside range.
-- Bar charts: `onClick` on a bar dispatches a `cityFilter` / `brandFilter` etc. that scopes the "Upcoming Store Openings" list below. Active filter shown as a removable chip.
-- "Export to Excel" button on the openings table, uses existing `xlsx` dep.
-- "Days Until Opening" column with color-coded badge: red <7, amber 7–14, green >14.
-- PM avatar/initials chip (small circle, gold ring) next to PM name.
-
-## 4. Projects List (`src/pages/Projects.tsx`)
-- View toggle: Grid (current) / Table (shadcn `Table`). Persist choice in `localStorage`.
-- Table columns sortable by header click: Name, Brand (from `type` or new field — uses `client_name`), City (`location`), PM, Status, Size (`area_sqm`), Start Date (`created_at` fallback), Target Opening. Columns without data show "—".
-- Multi-select mode: toggle button reveals checkboxes on cards/rows; floating action bar with "Export Selected to PDF" (reuses existing PDF pipeline in `src/lib/pdf.ts`).
-- Inline status badge: clicking badge opens `DropdownMenu` to switch status; updates Supabase + optimistic UI.
-- Read query string `?status=` from KPI navigation.
-
-## 5. Export PDFs (`src/pages/Exports.tsx`)
-- Template cards show a preview thumbnail (rasterized snapshot — use existing `pdfRasterize` util or a static PNG stored per template).
-- "Last generated" timestamp under each template, stored in `localStorage` keyed by template id.
-- After generation: sonner toast with `action` (Download) and secondary action (Share via Link — copies a signed public URL to clipboard).
-
-## 6. Global UX
-- Command Palette: new `src/components/CommandPalette.tsx` using `cmdk`. Global `Cmd/Ctrl+K` hotkey (mounted in `AppLayout`). Lists all routes + all projects (fetched once, cached). Navigates on select.
-- Skeletons on every data-fetching page (Dashboard, Projects, Fitout Dashboard, Tracker, Exports).
-- Helpful empty states with CTA buttons on all list pages.
-- Route fade-in: wrap `<Outlet />` with a `key={pathname}` div using `animate-fade-in` (already defined in tailwind).
-- Responsive down to 768px: switch sidebar to `Sheet` drawer below `md`, stack KPI grids, allow horizontal scroll on Table view.
-
-## 7. Typography & Visual Consistency
-- Page titles standardized to `font-serif text-4xl md:text-5xl`.
-- Section eyebrow labels standardized to `text-xs tracking-[0.3em] uppercase text-accent` (gold).
-- Card tokens: introduce `.card-surface` utility (or update `Card` variant) for consistent `rounded-lg shadow-card p-6`.
-- Accent color audit: ensure all links / active states / icon buttons use `text-accent` / `bg-accent` (HSL variable already defined in `index.css`).
-
-## 8. Project Progress Tracking (Project cards)
-Required data: phase, progress %, estimated completion date, status label.
-
-Schema decision (one small additive migration — flagged because instructions said "do not change Supabase schema"; progress cannot be stored otherwise):
-- Add to `projects` table: `phase text` (enum check: Inquiry/Design/Approval/Execution/Finishing/Handover), `progress_pct int default 0`, `estimated_completion date`.
-- Default phase mapping for existing rows: status `ongoing` → Execution, `completed` → Handover.
-
-UI:
-- New `ProjectProgress` component used on dashboard cards, projects list grid, and project detail.
-  - Phase pill (gold outline) + status label.
-  - Animated horizontal progress bar built on shadcn `Progress`, gold gradient fill, `transition-[width] duration-700 ease-out`.
-  - Percentage on right, estimated completion date below.
-- Project editor (`ProjectEditor.tsx`) gets fields to edit phase, %, est. completion.
-
-If you'd rather not add columns, alternative is to derive progress from phase only (Inquiry 5% → Handover 100%) and store nothing — cards still get progress bar + phase, but no editable % or completion date.
+A new top-level sidebar group **Marketing** with three pages: **Scheduler**, **Analytics**, **Competitors**. Gated by a new `marketing` role.
 
 ---
 
-## Technical Notes
-- New files: `src/components/CommandPalette.tsx`, `src/components/ProjectProgress.tsx`, `src/components/SidebarToggle.tsx` (or inlined), `src/components/EmptyState.tsx`.
-- Reused: `Tooltip`, `Sheet`, `DropdownMenu`, `Popover`, `Calendar`, `Table`, `Progress`, `Skeleton`, `cmdk`, `xlsx`, `sonner`.
-- No changes to `supabase/functions/*` or `src/integrations/supabase/client.ts`.
-- One migration only if you approve Section 8 option A.
+### 1. Sidebar & access
 
-## Open Decision
-Section 8: **A)** add 3 columns to `projects` (recommended, enables full feature), or **B)** derive progress from existing `status` only (no schema change, fewer features). I'll proceed with A unless you pick B.
+- Add collapsible **Marketing** group in `AppLayout.tsx` (matches Fitout group style).
+- Pages: Scheduler, Analytics, Competitors.
+- New role `marketing` added to the `app_role` enum; new `PageKey` `marketing` in `useUserRole`. Admins + marketing role can access.
+- Seed `role_page_permissions` so admin + marketing = allowed.
+
+---
+
+### 2. Scheduler (LinkedIn + Meta, direct API / BYOK)
+
+**Heads-up on BYOK reality.** You picked direct LinkedIn + Meta Graph API. That means:
+- You create a LinkedIn Developer app + a Meta Developer app yourself.
+- For LinkedIn: request `w_member_social` and `w_organization_social` (Community Management API — requires LinkedIn approval).
+- For Meta: Facebook Page posting needs `pages_manage_posts`, Instagram needs `instagram_content_publish`, both require Meta App Review (1–4 weeks, business verification).
+- Until approved, posting only works for the developer/test users.
+
+**What we build:**
+- Table `social_accounts` (provider: `linkedin` | `facebook` | `instagram`, page_id, access_token, refresh_token, expires_at, display_name, connected_by).
+- Table `scheduled_posts` (caption, media_urls[], target accounts[], scheduled_for, status: draft/scheduled/posted/failed, provider_post_ids jsonb, error, created_by).
+- Storage bucket `marketing-media` for images/videos.
+- Edge functions:
+  - `social-oauth-start` / `social-oauth-callback` — OAuth flow for each provider, stores tokens encrypted.
+  - `publish-scheduled-posts` — runs every minute via pg_cron + pg_net, picks due posts, calls LinkedIn `/rest/posts` and Meta Graph `/{page-id}/feed` + IG container/publish flow.
+  - `refresh-social-tokens` — daily refresh.
+- Secrets needed (added later, after you confirm): `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `META_APP_ID`, `META_APP_SECRET`.
+- UI: composer with media upload, multi-account targeting, date/time picker, preview cards per network, queue view (upcoming / posted / failed with retry).
+
+---
+
+### 3. Analytics
+
+Mixed: Google Search Console live, LinkedIn/Meta live where APIs allow, plus manual entry as a fallback.
+
+- **Google Search Console**: use the existing Lovable connector. Edge function `gsc-metrics` pulls clicks/impressions/CTR/position. No setup beyond linking the connector.
+- **LinkedIn Page**: pull follower count + post stats via `/rest/organizationalEntityShareStatistics` using the same OAuth token. Requires `r_organization_social`.
+- **Meta**: Facebook Page Insights (`/{page-id}/insights`) + IG Business `/media/insights`. Same OAuth, scopes `read_insights`, `pages_read_engagement`, `instagram_basic`, `instagram_manage_insights`.
+- **Manual snapshots**: table `marketing_metrics` (network, metric, value, captured_on) so you can log numbers weekly while approvals are pending — the dashboard reads from API when available, falls back to manual rows.
+- Daily snapshot cron stores values in `marketing_metrics` for trend charts (Recharts).
+- Dashboard: KPI cards + 30/90-day line charts per network, top posts table.
+
+---
+
+### 4. Competitors (SEO + Social)
+
+- Table `competitors` (name, website, linkedin_url, instagram_handle, facebook_handle, notes).
+- Table `competitor_snapshots` (competitor_id, source, metrics jsonb, captured_on) for time series.
+- **SEO side — Semrush**: Semrush is available to me as a research tool during build, but it is **not** a runtime connector — your app can't query it live without your own Semrush API plan. Two options:
+  - (a) I curate an initial competitive report (top keywords, gaps, backlinks) inside the Competitors page during build.
+  - (b) You add a Semrush API key as a secret later; we add a `semrush-sync` edge function for live refresh.
+- **Social side**: LinkedIn/Meta APIs **do not** expose public competitor analytics. Real-time tracking requires a paid third party (Socialinsider, Phyllo, BrandWatch). For now we ship a **manual tracker**: weekly row entry (followers, posts/week, avg engagement) + chart. We can later wire a paid API if you sign up.
+- UI: competitor list, per-competitor detail with SEO panel + social panel + notes timeline.
+
+---
+
+### Out of scope / explicit non-goals
+
+- TikTok, X, YouTube scheduling (not asked).
+- Auto-generated post copy (can add via existing Lovable AI gateway later).
+- Image generation for posts.
+
+---
+
+### Technical summary
+
+- **DB**: `social_accounts`, `scheduled_posts`, `marketing_metrics`, `competitors`, `competitor_snapshots`; extend `app_role` with `marketing`; add `marketing` PageKey + RLS.
+- **Storage**: bucket `marketing-media` (authenticated write, public read).
+- **Edge functions**: `social-oauth-start`, `social-oauth-callback`, `publish-scheduled-posts`, `refresh-social-tokens`, `gsc-metrics`, `social-metrics-sync`, plus optional `semrush-sync`.
+- **Crons** (pg_cron + pg_net): publish queue every 1 min, metrics sync daily 02:00.
+- **Frontend**: `src/pages/marketing/{Scheduler,Analytics,Competitors,Connections}.tsx`, new routes under `/marketing/*`, sidebar group in `AppLayout.tsx`, new `marketing` role checks.
+- **Existing systems untouched**: Projects, Fitout, Exports, Templates, Team.
+
+---
+
+### Recommended build order
+
+1. Role + sidebar + empty pages + Connections page scaffolding.
+2. LinkedIn OAuth + posting (smallest review surface) end-to-end.
+3. Meta OAuth + posting.
+4. Scheduler cron + queue UI.
+5. Analytics (GSC first since it's already connected, then social).
+6. Competitors page (manual + Semrush curated report).
+
+Want me to proceed with all 6 steps, or stop after step 1 so you can wire your LinkedIn/Meta developer apps first?

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck, QrCode, Hammer, BarChart3, HardHat, PanelLeftClose, PanelLeftOpen, Search, UserCog, ChevronDown } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck, QrCode, Hammer, BarChart3, HardHat, PanelLeftClose, PanelLeftOpen, Search, UserCog, ChevronDown, Megaphone, LineChart, Target, Plug } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole, PageKey } from "@/hooks/useUserRole";
 import logoWhite from "@/assets/sadeco-logo-white.png";
@@ -25,6 +25,10 @@ const links: Link[] = [
   { to: "/fitout/projects", icon: Hammer, label: "Tracker", page: "fitout", group: "Fitout Operations" },
   { to: "/fitout/team", icon: HardHat, label: "Team", page: "fitout", group: "Fitout Operations" },
   { to: "/fitout/managers", icon: UserCog, label: "Project Managers", page: "fitout", group: "Fitout Operations" },
+  { to: "/marketing", icon: Megaphone, label: "Scheduler", end: true, page: "marketing", group: "Marketing" },
+  { to: "/marketing/analytics", icon: LineChart, label: "Analytics", page: "marketing", group: "Marketing" },
+  { to: "/marketing/competitors", icon: Target, label: "Competitors", page: "marketing", group: "Marketing" },
+  { to: "/marketing/connections", icon: Plug, label: "Connections", page: "marketing", group: "Marketing" },
   { to: "/permissions", icon: ShieldCheck, label: "Permissions", adminOnly: true },
 ];
 

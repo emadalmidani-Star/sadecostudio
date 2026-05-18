@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type AppRole = "admin" | "user";
-export type PageKey = "dashboard" | "projects" | "exports" | "company" | "template" | "team" | "me" | "idcards" | "fitout";
+export type AppRole = "admin" | "user" | "marketing";
+export type PageKey = "dashboard" | "projects" | "exports" | "company" | "template" | "team" | "me" | "idcards" | "fitout" | "marketing";
 
-export const ALL_ROLES: AppRole[] = ["admin", "user"];
+export const ALL_ROLES: AppRole[] = ["admin", "user", "marketing"];
 export const ALL_PAGES: { key: PageKey; label: string }[] = [
   { key: "dashboard", label: "Dashboard" },
   { key: "projects", label: "Projects" },
@@ -16,6 +16,7 @@ export const ALL_PAGES: { key: PageKey; label: string }[] = [
   { key: "template", label: "Template Designer" },
   { key: "team", label: "Team" },
   { key: "fitout", label: "Fitout Tracker" },
+  { key: "marketing", label: "Marketing" },
 ];
 
 type PermRow = { role: AppRole; page: PageKey; allowed: boolean };
