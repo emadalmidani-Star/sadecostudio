@@ -44,6 +44,7 @@ const App = () => (
               <Route path="/projects" element={<RoleRoute page="projects"><Projects /></RoleRoute>} />
               <Route path="/projects/new" element={<RoleRoute page="projects"><ProjectEditor /></RoleRoute>} />
               <Route path="/projects/:id" element={<RoleRoute page="projects"><ProjectEditor /></RoleRoute>} />
+              <Route path="/gallery" element={<RoleRoute page="gallery"><Gallery /></RoleRoute>} />
               <Route path="/company" element={<RoleRoute page="company"><CompanyProfile /></RoleRoute>} />
               <Route path="/exports" element={<RoleRoute page="exports"><Exports /></RoleRoute>} />
               <Route path="/template" element={<RoleRoute page="template"><TemplateDesigner /></RoleRoute>} />
