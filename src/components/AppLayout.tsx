@@ -15,6 +15,7 @@ type Link = { to: string; icon: any; label: string; end?: boolean; page?: PageKe
 const links: Link[] = [
   { to: "/", icon: LayoutDashboard, label: "Overview", end: true },
   { to: "/projects", icon: FolderKanban, label: "Projects", page: "projects" },
+  { to: "/gallery", icon: Images, label: "Gallery", page: "gallery" },
   { to: "/exports", icon: FileText, label: "Export PDFs", page: "exports" },
   { to: "/me", icon: UserCircle2, label: "My Profile", page: "me" },
   { to: "/id-cards", icon: QrCode, label: "ID Cards", page: "idcards" },
