@@ -1,90 +1,53 @@
-## Marketing Hub — Plan
+# Project Gallery — Plan
 
-A new top-level sidebar group **Marketing** with three pages: **Scheduler**, **Analytics**, **Competitors**. Gated by a new `marketing` role.
+Add a new **Gallery** page that aggregates images from every project into a visual grid (with lightbox), gated by a new `gallery` permission so admins can grant access per role from the existing Permissions page.
 
----
+## 1. Database (migration)
 
-### 1. Sidebar & access
+- Add `'gallery'` value to `role_page_permissions.page` usage (it's a free-text column — no enum change needed).
+- Seed default rows in `role_page_permissions`:
+  - `('admin','gallery', true)`
+  - `('user','gallery', false)`
+  - `('marketing','gallery', true)` — marketing typically needs visuals.
 
-- Add collapsible **Marketing** group in `AppLayout.tsx` (matches Fitout group style).
-- Pages: Scheduler, Analytics, Competitors.
-- New role `marketing` added to the `app_role` enum; new `PageKey` `marketing` in `useUserRole`. Admins + marketing role can access.
-- Seed `role_page_permissions` so admin + marketing = allowed.
+Admins can later toggle other roles from `/permissions`.
 
----
+## 2. Permission wiring
 
-### 2. Scheduler (LinkedIn + Meta, direct API / BYOK)
+- `src/hooks/useUserRole.ts`: add `"gallery"` to `PageKey` type and to `ALL_PAGES` (label: "Project Gallery"). The Permissions page renders the matrix from `ALL_PAGES`, so a new column appears automatically.
 
-**Heads-up on BYOK reality.** You picked direct LinkedIn + Meta Graph API. That means:
-- You create a LinkedIn Developer app + a Meta Developer app yourself.
-- For LinkedIn: request `w_member_social` and `w_organization_social` (Community Management API — requires LinkedIn approval).
-- For Meta: Facebook Page posting needs `pages_manage_posts`, Instagram needs `instagram_content_publish`, both require Meta App Review (1–4 weeks, business verification).
-- Until approved, posting only works for the developer/test users.
+## 3. New page — `src/pages/Gallery.tsx`
 
-**What we build:**
-- Table `social_accounts` (provider: `linkedin` | `facebook` | `instagram`, page_id, access_token, refresh_token, expires_at, display_name, connected_by).
-- Table `scheduled_posts` (caption, media_urls[], target accounts[], scheduled_for, status: draft/scheduled/posted/failed, provider_post_ids jsonb, error, created_by).
-- Storage bucket `marketing-media` for images/videos.
-- Edge functions:
-  - `social-oauth-start` / `social-oauth-callback` — OAuth flow for each provider, stores tokens encrypted.
-  - `publish-scheduled-posts` — runs every minute via pg_cron + pg_net, picks due posts, calls LinkedIn `/rest/posts` and Meta Graph `/{page-id}/feed` + IG container/publish flow.
-  - `refresh-social-tokens` — daily refresh.
-- Secrets needed (added later, after you confirm): `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `META_APP_ID`, `META_APP_SECRET`.
-- UI: composer with media upload, multi-account targeting, date/time picker, preview cards per network, queue view (upcoming / posted / failed with retry).
+- Fetch all projects with their `images` (jsonb array) and `cover_image`.
+- Flatten into a single list of `{ url, projectId, projectName, location }`.
+- Toolbar:
+  - Search by project name / location / client.
+  - Filter chips by project status (All / Ongoing / In Progress / Completed).
+  - Project filter dropdown (multi-select).
+  - Density toggle (small / medium / large tiles).
+- Layout: responsive masonry-style CSS grid using existing `LazyImage`.
+- Click an image → lightbox dialog (shadcn `Dialog`) with prev/next arrow keys, project name + a "Open project" button linking to `/projects/:id`.
+- Empty state when no images exist.
 
----
+## 4. Routing — `src/App.tsx`
 
-### 3. Analytics
+- Add `<Route path="/gallery" element={<RoleRoute page="gallery"><Gallery /></RoleRoute>} />`.
 
-Mixed: Google Search Console live, LinkedIn/Meta live where APIs allow, plus manual entry as a fallback.
+## 5. Sidebar — `src/components/AppLayout.tsx`
 
-- **Google Search Console**: use the existing Lovable connector. Edge function `gsc-metrics` pulls clicks/impressions/CTR/position. No setup beyond linking the connector.
-- **LinkedIn Page**: pull follower count + post stats via `/rest/organizationalEntityShareStatistics` using the same OAuth token. Requires `r_organization_social`.
-- **Meta**: Facebook Page Insights (`/{page-id}/insights`) + IG Business `/media/insights`. Same OAuth, scopes `read_insights`, `pages_read_engagement`, `instagram_basic`, `instagram_manage_insights`.
-- **Manual snapshots**: table `marketing_metrics` (network, metric, value, captured_on) so you can log numbers weekly while approvals are pending — the dashboard reads from API when available, falls back to manual rows.
-- Daily snapshot cron stores values in `marketing_metrics` for trend charts (Recharts).
-- Dashboard: KPI cards + 30/90-day line charts per network, top posts table.
+- Add `{ to: "/gallery", icon: Images, label: "Gallery", page: "gallery" }` to the ungrouped Project Studio links, placed right after Projects.
 
----
+## 6. Permissions UI
 
-### 4. Competitors (SEO + Social)
+- No code change needed. The new "Project Gallery" column shows up automatically in `/permissions`, and admins can toggle each role's access there.
 
-- Table `competitors` (name, website, linkedin_url, instagram_handle, facebook_handle, notes).
-- Table `competitor_snapshots` (competitor_id, source, metrics jsonb, captured_on) for time series.
-- **SEO side — Semrush**: Semrush is available to me as a research tool during build, but it is **not** a runtime connector — your app can't query it live without your own Semrush API plan. Two options:
-  - (a) I curate an initial competitive report (top keywords, gaps, backlinks) inside the Competitors page during build.
-  - (b) You add a Semrush API key as a secret later; we add a `semrush-sync` edge function for live refresh.
-- **Social side**: LinkedIn/Meta APIs **do not** expose public competitor analytics. Real-time tracking requires a paid third party (Socialinsider, Phyllo, BrandWatch). For now we ship a **manual tracker**: weekly row entry (followers, posts/week, avg engagement) + chart. We can later wire a paid API if you sign up.
-- UI: competitor list, per-competitor detail with SEO panel + social panel + notes timeline.
+## Out of scope
 
----
+- No upload/edit from the gallery (use the existing Project Editor).
+- No reordering, tags, or albums.
+- No download-as-zip or bulk export.
 
-### Out of scope / explicit non-goals
+## Files touched
 
-- TikTok, X, YouTube scheduling (not asked).
-- Auto-generated post copy (can add via existing Lovable AI gateway later).
-- Image generation for posts.
-
----
-
-### Technical summary
-
-- **DB**: `social_accounts`, `scheduled_posts`, `marketing_metrics`, `competitors`, `competitor_snapshots`; extend `app_role` with `marketing`; add `marketing` PageKey + RLS.
-- **Storage**: bucket `marketing-media` (authenticated write, public read).
-- **Edge functions**: `social-oauth-start`, `social-oauth-callback`, `publish-scheduled-posts`, `refresh-social-tokens`, `gsc-metrics`, `social-metrics-sync`, plus optional `semrush-sync`.
-- **Crons** (pg_cron + pg_net): publish queue every 1 min, metrics sync daily 02:00.
-- **Frontend**: `src/pages/marketing/{Scheduler,Analytics,Competitors,Connections}.tsx`, new routes under `/marketing/*`, sidebar group in `AppLayout.tsx`, new `marketing` role checks.
-- **Existing systems untouched**: Projects, Fitout, Exports, Templates, Team.
-
----
-
-### Recommended build order
-
-1. Role + sidebar + empty pages + Connections page scaffolding.
-2. LinkedIn OAuth + posting (smallest review surface) end-to-end.
-3. Meta OAuth + posting.
-4. Scheduler cron + queue UI.
-5. Analytics (GSC first since it's already connected, then social).
-6. Competitors page (manual + Semrush curated report).
-
-Want me to proceed with all 6 steps, or stop after step 1 so you can wire your LinkedIn/Meta developer apps first?
+- New: `supabase/migrations/<timestamp>_gallery_permission.sql`, `src/pages/Gallery.tsx`
+- Edited: `src/hooks/useUserRole.ts`, `src/App.tsx`, `src/components/AppLayout.tsx`

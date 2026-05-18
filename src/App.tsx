@@ -9,6 +9,7 @@ import AppLayout from "@/components/AppLayout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
+import Gallery from "./pages/Gallery";
 import ProjectEditor from "./pages/ProjectEditor";
 import CompanyProfile from "./pages/CompanyProfile";
 import Exports from "./pages/Exports";
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/projects" element={<RoleRoute page="projects"><Projects /></RoleRoute>} />
               <Route path="/projects/new" element={<RoleRoute page="projects"><ProjectEditor /></RoleRoute>} />
               <Route path="/projects/:id" element={<RoleRoute page="projects"><ProjectEditor /></RoleRoute>} />
+              <Route path="/gallery" element={<RoleRoute page="gallery"><Gallery /></RoleRoute>} />
               <Route path="/company" element={<RoleRoute page="company"><CompanyProfile /></RoleRoute>} />
               <Route path="/exports" element={<RoleRoute page="exports"><Exports /></RoleRoute>} />
               <Route path="/template" element={<RoleRoute page="template"><TemplateDesigner /></RoleRoute>} />

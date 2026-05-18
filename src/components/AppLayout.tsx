@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck, QrCode, Hammer, BarChart3, HardHat, PanelLeftClose, PanelLeftOpen, Search, UserCog, ChevronDown, Megaphone, LineChart, Target, Plug } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck, QrCode, Hammer, BarChart3, HardHat, PanelLeftClose, PanelLeftOpen, Search, UserCog, ChevronDown, Megaphone, LineChart, Target, Plug, Images } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole, PageKey } from "@/hooks/useUserRole";
 import logoWhite from "@/assets/sadeco-logo-white.png";
@@ -15,6 +15,7 @@ type Link = { to: string; icon: any; label: string; end?: boolean; page?: PageKe
 const links: Link[] = [
   { to: "/", icon: LayoutDashboard, label: "Overview", end: true },
   { to: "/projects", icon: FolderKanban, label: "Projects", page: "projects" },
+  { to: "/gallery", icon: Images, label: "Gallery", page: "gallery" },
   { to: "/exports", icon: FileText, label: "Export PDFs", page: "exports" },
   { to: "/me", icon: UserCircle2, label: "My Profile", page: "me" },
   { to: "/id-cards", icon: QrCode, label: "ID Cards", page: "idcards" },
