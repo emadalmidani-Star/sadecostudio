@@ -142,7 +142,7 @@ export default function Gallery() {
 
   // ---------- Grid of project cards ----------
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto">
+    <div className="p-6 md:p-10 max-w-screen-2xl mx-auto">
       <div className="flex items-end justify-between mb-8 gap-4 flex-wrap">
         <div>
           <p className="eyebrow mb-2">PORTFOLIO</p>
