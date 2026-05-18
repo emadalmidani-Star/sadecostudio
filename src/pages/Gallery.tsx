@@ -84,7 +84,7 @@ export default function Gallery() {
   // ---------- Project detail view ----------
   if (activeProject) {
     return (
-      <div className="p-6 md:p-10 max-w-7xl mx-auto">
+      <div className="p-6 md:p-10 max-w-screen-2xl mx-auto">
         <button
           onClick={() => { setActiveProject(null); setLightboxIdx(null); }}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
