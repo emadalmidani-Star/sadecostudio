@@ -3,12 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type AppRole = "admin" | "user" | "marketing";
-export type PageKey = "dashboard" | "projects" | "exports" | "company" | "template" | "team" | "me" | "idcards" | "fitout" | "marketing";
+export type PageKey = "dashboard" | "projects" | "gallery" | "exports" | "company" | "template" | "team" | "me" | "idcards" | "fitout" | "marketing";
 
 export const ALL_ROLES: AppRole[] = ["admin", "user", "marketing"];
 export const ALL_PAGES: { key: PageKey; label: string }[] = [
   { key: "dashboard", label: "Dashboard" },
   { key: "projects", label: "Projects" },
+  { key: "gallery", label: "Project Gallery" },
   { key: "exports", label: "Export PDFs" },
   { key: "me", label: "My Profile" },
   { key: "idcards", label: "Team ID Cards" },
