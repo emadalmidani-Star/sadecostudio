@@ -22,6 +22,10 @@ import FitoutTracker from "./pages/fitout/Tracker";
 import FitoutProjectDetail from "./pages/fitout/ProjectDetail";
 import FitoutTeam from "./pages/fitout/Team";
 import FitoutProjectManagers from "./pages/fitout/ProjectManagers";
+import MarketingScheduler from "./pages/marketing/Scheduler";
+import MarketingAnalytics from "./pages/marketing/Analytics";
+import MarketingCompetitors from "./pages/marketing/Competitors";
+import MarketingConnections from "./pages/marketing/Connections";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
