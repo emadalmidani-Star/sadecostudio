@@ -307,6 +307,63 @@ export type Database = {
         }
         Relationships: []
       }
+      linkedin_connections: {
+        Row: {
+          access_token: string
+          created_at: string
+          email: string | null
+          expires_at: string | null
+          linkedin_sub: string
+          name: string | null
+          picture: string | null
+          scope: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          email?: string | null
+          expires_at?: string | null
+          linkedin_sub: string
+          name?: string | null
+          picture?: string | null
+          scope?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          email?: string | null
+          expires_at?: string | null
+          linkedin_sub?: string
+          name?: string | null
+          picture?: string | null
+          scope?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      linkedin_oauth_states: {
+        Row: {
+          created_at: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          state: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       partners: {
         Row: {
           created_at: string
