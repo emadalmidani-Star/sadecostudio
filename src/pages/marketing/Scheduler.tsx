@@ -10,7 +10,7 @@ import { CalendarClock, Sparkles, Loader2, Linkedin, Save, Send, Trash2, ImagePl
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { LazyImage } from "@/components/LazyImage";
+import LazyImage from "@/components/LazyImage";
 import { cn } from "@/lib/utils";
 
 type Project = {
