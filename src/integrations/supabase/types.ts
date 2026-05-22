@@ -541,6 +541,51 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_posts: {
+        Row: {
+          content: string
+          created_at: string
+          error: string | null
+          id: string
+          image_urls: Json
+          platform: string
+          project_id: string | null
+          published_id: string | null
+          scheduled_for: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          image_urls?: Json
+          platform?: string
+          project_id?: string | null
+          published_id?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          image_urls?: Json
+          platform?: string
+          project_id?: string | null
+          published_id?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       template_pages: {
         Row: {
           created_at: string
