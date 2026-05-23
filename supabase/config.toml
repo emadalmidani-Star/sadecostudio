@@ -2,3 +2,12 @@ project_id = "klkjbeakfwdkkeusmxqg"
 
 [functions.generate-description]
 verify_jwt = false
+
+[functions.lead-intake-form]
+verify_jwt = false
+
+[functions.lead-intake-email]
+verify_jwt = false
+
+[functions.lead-intake-whatsapp]
+verify_jwt = false
