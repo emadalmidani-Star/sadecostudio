@@ -27,6 +27,8 @@ import MarketingScheduler from "./pages/marketing/Scheduler";
 import MarketingAnalytics from "./pages/marketing/Analytics";
 import MarketingCompetitors from "./pages/marketing/Competitors";
 import MarketingConnections from "./pages/marketing/Connections";
+import MarketingLeads from "./pages/marketing/Leads";
+import PublicLeadForm from "./pages/PublicLeadForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +41,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/leads/new/:token" element={<PublicLeadForm />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/projects" element={<RoleRoute page="projects"><Projects /></RoleRoute>} />
@@ -61,6 +64,7 @@ const App = () => (
               <Route path="/marketing/analytics" element={<RoleRoute page="marketing"><MarketingAnalytics /></RoleRoute>} />
               <Route path="/marketing/competitors" element={<RoleRoute page="marketing"><MarketingCompetitors /></RoleRoute>} />
               <Route path="/marketing/connections" element={<RoleRoute page="marketing"><MarketingConnections /></RoleRoute>} />
+              <Route path="/marketing/leads" element={<RoleRoute page="leads"><MarketingLeads /></RoleRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

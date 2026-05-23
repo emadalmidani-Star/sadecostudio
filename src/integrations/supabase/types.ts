@@ -307,6 +307,87 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_intake_tokens: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          kind: string
+          label: string | null
+          token: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          kind: string
+          label?: string | null
+          token: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string | null
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          assigned_to: string | null
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          message: string | null
+          name: string
+          phone: string | null
+          project_id: string | null
+          source: string
+          source_meta: Json
+          stage: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string | null
+          name: string
+          phone?: string | null
+          project_id?: string | null
+          source?: string
+          source_meta?: Json
+          stage?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string | null
+          name?: string
+          phone?: string | null
+          project_id?: string | null
+          source?: string
+          source_meta?: Json
+          stage?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       linkedin_connections: {
         Row: {
           access_token: string
