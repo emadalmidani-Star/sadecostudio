@@ -27,6 +27,8 @@ import MarketingScheduler from "./pages/marketing/Scheduler";
 import MarketingAnalytics from "./pages/marketing/Analytics";
 import MarketingCompetitors from "./pages/marketing/Competitors";
 import MarketingConnections from "./pages/marketing/Connections";
+import MarketingLeads from "./pages/marketing/Leads";
+import PublicLeadForm from "./pages/PublicLeadForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
