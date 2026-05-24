@@ -75,16 +75,42 @@ export default function MarketingLeads() {
   const [openNew, setOpenNew] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   const [selected, setSelected] = useState<Lead | null>(null);
+  const [webFormUrl, setWebFormUrl] = useState<string | null>(null);
 
   async function load() {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase.from("leads").select("*").order("created_at", { ascending: false });
+    const [{ data }, { data: tk }] = await Promise.all([
+      supabase.from("leads").select("*").order("created_at", { ascending: false }),
+      supabase.from("lead_intake_tokens").select("token, kind, active").eq("kind", "web_form").eq("active", true).order("created_at").limit(1),
+    ]);
     setLeads((data || []) as Lead[]);
+    const t = (tk || [])[0];
+    setWebFormUrl(t ? `${window.location.origin}/leads/new/${t.token}` : null);
     setLoading(false);
   }
 
   useEffect(() => { load(); }, [user?.id]);
+
+  async function ensureWebForm() {
+    if (webFormUrl) return webFormUrl;
+    if (!user?.id) return null;
+    const token = randomToken();
+    const { error } = await supabase.from("lead_intake_tokens").insert({
+      user_id: user.id, kind: "web_form", token, label: "Website form",
+    });
+    if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return null; }
+    const url = `${window.location.origin}/leads/new/${token}`;
+    setWebFormUrl(url);
+    return url;
+  }
+
+  async function shareForm() {
+    const url = await ensureWebForm();
+    if (!url) return;
+    await navigator.clipboard.writeText(url);
+    toast({ title: "Public form link copied", description: url });
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
