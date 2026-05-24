@@ -149,7 +149,13 @@ export default function MarketingLeads() {
           <h1 className="font-serif text-4xl">Leads</h1>
           <p className="text-muted-foreground mt-1">Capture leads from WhatsApp, email, web form, or add them manually.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={shareForm}><Share2 className="w-4 h-4 mr-2" />Share public form</Button>
+          {webFormUrl && (
+            <Button variant="ghost" size="icon" asChild title="Open form">
+              <a href={webFormUrl} target="_blank" rel="noreferrer"><ExternalLink className="w-4 h-4" /></a>
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setOpenSettings(true)}><Settings className="w-4 h-4 mr-2" />Intake settings</Button>
           <Button onClick={() => setOpenNew(true)}><Plus className="w-4 h-4 mr-2" />New lead</Button>
         </div>
