@@ -408,37 +408,65 @@ function IntakeSettingsDialog({ open, onOpenChange, userId }: { open: boolean; o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Intake settings</DialogTitle></DialogHeader>
         <div className="space-y-6">
           {(["web_form", "email", "whatsapp"] as const).map((kind) => {
             const items = tokens.filter((t) => t.kind === kind);
-            const label = kind === "web_form" ? "Public web form" : kind === "email" ? "Email forwarding" : "WhatsApp Business";
-            const help = kind === "web_form"
-              ? "Share this URL anywhere — submissions create leads instantly."
-              : kind === "email"
-                ? "Use the webhook URL in your email provider's inbound route (Resend/Mailgun). Token authenticates the request."
-                : "Paste the callback URL and verify token into your Meta WhatsApp Business app webhook config.";
+            const label = kind === "web_form" ? "Public web form" : kind === "email" ? "Email forwarding inbox" : "WhatsApp Business";
             return (
               <div key={kind} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">{label}</h3>
                   <Button size="sm" variant="outline" onClick={() => create(kind)}><Plus className="w-3 h-3 mr-1" />Generate token</Button>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">{help}</p>
+
+                {kind === "web_form" && (
+                  <p className="text-xs text-muted-foreground mb-3">Share this URL anywhere — submissions create leads instantly.</p>
+                )}
+                {kind === "email" && (
+                  <div className="text-xs text-muted-foreground mb-3 space-y-1">
+                    <p>Forward incoming inquiries to a Resend/Mailgun/SendGrid inbound route. Each email becomes a new lead automatically, validated for sender and subject.</p>
+                    <ol className="list-decimal pl-4 space-y-0.5 mt-1">
+                      <li>Generate a token below.</li>
+                      <li>In your email provider, create an inbound route that posts to the webhook URL.</li>
+                      <li>Use a recipient pattern like <code className="bg-muted px-1 rounded">leads+&lt;token&gt;@yourdomain.com</code> — the token is parsed from the address.</li>
+                    </ol>
+                  </div>
+                )}
+                {kind === "whatsapp" && (
+                  <p className="text-xs text-muted-foreground mb-3">Paste the callback URL and verify token into your Meta WhatsApp Business app webhook config.</p>
+                )}
+
                 {items.length === 0 ? (
                   <div className="text-xs text-muted-foreground">No tokens yet.</div>
                 ) : (
                   <div className="space-y-2">
-                    {items.map((t) => (
-                      <div key={t.id} className="flex items-center gap-2 text-xs bg-muted/40 rounded p-2">
-                        <code className="flex-1 truncate">{urlFor(t)}</code>
-                        <Badge variant={t.active ? "default" : "secondary"}>{t.active ? "Active" : "Off"}</Badge>
-                        <Button size="sm" variant="ghost" onClick={() => copy(kind === "web_form" ? `${origin}/leads/new/${t.token}` : t.token)}><Copy className="w-3 h-3" /></Button>
-                        <Button size="sm" variant="ghost" onClick={() => toggle(t)}>{t.active ? "Disable" : "Enable"}</Button>
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(t.id)}><Trash2 className="w-3 h-3" /></Button>
-                      </div>
-                    ))}
+                    {items.map((t) => {
+                      const webhookUrl = kind === "email" ? `${fnBase}/lead-intake-email` : kind === "whatsapp" ? `${fnBase}/lead-intake-whatsapp` : `${origin}/leads/new/${t.token}`;
+                      const sampleAddr = kind === "email" ? `leads+${t.token}@yourdomain.com` : null;
+                      return (
+                        <div key={t.id} className="space-y-1 bg-muted/40 rounded p-2">
+                          <div className="flex items-center gap-2 text-xs">
+                            <code className="flex-1 truncate" title={webhookUrl}>{webhookUrl}</code>
+                            <Badge variant={t.active ? "default" : "secondary"}>{t.active ? "Active" : "Off"}</Badge>
+                            <Button size="sm" variant="ghost" onClick={() => copy(webhookUrl)} title="Copy webhook URL"><Copy className="w-3 h-3" /></Button>
+                            <Button size="sm" variant="ghost" onClick={() => toggle(t)}>{t.active ? "Disable" : "Enable"}</Button>
+                            <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(t.id)}><Trash2 className="w-3 h-3" /></Button>
+                          </div>
+                          {sampleAddr && (
+                            <div className="flex items-center gap-2 text-xs pl-1">
+                              <span className="text-muted-foreground">Forward to:</span>
+                              <code className="flex-1 truncate">{sampleAddr}</code>
+                              <Button size="sm" variant="ghost" onClick={() => copy(sampleAddr)} title="Copy address"><Copy className="w-3 h-3" /></Button>
+                            </div>
+                          )}
+                          {kind !== "web_form" && (
+                            <div className="text-[10px] text-muted-foreground pl-1">Token: <code>{t.token}</code></div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
