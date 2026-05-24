@@ -14,7 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Settings, MessageCircle, Mail, Globe, PenLine, Copy, Trash2, FolderPlus, Loader2 } from "lucide-react";
+import { Plus, Settings, MessageCircle, Mail, Globe, PenLine, Copy, Trash2, FolderPlus, Loader2, Share2, ExternalLink } from "lucide-react";
 
 type Lead = {
   id: string;
