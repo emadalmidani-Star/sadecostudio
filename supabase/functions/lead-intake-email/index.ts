@@ -43,6 +43,10 @@ Deno.serve(async (req) => {
     const fromEmail = (emailMatch ? emailMatch[1] : from).trim().slice(0, 255);
     const fromName = from.replace(/<[^>]+>/, "").replace(/"/g, "").trim() || fromEmail;
 
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!fromEmail || !emailRe.test(fromEmail)) return json({ error: "Invalid sender email" }, 400);
+    if (!subject && !text) return json({ error: "Empty email body" }, 400);
+
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: tk } = await admin.from("lead_intake_tokens").select("user_id, kind, active").eq("token", token).maybeSingle();
     if (!tk || !tk.active || tk.kind !== "email") return json({ error: "Invalid token" }, 401);
