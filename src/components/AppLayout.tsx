@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import CommandPalette from "@/components/CommandPalette";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import NotificationsBell from "@/components/NotificationsBell";
 
 type Link = { to: string; icon: any; label: string; end?: boolean; page?: PageKey; adminOnly?: boolean; group?: string };
 
@@ -172,6 +173,7 @@ export default function AppLayout() {
           {!collapsed && (
             <div className="text-[11px] text-sidebar-foreground/50 px-3 truncate">{user?.email}</div>
           )}
+          <NotificationsBell collapsed={collapsed} />
           <Tooltip delayDuration={200}>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="sm" onClick={async () => { await signOut(); nav("/auth"); }}

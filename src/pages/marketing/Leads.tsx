@@ -14,7 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Settings, MessageCircle, Mail, Globe, PenLine, Copy, Trash2, FolderPlus, Loader2 } from "lucide-react";
+import { Plus, Settings, MessageCircle, Mail, Globe, PenLine, Copy, Trash2, FolderPlus, Loader2, Share2, ExternalLink } from "lucide-react";
 
 type Lead = {
   id: string;
@@ -75,16 +75,42 @@ export default function MarketingLeads() {
   const [openNew, setOpenNew] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   const [selected, setSelected] = useState<Lead | null>(null);
+  const [webFormUrl, setWebFormUrl] = useState<string | null>(null);
 
   async function load() {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase.from("leads").select("*").order("created_at", { ascending: false });
+    const [{ data }, { data: tk }] = await Promise.all([
+      supabase.from("leads").select("*").order("created_at", { ascending: false }),
+      supabase.from("lead_intake_tokens").select("token, kind, active").eq("kind", "web_form").eq("active", true).order("created_at").limit(1),
+    ]);
     setLeads((data || []) as Lead[]);
+    const t = (tk || [])[0];
+    setWebFormUrl(t ? `${window.location.origin}/leads/new/${t.token}` : null);
     setLoading(false);
   }
 
   useEffect(() => { load(); }, [user?.id]);
+
+  async function ensureWebForm() {
+    if (webFormUrl) return webFormUrl;
+    if (!user?.id) return null;
+    const token = randomToken();
+    const { error } = await supabase.from("lead_intake_tokens").insert({
+      user_id: user.id, kind: "web_form", token, label: "Website form",
+    });
+    if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return null; }
+    const url = `${window.location.origin}/leads/new/${token}`;
+    setWebFormUrl(url);
+    return url;
+  }
+
+  async function shareForm() {
+    const url = await ensureWebForm();
+    if (!url) return;
+    await navigator.clipboard.writeText(url);
+    toast({ title: "Public form link copied", description: url });
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -123,7 +149,13 @@ export default function MarketingLeads() {
           <h1 className="font-serif text-4xl">Leads</h1>
           <p className="text-muted-foreground mt-1">Capture leads from WhatsApp, email, web form, or add them manually.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={shareForm}><Share2 className="w-4 h-4 mr-2" />Share public form</Button>
+          {webFormUrl && (
+            <Button variant="ghost" size="icon" asChild title="Open form">
+              <a href={webFormUrl} target="_blank" rel="noreferrer"><ExternalLink className="w-4 h-4" /></a>
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setOpenSettings(true)}><Settings className="w-4 h-4 mr-2" />Intake settings</Button>
           <Button onClick={() => setOpenNew(true)}><Plus className="w-4 h-4 mr-2" />New lead</Button>
         </div>
@@ -376,37 +408,65 @@ function IntakeSettingsDialog({ open, onOpenChange, userId }: { open: boolean; o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Intake settings</DialogTitle></DialogHeader>
         <div className="space-y-6">
           {(["web_form", "email", "whatsapp"] as const).map((kind) => {
             const items = tokens.filter((t) => t.kind === kind);
-            const label = kind === "web_form" ? "Public web form" : kind === "email" ? "Email forwarding" : "WhatsApp Business";
-            const help = kind === "web_form"
-              ? "Share this URL anywhere — submissions create leads instantly."
-              : kind === "email"
-                ? "Use the webhook URL in your email provider's inbound route (Resend/Mailgun). Token authenticates the request."
-                : "Paste the callback URL and verify token into your Meta WhatsApp Business app webhook config.";
+            const label = kind === "web_form" ? "Public web form" : kind === "email" ? "Email forwarding inbox" : "WhatsApp Business";
             return (
               <div key={kind} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">{label}</h3>
                   <Button size="sm" variant="outline" onClick={() => create(kind)}><Plus className="w-3 h-3 mr-1" />Generate token</Button>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">{help}</p>
+
+                {kind === "web_form" && (
+                  <p className="text-xs text-muted-foreground mb-3">Share this URL anywhere — submissions create leads instantly.</p>
+                )}
+                {kind === "email" && (
+                  <div className="text-xs text-muted-foreground mb-3 space-y-1">
+                    <p>Forward incoming inquiries to a Resend/Mailgun/SendGrid inbound route. Each email becomes a new lead automatically, validated for sender and subject.</p>
+                    <ol className="list-decimal pl-4 space-y-0.5 mt-1">
+                      <li>Generate a token below.</li>
+                      <li>In your email provider, create an inbound route that posts to the webhook URL.</li>
+                      <li>Use a recipient pattern like <code className="bg-muted px-1 rounded">leads+&lt;token&gt;@yourdomain.com</code> — the token is parsed from the address.</li>
+                    </ol>
+                  </div>
+                )}
+                {kind === "whatsapp" && (
+                  <p className="text-xs text-muted-foreground mb-3">Paste the callback URL and verify token into your Meta WhatsApp Business app webhook config.</p>
+                )}
+
                 {items.length === 0 ? (
                   <div className="text-xs text-muted-foreground">No tokens yet.</div>
                 ) : (
                   <div className="space-y-2">
-                    {items.map((t) => (
-                      <div key={t.id} className="flex items-center gap-2 text-xs bg-muted/40 rounded p-2">
-                        <code className="flex-1 truncate">{urlFor(t)}</code>
-                        <Badge variant={t.active ? "default" : "secondary"}>{t.active ? "Active" : "Off"}</Badge>
-                        <Button size="sm" variant="ghost" onClick={() => copy(kind === "web_form" ? `${origin}/leads/new/${t.token}` : t.token)}><Copy className="w-3 h-3" /></Button>
-                        <Button size="sm" variant="ghost" onClick={() => toggle(t)}>{t.active ? "Disable" : "Enable"}</Button>
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(t.id)}><Trash2 className="w-3 h-3" /></Button>
-                      </div>
-                    ))}
+                    {items.map((t) => {
+                      const webhookUrl = kind === "email" ? `${fnBase}/lead-intake-email` : kind === "whatsapp" ? `${fnBase}/lead-intake-whatsapp` : `${origin}/leads/new/${t.token}`;
+                      const sampleAddr = kind === "email" ? `leads+${t.token}@yourdomain.com` : null;
+                      return (
+                        <div key={t.id} className="space-y-1 bg-muted/40 rounded p-2">
+                          <div className="flex items-center gap-2 text-xs">
+                            <code className="flex-1 truncate" title={webhookUrl}>{webhookUrl}</code>
+                            <Badge variant={t.active ? "default" : "secondary"}>{t.active ? "Active" : "Off"}</Badge>
+                            <Button size="sm" variant="ghost" onClick={() => copy(webhookUrl)} title="Copy webhook URL"><Copy className="w-3 h-3" /></Button>
+                            <Button size="sm" variant="ghost" onClick={() => toggle(t)}>{t.active ? "Disable" : "Enable"}</Button>
+                            <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(t.id)}><Trash2 className="w-3 h-3" /></Button>
+                          </div>
+                          {sampleAddr && (
+                            <div className="flex items-center gap-2 text-xs pl-1">
+                              <span className="text-muted-foreground">Forward to:</span>
+                              <code className="flex-1 truncate">{sampleAddr}</code>
+                              <Button size="sm" variant="ghost" onClick={() => copy(sampleAddr)} title="Copy address"><Copy className="w-3 h-3" /></Button>
+                            </div>
+                          )}
+                          {kind !== "web_form" && (
+                            <div className="text-[10px] text-muted-foreground pl-1">Token: <code>{t.token}</code></div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
