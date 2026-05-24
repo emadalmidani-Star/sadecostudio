@@ -173,6 +173,7 @@ export default function AppLayout() {
           {!collapsed && (
             <div className="text-[11px] text-sidebar-foreground/50 px-3 truncate">{user?.email}</div>
           )}
+          <NotificationsBell collapsed={collapsed} />
           <Tooltip delayDuration={200}>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="sm" onClick={async () => { await signOut(); nav("/auth"); }}
