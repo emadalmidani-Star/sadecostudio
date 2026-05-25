@@ -59,6 +59,7 @@ export const FIELDS_BY_TYPE: Record<Template["page_type"], { field: string; kind
     { field: "company_name", kind: "text", label: "Company name" },
     { field: "contact", kind: "text", label: "Contact line" },
     { field: "logo", kind: "image", label: "Logo" },
+    { field: "profile_image", kind: "image", label: "Profile image" },
   ],
 };
 
