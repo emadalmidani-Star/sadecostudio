@@ -106,7 +106,7 @@ function resolveText(field: string, ctx: any): string {
 function resolveImageUrl(field: string, ctx: any): string | null {
   const { project: p, company: c, member: m } = ctx;
   if (field === "logo" || field === "company_logo") return c?.logo_url || null;
-  if (field === "member_photo") return m?.avatar_url || null;
+  if (field === "member_photo" || field === "profile_image") return m?.avatar_url || null;
   if (field === "qr_code") return ctx.qrDataUrl || null;
   if (field === "cover_image") return p?.cover_image || null;
   if (field === "category_image") return ctx.categoryImageUrl || null;
