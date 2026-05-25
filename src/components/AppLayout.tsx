@@ -113,7 +113,7 @@ export default function AppLayout() {
           )}
           <button
             onClick={() => setCollapsed(v => !v)}
-            className="p-1.5 rounded text-sidebar-foreground/60 hover:text-accent hover:bg-sidebar-accent/40"
+            className="p-1.5 text-sidebar-foreground/60 hover:text-accent hover:bg-sidebar-accent/40 rounded-md"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
