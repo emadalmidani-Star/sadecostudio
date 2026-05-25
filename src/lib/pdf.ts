@@ -290,7 +290,7 @@ function fitCenteredText(doc: jsPDF, text: string, cx: number, cy: number, maxW:
 export type CompanyFooterFields = { phone?: boolean; email?: boolean; website?: boolean; address?: boolean };
 async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, contact?: any, companyFields?: CompanyFooterFields) {
   doc.addPage();
-  if (tpl) { await renderTemplatePage(doc, tpl, { company, contact }); return; }
+  if (tpl) { await renderTemplatePage(doc, tpl, { company, contact, member: contact }); return; }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setFillColor(BRAND.ink); doc.rect(0, 0, W, H, "F");
 
