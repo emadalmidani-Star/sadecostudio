@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck, QrCode, Hammer, BarChart3, HardHat, PanelLeftClose, PanelLeftOpen, Search, UserCog, ChevronDown, Megaphone, LineChart, Target, Plug, Images, Inbox } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck, QrCode, Hammer, BarChart3, HardHat, PanelLeftClose, PanelLeftOpen, Search, UserCog, ChevronDown, Megaphone, LineChart, Target, Plug, Images, Inbox, Calendar, CalendarDays, PhoneCall, StickyNote } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole, PageKey } from "@/hooks/useUserRole";
 import logoWhite from "@/assets/sadeco-logo-white.png";
@@ -32,6 +32,10 @@ const links: Link[] = [
   { to: "/marketing/analytics", icon: LineChart, label: "Analytics", page: "marketing", group: "Marketing" },
   { to: "/marketing/competitors", icon: Target, label: "Competitors", page: "marketing", group: "Marketing" },
   { to: "/marketing/connections", icon: Plug, label: "Connections", page: "marketing", group: "Marketing" },
+  { to: "/meetings/scheduler", icon: Calendar, label: "Scheduler", page: "meetings", group: "Meetings" },
+  { to: "/meetings/dropin", icon: PhoneCall, label: "Drop-In", page: "meetings", group: "Meetings" },
+  { to: "/meetings/notes", icon: StickyNote, label: "Meeting Notes", page: "meetings", group: "Meetings" },
+  { to: "/meetings/upcoming", icon: CalendarDays, label: "Upcoming", page: "meetings", group: "Meetings" },
   { to: "/permissions", icon: ShieldCheck, label: "Permissions", adminOnly: true },
 ];
 

@@ -29,6 +29,13 @@ import MarketingCompetitors from "./pages/marketing/Competitors";
 import MarketingConnections from "./pages/marketing/Connections";
 import MarketingLeads from "./pages/marketing/Leads";
 import PublicLeadForm from "./pages/PublicLeadForm";
+import PublicBookMeeting from "./pages/public/BookMeeting";
+import PublicDropIn from "./pages/public/DropInRequest";
+import PublicMeetingNote from "./pages/public/MeetingNoteShare";
+import MeetingsScheduler from "./pages/meetings/Scheduler";
+import MeetingsDropIn from "./pages/meetings/DropIn";
+import MeetingsNotes from "./pages/meetings/Notes";
+import MeetingsUpcoming from "./pages/meetings/Upcoming";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +49,9 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/leads/new/:token" element={<PublicLeadForm />} />
+            <Route path="/book/:token" element={<PublicBookMeeting />} />
+            <Route path="/dropin/:token" element={<PublicDropIn />} />
+            <Route path="/notes/:token" element={<PublicMeetingNote />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/projects" element={<RoleRoute page="projects"><Projects /></RoleRoute>} />
@@ -65,6 +75,10 @@ const App = () => (
               <Route path="/marketing/competitors" element={<RoleRoute page="marketing"><MarketingCompetitors /></RoleRoute>} />
               <Route path="/marketing/connections" element={<RoleRoute page="marketing"><MarketingConnections /></RoleRoute>} />
               <Route path="/marketing/leads" element={<RoleRoute page="leads"><MarketingLeads /></RoleRoute>} />
+              <Route path="/meetings/scheduler" element={<RoleRoute page="meetings"><MeetingsScheduler /></RoleRoute>} />
+              <Route path="/meetings/dropin" element={<RoleRoute page="meetings"><MeetingsDropIn /></RoleRoute>} />
+              <Route path="/meetings/notes" element={<RoleRoute page="meetings"><MeetingsNotes /></RoleRoute>} />
+              <Route path="/meetings/upcoming" element={<RoleRoute page="meetings"><MeetingsUpcoming /></RoleRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
