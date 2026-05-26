@@ -98,6 +98,63 @@ export type Database = {
         }
         Relationships: []
       }
+      dropin_requests: {
+        Row: {
+          client_name: string
+          created_at: string
+          id: string
+          message: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_name: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_name?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      dropin_tokens: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          label: string | null
+          token: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          label?: string | null
+          token: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          label?: string | null
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       export_template_assignments: {
         Row: {
           export_kind: string
@@ -441,6 +498,156 @@ export type Database = {
         Update: {
           created_at?: string
           state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      meeting_availability: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          slot_minutes: number
+          start_time: string
+          timezone: string
+          updated_at: string
+          user_id: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          slot_minutes?: number
+          start_time: string
+          timezone?: string
+          updated_at?: string
+          user_id: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          slot_minutes?: number
+          start_time?: string
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+          weekday?: number
+        }
+        Relationships: []
+      }
+      meeting_booking_tokens: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          label: string | null
+          token: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          label?: string | null
+          token: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          label?: string | null
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      meeting_notes: {
+        Row: {
+          action_items: Json
+          attendees: Json
+          created_at: string
+          id: string
+          meeting_date: string | null
+          meeting_id: string | null
+          project_id: string | null
+          share_token: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_items?: Json
+          attendees?: Json
+          created_at?: string
+          id?: string
+          meeting_date?: string | null
+          meeting_id?: string | null
+          project_id?: string | null
+          share_token?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_items?: Json
+          attendees?: Json
+          created_at?: string
+          id?: string
+          meeting_date?: string | null
+          meeting_id?: string | null
+          project_id?: string | null
+          share_token?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      meetings: {
+        Row: {
+          client_email: string | null
+          client_name: string
+          created_at: string
+          duration_minutes: number
+          id: string
+          note: string | null
+          scheduled_at: string
+          source: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_email?: string | null
+          client_name: string
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          note?: string | null
+          scheduled_at: string
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_email?: string | null
+          client_name?: string
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          note?: string | null
+          scheduled_at?: string
+          source?: string
+          status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
