@@ -29,6 +29,13 @@ import MarketingCompetitors from "./pages/marketing/Competitors";
 import MarketingConnections from "./pages/marketing/Connections";
 import MarketingLeads from "./pages/marketing/Leads";
 import PublicLeadForm from "./pages/PublicLeadForm";
+import PublicBookMeeting from "./pages/public/BookMeeting";
+import PublicDropIn from "./pages/public/DropInRequest";
+import PublicMeetingNote from "./pages/public/MeetingNoteShare";
+import MeetingsScheduler from "./pages/meetings/Scheduler";
+import MeetingsDropIn from "./pages/meetings/DropIn";
+import MeetingsNotes from "./pages/meetings/Notes";
+import MeetingsUpcoming from "./pages/meetings/Upcoming";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
