@@ -49,6 +49,9 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/leads/new/:token" element={<PublicLeadForm />} />
+            <Route path="/book/:token" element={<PublicBookMeeting />} />
+            <Route path="/dropin/:token" element={<PublicDropIn />} />
+            <Route path="/notes/:token" element={<PublicMeetingNote />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/projects" element={<RoleRoute page="projects"><Projects /></RoleRoute>} />
