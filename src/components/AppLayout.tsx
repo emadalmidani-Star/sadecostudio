@@ -32,6 +32,10 @@ const links: Link[] = [
   { to: "/marketing/analytics", icon: LineChart, label: "Analytics", page: "marketing", group: "Marketing" },
   { to: "/marketing/competitors", icon: Target, label: "Competitors", page: "marketing", group: "Marketing" },
   { to: "/marketing/connections", icon: Plug, label: "Connections", page: "marketing", group: "Marketing" },
+  { to: "/meetings/scheduler", icon: Calendar, label: "Scheduler", page: "meetings", group: "Meetings" },
+  { to: "/meetings/dropin", icon: PhoneCall, label: "Drop-In", page: "meetings", group: "Meetings" },
+  { to: "/meetings/notes", icon: StickyNote, label: "Meeting Notes", page: "meetings", group: "Meetings" },
+  { to: "/meetings/upcoming", icon: CalendarDays, label: "Upcoming", page: "meetings", group: "Meetings" },
   { to: "/permissions", icon: ShieldCheck, label: "Permissions", adminOnly: true },
 ];
 
