@@ -50,6 +50,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/leads/new/:token" element={<PublicLeadForm />} />
             <Route path="/book/:token" element={<PublicBookMeeting />} />
+            <Route path="/u/:username" element={<PublicBookMeeting />} />
             <Route path="/dropin/:token" element={<PublicDropIn />} />
             <Route path="/notes/:token" element={<PublicMeetingNote />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
