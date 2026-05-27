@@ -14,20 +14,29 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const token = (url.searchParams.get("token") || "").trim();
-    if (!token) return json({ error: "token required" }, 400);
+    const username = (url.searchParams.get("username") || "").trim().toLowerCase();
+    if (!token && !username) return json({ error: "token or username required" }, 400);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data: tk } = await admin.from("meeting_booking_tokens").select("user_id, active").eq("token", token).maybeSingle();
-    if (!tk || !tk.active) return json({ error: "Invalid token" }, 401);
+
+    let userId: string | null = null;
+    if (token) {
+      const { data: tk } = await admin.from("meeting_booking_tokens").select("user_id, active").eq("token", token).maybeSingle();
+      if (!tk || !tk.active) return json({ error: "Invalid token" }, 401);
+      userId = tk.user_id;
+    } else {
+      const { data: p } = await admin.from("profiles").select("id").ilike("username", username).maybeSingle();
+      if (!p) return json({ error: "Unknown user" }, 404);
+      userId = p.id;
+    }
 
     const [{ data: avail }, { data: profile }, { data: company }, { data: bookings }] = await Promise.all([
-      admin.from("meeting_availability").select("weekday, start_time, end_time, slot_minutes").eq("user_id", tk.user_id),
-      admin.from("profiles").select("full_name").eq("id", tk.user_id).maybeSingle(),
+      admin.from("meeting_availability").select("weekday, start_time, end_time, slot_minutes").eq("user_id", userId),
+      admin.from("profiles").select("full_name, username").eq("id", userId).maybeSingle(),
       admin.from("company_profile").select("name, logo_url").limit(1).maybeSingle(),
-      admin.from("meetings").select("scheduled_at, duration_minutes, status").eq("user_id", tk.user_id).neq("status", "cancelled"),
+      admin.from("meetings").select("scheduled_at, duration_minutes, status").eq("user_id", userId).neq("status", "cancelled"),
     ]);
 
-    // Build next 14 days of slots
     const slots: { iso: string; label: string }[] = [];
     const now = new Date();
     const booked = new Set((bookings || []).map((b: any) => new Date(b.scheduled_at).toISOString()));
@@ -53,6 +62,7 @@ Deno.serve(async (req) => {
     return json({
       ok: true,
       designer: profile?.full_name || "",
+      username: profile?.username || null,
       company: company?.name || "",
       logo_url: company?.logo_url || null,
       slots,
