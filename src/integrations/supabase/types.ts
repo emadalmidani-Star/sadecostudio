@@ -610,6 +610,30 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_settings: {
+        Row: {
+          created_at: string
+          custom_link_template: string | null
+          updated_at: string
+          user_id: string
+          video_provider: string
+        }
+        Insert: {
+          created_at?: string
+          custom_link_template?: string | null
+          updated_at?: string
+          user_id: string
+          video_provider?: string
+        }
+        Update: {
+          created_at?: string
+          custom_link_template?: string | null
+          updated_at?: string
+          user_id?: string
+          video_provider?: string
+        }
+        Relationships: []
+      }
       meetings: {
         Row: {
           client_email: string | null
@@ -617,6 +641,7 @@ export type Database = {
           created_at: string
           duration_minutes: number
           id: string
+          meeting_url: string | null
           note: string | null
           scheduled_at: string
           source: string
@@ -630,6 +655,7 @@ export type Database = {
           created_at?: string
           duration_minutes?: number
           id?: string
+          meeting_url?: string | null
           note?: string | null
           scheduled_at: string
           source?: string
@@ -643,6 +669,7 @@ export type Database = {
           created_at?: string
           duration_minutes?: number
           id?: string
+          meeting_url?: string | null
           note?: string | null
           scheduled_at?: string
           source?: string
@@ -724,6 +751,7 @@ export type Database = {
           id: string
           job_title: string | null
           phone: string | null
+          username: string | null
           whatsapp: string | null
         }
         Insert: {
@@ -734,6 +762,7 @@ export type Database = {
           id: string
           job_title?: string | null
           phone?: string | null
+          username?: string | null
           whatsapp?: string | null
         }
         Update: {
@@ -744,6 +773,7 @@ export type Database = {
           id?: string
           job_title?: string | null
           phone?: string | null
+          username?: string | null
           whatsapp?: string | null
         }
         Relationships: []
