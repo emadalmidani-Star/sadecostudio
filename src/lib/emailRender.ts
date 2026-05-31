@@ -74,7 +74,7 @@ export function renderBlocks(tpl: EmailTemplate, ctx: RenderContext): string {
           return `<h${b.level || 1} style="margin:24px 0 12px;font-family:Georgia,serif;font-weight:600;font-size:${size}px;color:${p.text};line-height:1.25">${esc(interp(b.text, ctx))}</h${b.level || 1}>`;
         }
         case "text":
-          return `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:${p.text}">${esc(interp(b.text, ctx)).replaceAll("\n", "<br/>")}</p>`;
+          return `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:${p.text}">${esc(interp(b.text, ctx)).split("\n").join("<br/>")}</p>`;
         case "image":
           return `<div style="margin:20px 0;text-align:center"><img src="${esc(b.url)}" alt="${esc(b.alt || "")}" style="max-width:${b.width || 560}px;width:100%;height:auto;border-radius:4px;display:inline-block"/></div>`;
         case "button":
