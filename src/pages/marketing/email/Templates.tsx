@@ -1,0 +1,144 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
+import { Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { renderBlocks, defaultBlocks, type EmailBlock } from "@/lib/emailRender";
+
+export default function EmailTemplates() {
+  const { user } = useAuth();
+  const [list, setList] = useState<any[]>([]);
+  const [cur, setCur] = useState<any | null>(null);
+
+  async function load() {
+    const { data } = await supabase.from("email_templates").select("*").order("updated_at", { ascending: false });
+    setList(data || []);
+  }
+  useEffect(() => { load(); }, [user?.id]);
+
+  async function create(preset: "brand" | "minimal") {
+    if (!user) return;
+    const { data, error } = await supabase.from("email_templates").insert({
+      user_id: user.id, name: `New ${preset} template`, preset, subject: "Hello {{name}}", blocks: defaultBlocks(preset),
+    }).select().single();
+    if (error) return toast({ title: "Failed", description: error.message, variant: "destructive" });
+    setCur(data); load();
+  }
+
+  async function save() {
+    if (!cur) return;
+    const { error } = await supabase.from("email_templates").update({
+      name: cur.name, subject: cur.subject, preheader: cur.preheader, preset: cur.preset, blocks: cur.blocks,
+    }).eq("id", cur.id);
+    if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    else { toast({ title: "Saved" }); load(); }
+  }
+
+  async function del(id: string) {
+    await supabase.from("email_templates").delete().eq("id", id);
+    if (cur?.id === id) setCur(null);
+    load();
+  }
+
+  function updateBlock(i: number, patch: any) {
+    const blocks = [...cur.blocks]; blocks[i] = { ...blocks[i], ...patch }; setCur({ ...cur, blocks });
+  }
+  function move(i: number, dir: -1 | 1) {
+    const blocks = [...cur.blocks]; const j = i + dir; if (j < 0 || j >= blocks.length) return;
+    [blocks[i], blocks[j]] = [blocks[j], blocks[i]]; setCur({ ...cur, blocks });
+  }
+  function addBlock(type: EmailBlock["type"]) {
+    const defaults: Record<string, EmailBlock> = {
+      heading: { type: "heading", text: "Heading" },
+      text: { type: "text", text: "Some text…" },
+      image: { type: "image", url: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200&q=60" },
+      button: { type: "button", text: "Click me", url: "https://" },
+      divider: { type: "divider" },
+      spacer: { type: "spacer", height: 24 },
+    };
+    setCur({ ...cur, blocks: [...cur.blocks, defaults[type]] });
+  }
+  function removeBlock(i: number) {
+    const blocks = cur.blocks.filter((_: any, idx: number) => idx !== i); setCur({ ...cur, blocks });
+  }
+
+  const preview = cur && renderBlocks(cur, {
+    siteName: "Your Brand", logoUrl: null, physicalAddress: "123 Example St", unsubscribeUrl: "#", recipientName: "Jane",
+  });
+
+  return (
+    <div className="p-8 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-serif">Templates</h1>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => create("minimal")}><Plus className="w-4 h-4 mr-1" />Minimal</Button>
+          <Button size="sm" onClick={() => create("brand")}><Plus className="w-4 h-4 mr-1" />Brand</Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-3 space-y-2">
+          {list.map(t => (
+            <Card key={t.id} className={`cursor-pointer ${cur?.id === t.id ? "border-accent" : ""}`} onClick={() => setCur(t)}>
+              <CardContent className="p-3 flex items-center justify-between">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium truncate">{t.name}</div>
+                  <div className="text-xs text-muted-foreground">{t.preset}</div>
+                </div>
+                <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); del(t.id); }}><Trash2 className="w-3.5 h-3.5" /></Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {cur && (
+          <>
+            <div className="lg:col-span-5 space-y-3">
+              <div><Label>Name</Label><Input value={cur.name} onChange={e => setCur({ ...cur, name: e.target.value })} /></div>
+              <div><Label>Subject</Label><Input value={cur.subject || ""} onChange={e => setCur({ ...cur, subject: e.target.value })} /></div>
+              <div><Label>Preheader</Label><Input value={cur.preheader || ""} onChange={e => setCur({ ...cur, preheader: e.target.value })} /></div>
+              <div className="border rounded-md p-3 space-y-3">
+                {cur.blocks.map((b: any, i: number) => (
+                  <div key={i} className="border rounded p-2 space-y-2 bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">{b.type}</span>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => move(i, -1)}><ArrowUp className="w-3 h-3" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => move(i, 1)}><ArrowDown className="w-3 h-3" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => removeBlock(i)}><Trash2 className="w-3 h-3" /></Button>
+                      </div>
+                    </div>
+                    {b.type === "heading" && <Input value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} />}
+                    {b.type === "text" && <Textarea rows={3} value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} />}
+                    {b.type === "image" && <Input value={b.url} onChange={e => updateBlock(i, { url: e.target.value })} placeholder="Image URL" />}
+                    {b.type === "button" && (
+                      <>
+                        <Input value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} placeholder="Label" />
+                        <Input value={b.url} onChange={e => updateBlock(i, { url: e.target.value })} placeholder="URL" />
+                      </>
+                    )}
+                  </div>
+                ))}
+                <div className="flex flex-wrap gap-2 pt-2 border-t">
+                  {(["heading", "text", "image", "button", "divider", "spacer"] as const).map(t => (
+                    <Button key={t} size="sm" variant="outline" onClick={() => addBlock(t)}>+ {t}</Button>
+                  ))}
+                </div>
+              </div>
+              <Button onClick={save}>Save template</Button>
+            </div>
+            <div className="lg:col-span-4">
+              <Label>Preview</Label>
+              <iframe srcDoc={preview} className="w-full h-[700px] border rounded-md bg-white" title="preview" />
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
