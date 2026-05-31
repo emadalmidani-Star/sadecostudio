@@ -33,8 +33,8 @@ const esc = (s: string) =>
 
 const interp = (s: string, ctx: RenderContext) =>
   s
-    .replaceAll("{{name}}", esc(ctx.recipientName || "there"))
-    .replaceAll("{{site}}", esc(ctx.siteName || ""));
+    .split("{{name}}").join(esc(ctx.recipientName || "there"))
+    .split("{{site}}").join(esc(ctx.siteName || ""));
 
 const BRAND = {
   bg: "#0b0d10",
