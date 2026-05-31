@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck, QrCode, Hammer, BarChart3, HardHat, PanelLeftClose, PanelLeftOpen, Search, UserCog, ChevronDown, Megaphone, LineChart, Target, Plug, Images, Inbox, Calendar, CalendarDays, PhoneCall, StickyNote } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck, QrCode, Hammer, BarChart3, HardHat, PanelLeftClose, PanelLeftOpen, Search, UserCog, ChevronDown, Megaphone, LineChart, Target, Plug, Images, Inbox, Calendar, CalendarDays, PhoneCall, StickyNote, Mail, Users2, MailOpen, Send, Zap, FileType2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole, PageKey } from "@/hooks/useUserRole";
 import logoWhite from "@/assets/sadeco-logo-white.png";
@@ -32,6 +32,13 @@ const links: Link[] = [
   { to: "/marketing/analytics", icon: LineChart, label: "Analytics", page: "marketing", group: "Marketing" },
   { to: "/marketing/competitors", icon: Target, label: "Competitors", page: "marketing", group: "Marketing" },
   { to: "/marketing/connections", icon: Plug, label: "Connections", page: "marketing", group: "Marketing" },
+  { to: "/marketing/email/campaigns", icon: Send, label: "Campaigns", page: "email_marketing", group: "Email Marketing" },
+  { to: "/marketing/email/contacts", icon: Users2, label: "Contacts", page: "email_marketing", group: "Email Marketing" },
+  { to: "/marketing/email/lists", icon: Inbox, label: "Lists", page: "email_marketing", group: "Email Marketing" },
+  { to: "/marketing/email/templates", icon: FileType2, label: "Templates", page: "email_marketing", group: "Email Marketing" },
+  { to: "/marketing/email/automations", icon: Zap, label: "Automations", page: "email_marketing", group: "Email Marketing" },
+  { to: "/marketing/email/analytics", icon: MailOpen, label: "Analytics", page: "email_marketing", group: "Email Marketing" },
+  { to: "/marketing/email/sender", icon: Mail, label: "Sender", page: "email_marketing", group: "Email Marketing" },
   { to: "/meetings/scheduler", icon: Calendar, label: "Scheduler", page: "meetings", group: "Meetings" },
   { to: "/meetings/dropin", icon: PhoneCall, label: "Drop-In", page: "meetings", group: "Meetings" },
   { to: "/meetings/notes", icon: StickyNote, label: "Meeting Notes", page: "meetings", group: "Meetings" },
