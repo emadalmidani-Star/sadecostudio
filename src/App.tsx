@@ -87,6 +87,13 @@ const App = () => (
               <Route path="/meetings/dropin" element={<RoleRoute page="meetings"><MeetingsDropIn /></RoleRoute>} />
               <Route path="/meetings/notes" element={<RoleRoute page="meetings"><MeetingsNotes /></RoleRoute>} />
               <Route path="/meetings/upcoming" element={<RoleRoute page="meetings"><MeetingsUpcoming /></RoleRoute>} />
+              <Route path="/marketing/email/campaigns" element={<RoleRoute page="email_marketing"><EmailCampaigns /></RoleRoute>} />
+              <Route path="/marketing/email/contacts" element={<RoleRoute page="email_marketing"><EmailContacts /></RoleRoute>} />
+              <Route path="/marketing/email/lists" element={<RoleRoute page="email_marketing"><EmailLists /></RoleRoute>} />
+              <Route path="/marketing/email/templates" element={<RoleRoute page="email_marketing"><EmailTemplates /></RoleRoute>} />
+              <Route path="/marketing/email/automations" element={<RoleRoute page="email_marketing"><EmailAutomations /></RoleRoute>} />
+              <Route path="/marketing/email/analytics" element={<RoleRoute page="email_marketing"><EmailAnalytics /></RoleRoute>} />
+              <Route path="/marketing/email/sender" element={<RoleRoute page="email_marketing"><EmailSender /></RoleRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
