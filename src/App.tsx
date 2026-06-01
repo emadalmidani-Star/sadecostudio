@@ -36,6 +36,13 @@ import MeetingsScheduler from "./pages/meetings/Scheduler";
 import MeetingsDropIn from "./pages/meetings/DropIn";
 import MeetingsNotes from "./pages/meetings/Notes";
 import MeetingsUpcoming from "./pages/meetings/Upcoming";
+import EmailCampaigns from "./pages/marketing/email/Campaigns";
+import EmailContacts from "./pages/marketing/email/Contacts";
+import EmailLists from "./pages/marketing/email/Lists";
+import EmailTemplates from "./pages/marketing/email/Templates";
+import EmailAutomations from "./pages/marketing/email/Automations";
+import EmailAnalytics from "./pages/marketing/email/Analytics";
+import EmailSender from "./pages/marketing/email/Sender";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -80,6 +87,13 @@ const App = () => (
               <Route path="/meetings/dropin" element={<RoleRoute page="meetings"><MeetingsDropIn /></RoleRoute>} />
               <Route path="/meetings/notes" element={<RoleRoute page="meetings"><MeetingsNotes /></RoleRoute>} />
               <Route path="/meetings/upcoming" element={<RoleRoute page="meetings"><MeetingsUpcoming /></RoleRoute>} />
+              <Route path="/marketing/email/campaigns" element={<RoleRoute page="email_marketing"><EmailCampaigns /></RoleRoute>} />
+              <Route path="/marketing/email/contacts" element={<RoleRoute page="email_marketing"><EmailContacts /></RoleRoute>} />
+              <Route path="/marketing/email/lists" element={<RoleRoute page="email_marketing"><EmailLists /></RoleRoute>} />
+              <Route path="/marketing/email/templates" element={<RoleRoute page="email_marketing"><EmailTemplates /></RoleRoute>} />
+              <Route path="/marketing/email/automations" element={<RoleRoute page="email_marketing"><EmailAutomations /></RoleRoute>} />
+              <Route path="/marketing/email/analytics" element={<RoleRoute page="email_marketing"><EmailAnalytics /></RoleRoute>} />
+              <Route path="/marketing/email/sender" element={<RoleRoute page="email_marketing"><EmailSender /></RoleRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
