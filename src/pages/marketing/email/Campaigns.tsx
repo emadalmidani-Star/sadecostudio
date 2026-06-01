@@ -9,13 +9,16 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Send, Calendar, Trash2 } from "lucide-react";
+import { Plus, Send, Calendar, Trash2, Mail } from "lucide-react";
 
 export default function EmailCampaigns() {
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [lists, setLists] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
+  const [testOpen, setTestOpen] = useState<string | null>(null);
+  const [testEmail, setTestEmail] = useState("");
+  const [testing, setTesting] = useState(false);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>({ name: "", list_id: "", template_id: "", subject: "" });
 
@@ -58,6 +61,21 @@ export default function EmailCampaigns() {
   async function del(id: string) {
     await supabase.from("email_campaigns").delete().eq("id", id);
     load();
+  }
+
+  async function sendTest(campaignId: string) {
+    if (!testEmail.trim()) { toast({ title: "Enter at least one email", variant: "destructive" }); return; }
+    setTesting(true);
+    const { data, error } = await supabase.functions.invoke("email-campaign-test", {
+      body: { campaignId, recipients: testEmail.split(/[,\s;]+/).map(s => s.trim()).filter(Boolean) },
+    });
+    setTesting(false);
+    if (error || data?.error) {
+      toast({ title: "Test failed", description: data?.error || error?.message, variant: "destructive" });
+    } else {
+      toast({ title: `Test sent: ${data?.sent || 0} / ${data?.total || 0}`, description: data?.errors?.length ? data.errors.join("\n") : undefined });
+      setTestOpen(null); setTestEmail("");
+    }
   }
 
   return (
