@@ -132,6 +132,23 @@ export default function EmailCampaigns() {
         ))}
         {!campaigns.length && <p className="text-sm text-muted-foreground">No campaigns yet.</p>}
       </div>
+
+      <Dialog open={!!testOpen} onOpenChange={(o) => { if (!o) { setTestOpen(null); setTestEmail(""); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Send test email</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Sends the campaign template to test recipients only — no contacts on your list are affected. Max 5 addresses, comma-separated.</p>
+            <div>
+              <Label>Recipients</Label>
+              <Input value={testEmail} onChange={e => setTestEmail(e.target.value)} placeholder="you@example.com, teammate@example.com" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setTestOpen(null); setTestEmail(""); }}>Cancel</Button>
+            <Button onClick={() => testOpen && sendTest(testOpen)} disabled={testing || !testEmail.trim()}>{testing ? "Sending…" : "Send test"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
