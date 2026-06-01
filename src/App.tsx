@@ -36,6 +36,13 @@ import MeetingsScheduler from "./pages/meetings/Scheduler";
 import MeetingsDropIn from "./pages/meetings/DropIn";
 import MeetingsNotes from "./pages/meetings/Notes";
 import MeetingsUpcoming from "./pages/meetings/Upcoming";
+import EmailCampaigns from "./pages/marketing/email/Campaigns";
+import EmailContacts from "./pages/marketing/email/Contacts";
+import EmailLists from "./pages/marketing/email/Lists";
+import EmailTemplates from "./pages/marketing/email/Templates";
+import EmailAutomations from "./pages/marketing/email/Automations";
+import EmailAnalytics from "./pages/marketing/email/Analytics";
+import EmailSender from "./pages/marketing/email/Sender";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
