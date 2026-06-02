@@ -35,3 +35,12 @@ verify_jwt = false
 
 [functions.email-automation-tick]
 verify_jwt = false
+
+[functions.whatsapp-webhook]
+verify_jwt = false
+
+[functions.whatsapp-campaign-tick]
+verify_jwt = false
+
+[functions.whatsapp-automation-tick]
+verify_jwt = false

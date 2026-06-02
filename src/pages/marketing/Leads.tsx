@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Settings, MessageCircle, Mail, Globe, PenLine, Copy, Trash2, FolderPlus, Loader2, Share2, ExternalLink } from "lucide-react";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 type Lead = {
   id: string;
@@ -336,7 +337,7 @@ function LeadDetail({ lead, onClose, onChangeStage, onDelete, onConvert }: {
           </div>
           {lead.company && <div><Label className="text-xs">Company</Label><div className="text-sm">{lead.company}</div></div>}
           {lead.email && <div><Label className="text-xs">Email</Label><div className="text-sm"><a className="text-accent underline" href={`mailto:${lead.email}`}>{lead.email}</a></div></div>}
-          {lead.phone && <div><Label className="text-xs">Phone</Label><div className="text-sm">{lead.phone}</div></div>}
+          {lead.phone && <div><Label className="text-xs">Phone</Label><div className="text-sm flex items-center gap-2"><span>{lead.phone}</span><WhatsAppButton phone={lead.phone} contactName={lead.name} /></div></div>}
           {lead.message && <div><Label className="text-xs">Message</Label><div className="text-sm whitespace-pre-wrap bg-muted/40 p-3 rounded">{lead.message}</div></div>}
           <div>
             <Label className="text-xs">Stage</Label>
