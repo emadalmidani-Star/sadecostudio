@@ -1,74 +1,113 @@
-# Meetings Section Plan
 
-A solid, cohesive addition — it reuses patterns already in the app (public token links like `PublicLeadForm`, realtime notifications like `NotificationsBell`, RoleRoute gating, dark sidebar + gold accent). Below is what I'd build.
+# WhatsApp Messaging Suite
+
+A new Marketing → WhatsApp module that mirrors the Email Marketing suite, with two sender modes:
+
+- **Business** — Meta WhatsApp Cloud API (verified business number). Used for broadcasts, automations, system notifications, and the shared inbox.
+- **Personal** — `wa.me` click-to-chat links. Used when a team member wants to message a client from their own phone (no automation possible, one tap per message).
+
+## What you need from Meta (one-time setup)
+
+Before automation works, you (or Sadeco) must complete these on Meta:
+
+1. Create a **Meta Business account** + **Meta App** (type: Business).
+2. Add the **WhatsApp** product, register a **business phone number**, and verify it.
+3. Get a **System User permanent access token** and the **Phone Number ID** + **WhatsApp Business Account ID**.
+4. Approve a few **message templates** (required for sending outside a 24h conversation window — used for marketing/notifications).
+5. Configure the webhook URL (we'll generate it) so inbound messages and delivery statuses flow back.
+
+I'll store the access token, phone-number ID, WABA ID, and a webhook verify token as project secrets and walk you through Meta setup step-by-step.
 
 ## Scope
 
-Add a **Meetings** group to the sidebar with 4 routes:
-- `/meetings/scheduler` — set weekly availability, copy public booking link, see bookings
-- `/meetings/dropin` — copy public drop-in link, live request inbox (Accept/Decline)
-- `/meetings/notes` — meeting notes with action items + shareable read-only link
-- `/meetings/upcoming` — week + next-week calendar, gold = Scheduled, green = Drop-In
+### 1. Sender configuration (`/marketing/whatsapp/sender`)
+- Connect/disconnect Meta Cloud API
+- Show registered phone number, display name, quality rating
+- Webhook URL + verify token to paste into Meta
+- Sync approved templates from Meta (name, language, category, body, variables)
 
-Plus 3 public (no-login) pages:
-- `/book/:token` — client picks a slot, enters name/email/note
-- `/dropin/:token` — client sends quick call request
-- `/notes/:token` — read-only meeting notes share
+### 2. Contacts (`/marketing/whatsapp/contacts`)
+- Reuse `email_contacts` + add `whatsapp_contacts` (phone E.164, opt-in status, tags, source)
+- Auto-sync from leads with phone numbers (trigger like the email one)
+- Import CSV, manual add, lists/segments
+- Opt-out tracking (any "STOP" reply marks unsubscribed)
 
-All public pages render the company logo from `company_profile` and the SADECO dark + gold theme.
+### 3. Lists & segments (`/marketing/whatsapp/lists`)
+Same model as email lists, separate table.
 
-## Database (Supabase migration)
+### 4. Broadcasts (`/marketing/whatsapp/campaigns`)
+- Pick an **approved template** + fill variables (per-contact merge tags like `{{name}}`)
+- Choose list/segment, schedule send time
+- Test send to your own number
+- Per-recipient status (sent / delivered / read / failed) via webhook
+- Rate-limited send loop (Meta tier-based; start at 250 msgs/24h)
 
-New tables, all with RLS scoped to `auth.uid() = user_id` for owner access, plus narrow public read paths via edge functions where needed.
+### 5. Automations (`/marketing/whatsapp/automations`)
+Trigger-based flows, same engine as email automations:
+- Triggers: new lead with phone, meeting booked, meeting accepted (drop-in), project status changed, manual tag added
+- Action: send approved template, wait N hours, send follow-up
+- Per-step delivery log
 
-- **`meeting_availability`** — `user_id`, `weekday` (0–6), `start_time`, `end_time`, `slot_minutes` (default 30), `timezone`. Owner CRUD.
-- **`meeting_booking_tokens`** — `user_id`, `token` (unique), `label`, `active`. Owner CRUD; public lookup via edge function.
-- **`meetings`** — `user_id`, `client_name`, `client_email`, `note`, `scheduled_at`, `duration_minutes`, `status` (`upcoming|completed|cancelled`), `source` (`scheduled|dropin`), `created_at`. Owner CRUD; public insert via edge function.
-- **`dropin_tokens`** — `user_id`, `token`, `active`. Owner CRUD.
-- **`dropin_requests`** — `user_id`, `client_name`, `message`, `status` (`pending|accepted|declined`), `created_at`. Owner CRUD; public insert via edge function. Added to `supabase_realtime` publication.
-- **`meeting_notes`** — `user_id`, `meeting_id` (nullable), `project_id` (nullable), `title`, `meeting_date`, `attendees` (jsonb array), `summary`, `action_items` (jsonb: `[{text, done, assignee}]`), `share_token` (nullable unique). Owner CRUD; public read via edge function when `share_token` matches.
+### 6. 1-to-1 Inbox (`/marketing/whatsapp/inbox`)
+- Conversations list (last message, unread count)
+- Thread view with full history (in/out, media, status icons)
+- Reply box — free-form text allowed inside 24h customer service window; outside, must pick template
+- Realtime updates via Supabase channel as webhook writes new messages
 
-Validation triggers (not CHECK constraints) for status/source enums, per project convention. GRANTs to `authenticated` + `service_role` on every table; no `anon` grants (public access goes through edge functions using service role).
+### 7. Click-to-chat (personal number mode)
+- Each user can set a personal WhatsApp number in **My Profile** (already exists)
+- Anywhere we show a lead/client with a phone, add a "WhatsApp on my phone" button that opens `https://wa.me/<phone>?text=<prefilled>`
+- Optional **personal templates** library (saved snippets) the user can pick before the link opens — no API call, just URL-encoded text
 
-Notifications: reuse the existing `notifications` table — insert a row on new booking, new drop-in request, and on Accept/Decline events so `NotificationsBell` lights up.
+### 8. Notifications wiring (using Business sender)
+Opt-in toggles to auto-send WhatsApp templates for:
+- Booking confirmation to client
+- Drop-in accepted
+- Project status change to client contact
 
-## Edge functions (public, `verify_jwt = false`, zod validation)
+## Database changes
 
-- `booking-availability` — GET slots for a token: reads owner's `meeting_availability` + existing `meetings` to compute free slots for the next 14 days.
-- `booking-create` — POST `{token, slot_iso, client_name, client_email, note}`; inserts `meetings` row with `status=upcoming`, `source=scheduled`; inserts notification.
-- `dropin-create` — POST `{token, client_name, message}`; inserts `dropin_requests`; realtime fires to designer.
-- `meeting-note-public` — GET `?token=...` returns a single read-only note.
+New tables (all with RLS scoped to `user_id`/org):
 
-All use service role server-side, validate input length/format, and never expose other users' data.
+- `whatsapp_sender_config` — token ref, phone_number_id, waba_id, display name, verify token, status
+- `whatsapp_templates` — synced from Meta (name, language, category, body, vars, status)
+- `whatsapp_contacts` — phone E.164, name, status (subscribed/unsubscribed/blocked), tags, source, lead_id
+- `whatsapp_lists` + `whatsapp_list_members`
+- `whatsapp_campaigns` — template_id, list_id, variables_map, schedule, status, stats
+- `whatsapp_sends` — per-recipient: campaign_id, contact_id, wa_message_id, status, error, timestamps
+- `whatsapp_automations` + `whatsapp_automation_steps` + `whatsapp_automation_runs`
+- `whatsapp_conversations` + `whatsapp_messages` (for inbox: direction, body, media_url, template_name, status, wa_message_id)
 
-## Frontend
+Plus a trigger to mirror leads with phones into `whatsapp_contacts` (parallel to existing email sync).
 
-**Sidebar (`AppLayout.tsx`)** — add a Meetings group (Calendar icon) gated by a new `meetings` page key in `RoleRoute`/`role_page_permissions`. Children use existing `NavLink` styling so the dark + gold treatment is automatic.
+## Edge functions
 
-**Pages (`src/pages/meetings/`)**
-- `Scheduler.tsx` — weekly grid editor (7 rows × time inputs), slot length selector, "Copy booking link" button, bookings table with status pills (gold = upcoming, green = completed, muted = cancelled) + Complete/Cancel actions.
-- `DropIn.tsx` — copy link card + live list (subscribes to `dropin_requests` via `supabase.channel`). Each card has Accept (reveals designer's WhatsApp from `profiles.whatsapp` + `wa.me` deep link) and Decline.
-- `Notes.tsx` — card grid; create/edit drawer with title, date, project select (from `projects`), attendees chips, summary textarea, action-items list with checkbox + assignee input; per-card Share toggle generates `share_token` and copies `/notes/:token`.
-- `Upcoming.tsx` — two-week calendar view, color-coded dots (gold/green), click to Complete/Cancel.
+- `whatsapp-send` — sends a single template/text message via Meta Cloud API
+- `whatsapp-campaign-tick` — cron every minute; picks scheduled campaigns and dispatches batches respecting tier rate limit
+- `whatsapp-campaign-send` — fans out a campaign across its list
+- `whatsapp-campaign-test` — send to a test number
+- `whatsapp-automation-tick` — cron every 5 min; advances automation runs
+- `whatsapp-webhook` — public endpoint Meta calls:
+  - GET → verify handshake using stored verify token
+  - POST → inbound messages, status updates, opt-outs → write to `whatsapp_messages` / update `whatsapp_sends`
+- `whatsapp-templates-sync` — pulls approved templates from Meta on demand
 
-**Public pages (`src/pages/public/`)**
-- `BookMeeting.tsx` — fetches availability via edge function, shows date+slot picker, form, success state. Header shows company logo.
-- `DropInRequest.tsx` — single form, success state.
-- `MeetingNoteShare.tsx` — read-only rendering with checkboxes disabled.
+## Secrets to add (after Meta setup)
 
-All client-facing pages reuse the same dark background, gold primary buttons, and `company_profile.logo_url` header treatment used in `PublicLeadForm`.
+`WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_WABA_ID`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` (for webhook signature verification).
 
-**Routes (`App.tsx`)** — public routes outside `ProtectedRoute`, authed routes inside it under `RoleRoute page="meetings"`.
+## Out of scope (v1)
 
-## Real-time
+- Bot/AI auto-replies (can add later via Lovable AI)
+- Voice/video calling
+- Multi-business-number (one WABA number for v1; click-to-chat covers personal mixing)
+- WhatsApp Pay / catalog / flows
 
-`ALTER PUBLICATION supabase_realtime ADD TABLE public.dropin_requests, public.meetings, public.notifications;` so the drop-in inbox, upcoming calendar, and bell update live.
+## Phased delivery
 
-## What I'd flag
+1. **Phase 1 — foundation**: Sender setup, webhook, template sync, contacts + lists, click-to-chat buttons across leads/projects.
+2. **Phase 2 — broadcasts**: Campaigns + test send + sends log + rate-limited cron.
+3. **Phase 3 — automations + notifications wiring**.
+4. **Phase 4 — 1-to-1 inbox** with realtime.
 
-- **Time zones**: scheduler uses the designer's timezone (stored on availability); the public booker shows slots in the client's local TZ with the designer's TZ labeled. Worth being explicit.
-- **No email/calendar invites** in v1 — bookings live only in-app + notifications bell. Easy to add later via a transactional email function if you want.
-- **WhatsApp reveal on Accept** assumes the designer has `whatsapp` set on their profile; if missing, the Accept dialog will prompt them to add it on `/me`.
-- **Role permissions**: I'll add `meetings` to `role_page_permissions` defaulting to allowed for `admin` and `user`; admins can tune in `/permissions`.
-
-Ready to build this in one pass on approval.
+Confirm and I'll start with Phase 1 (and walk you through the Meta setup before asking for the secrets).
