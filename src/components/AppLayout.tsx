@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck, QrCode, Hammer, BarChart3, HardHat, PanelLeftClose, PanelLeftOpen, Search, UserCog, ChevronDown, Megaphone, LineChart, Target, Plug, Images, Inbox, Calendar, CalendarDays, PhoneCall, StickyNote, Mail, Users2, MailOpen, Send, Zap, FileType2 } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Building2, FileText, LogOut, Users, LayoutTemplate, UserCircle2, ShieldCheck, QrCode, Hammer, BarChart3, HardHat, PanelLeftClose, PanelLeftOpen, Search, UserCog, ChevronDown, Megaphone, LineChart, Target, Plug, Images, Inbox, Calendar, CalendarDays, PhoneCall, StickyNote, Mail, Users2, MailOpen, Send, Zap, FileType2, MessageCircle, MessagesSquare, Bookmark } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole, PageKey } from "@/hooks/useUserRole";
 import logoWhite from "@/assets/sadeco-logo-white.png";
@@ -39,6 +39,14 @@ const links: Link[] = [
   { to: "/marketing/email/automations", icon: Zap, label: "Automations", page: "email_marketing", group: "Email Marketing" },
   { to: "/marketing/email/analytics", icon: MailOpen, label: "Analytics", page: "email_marketing", group: "Email Marketing" },
   { to: "/marketing/email/sender", icon: Mail, label: "Sender", page: "email_marketing", group: "Email Marketing" },
+  { to: "/marketing/whatsapp/campaigns", icon: Send, label: "Campaigns", page: "whatsapp", group: "WhatsApp" },
+  { to: "/marketing/whatsapp/inbox", icon: MessagesSquare, label: "Inbox", page: "whatsapp", group: "WhatsApp" },
+  { to: "/marketing/whatsapp/contacts", icon: Users2, label: "Contacts", page: "whatsapp", group: "WhatsApp" },
+  { to: "/marketing/whatsapp/lists", icon: Inbox, label: "Lists", page: "whatsapp", group: "WhatsApp" },
+  { to: "/marketing/whatsapp/templates", icon: FileType2, label: "Templates", page: "whatsapp", group: "WhatsApp" },
+  { to: "/marketing/whatsapp/automations", icon: Zap, label: "Automations", page: "whatsapp", group: "WhatsApp" },
+  { to: "/marketing/whatsapp/snippets", icon: Bookmark, label: "Snippets", page: "whatsapp", group: "WhatsApp" },
+  { to: "/marketing/whatsapp/sender", icon: MessageCircle, label: "Sender", page: "whatsapp", group: "WhatsApp" },
   { to: "/meetings/scheduler", icon: Calendar, label: "Scheduler", page: "meetings", group: "Meetings" },
   { to: "/meetings/dropin", icon: PhoneCall, label: "Drop-In", page: "meetings", group: "Meetings" },
   { to: "/meetings/notes", icon: StickyNote, label: "Meeting Notes", page: "meetings", group: "Meetings" },
