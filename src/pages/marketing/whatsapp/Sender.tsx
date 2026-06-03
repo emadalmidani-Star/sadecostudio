@@ -17,6 +17,7 @@ type Cfg = {
   quality_rating: string | null;
   verify_token: string;
   status: string;
+  access_token: string | null;
   last_synced_at: string | null;
 };
 
@@ -70,7 +71,8 @@ export default function WhatsAppSender() {
         waba_id: cfg.waba_id,
         display_phone: cfg.display_phone,
         display_name: cfg.display_name,
-        status: cfg.phone_number_id && cfg.waba_id ? "connected" : "disconnected",
+        access_token: cfg.access_token,
+        status: cfg.phone_number_id && cfg.waba_id && cfg.access_token ? "connected" : "disconnected",
       })
       .eq("user_id", cfg.user_id);
     setSaving(false);
@@ -163,7 +165,8 @@ export default function WhatsAppSender() {
               <code>messages</code> events.
             </li>
             <li>
-              Give the permanent access token to me (I'll store it as <code>WHATSAPP_ACCESS_TOKEN</code> secret).
+              Generate a <strong>permanent access token</strong> for that System User and paste it below — it's stored
+              privately on your account and only your sender uses it.
             </li>
             <li>Paste your Phone Number ID and WhatsApp Business Account ID below and save.</li>
             <li>Click "Sync templates" to pull approved templates from Meta.</li>
@@ -187,6 +190,18 @@ export default function WhatsAppSender() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div>
+            <Label>Permanent access token</Label>
+            <Input
+              type="password"
+              value={cfg.access_token || ""}
+              onChange={(e) => setCfg({ ...cfg, access_token: e.target.value })}
+              placeholder="EAAG... (only you can see this)"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Stored privately on your account. Each user connects their own number.
+            </p>
+          </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
               <Label>Phone Number ID</Label>
