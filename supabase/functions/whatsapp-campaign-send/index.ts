@@ -26,9 +26,6 @@ function fillVars(map: Record<string, string>, contact: any): string[] {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-    if (!accessToken) return json({ error: "WHATSAPP_ACCESS_TOKEN not configured" }, 500);
-
     const { campaign_id } = await req.json().catch(() => ({}));
     if (!campaign_id) return json({ error: "campaign_id required" }, 400);
 
@@ -39,13 +36,14 @@ Deno.serve(async (req) => {
 
     const { data: cfg } = await admin
       .from("whatsapp_sender_config")
-      .select("phone_number_id")
+      .select("phone_number_id, access_token")
       .eq("user_id", c.user_id)
       .maybeSingle();
-    if (!cfg?.phone_number_id) {
+    if (!cfg?.phone_number_id || !cfg?.access_token) {
       await admin.from("whatsapp_campaigns").update({ status: "failed" }).eq("id", campaign_id);
-      return json({ error: "Sender not configured" }, 400);
+      return json({ error: "Sender not configured (missing phone number ID or access token)" }, 400);
     }
+    const accessToken = cfg.access_token;
 
     // Mark sending
     if (c.status !== "sending") {

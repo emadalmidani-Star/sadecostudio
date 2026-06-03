@@ -13,9 +13,6 @@ const json = (b: any, s = 200) =>
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-    if (!accessToken) return json({ error: "WHATSAPP_ACCESS_TOKEN not configured" }, 500);
-
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
     const anon = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -40,10 +37,12 @@ Deno.serve(async (req) => {
 
     const { data: cfg } = await admin
       .from("whatsapp_sender_config")
-      .select("phone_number_id")
+      .select("phone_number_id, access_token")
       .eq("user_id", userId)
       .maybeSingle();
-    if (!cfg?.phone_number_id) return json({ error: "Sender not configured" }, 400);
+    if (!cfg?.phone_number_id || !cfg?.access_token)
+      return json({ error: "Sender not configured (missing phone number ID or access token)" }, 400);
+    const accessToken = cfg.access_token;
 
     const map = (c.variables_map as Record<string, string>) || {};
     const keys = Object.keys(map).sort((a, b) => Number(a) - Number(b));
