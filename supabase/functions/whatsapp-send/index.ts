@@ -65,16 +65,12 @@ export async function sendWhatsApp({
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-    if (!accessToken) return json({ error: "WHATSAPP_ACCESS_TOKEN is not configured" }, 500);
-
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const body = await req.json().catch(() => ({}));
     const { to, template, text, user_id } = body || {};
     if (!to || (!template && !text)) return json({ error: "to + (template|text) required" }, 400);
 
-    // Resolve user — use provided user_id, else from JWT
     let userId = user_id;
     if (!userId) {
       const authHeader = req.headers.get("Authorization");
@@ -90,11 +86,12 @@ Deno.serve(async (req) => {
 
     const { data: cfg } = await admin.from("whatsapp_sender_config").select("*").eq("user_id", userId).maybeSingle();
     if (!cfg?.phone_number_id) return json({ error: "WhatsApp sender not configured" }, 400);
+    if (!cfg?.access_token) return json({ error: "Access token not set in WhatsApp Sender" }, 400);
 
     const cleanTo = String(to).replace(/\D/g, "");
     const msgId = await sendWhatsApp({
       phoneNumberId: cfg.phone_number_id,
-      accessToken,
+      accessToken: cfg.access_token,
       to: cleanTo,
       template,
       text,

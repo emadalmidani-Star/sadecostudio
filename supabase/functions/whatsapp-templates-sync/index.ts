@@ -12,9 +12,6 @@ const json = (b: any, s = 200) =>
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const token = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-    if (!token) return json({ error: "WHATSAPP_ACCESS_TOKEN not configured" }, 500);
-
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
     const anon = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -25,12 +22,17 @@ Deno.serve(async (req) => {
     if (!userId) return json({ error: "Unauthorized" }, 401);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data: cfg } = await admin.from("whatsapp_sender_config").select("waba_id").eq("user_id", userId).maybeSingle();
+    const { data: cfg } = await admin
+      .from("whatsapp_sender_config")
+      .select("waba_id, access_token")
+      .eq("user_id", userId)
+      .maybeSingle();
     if (!cfg?.waba_id) return json({ error: "WhatsApp Business Account ID not set" }, 400);
+    if (!cfg?.access_token) return json({ error: "Access token not set in WhatsApp Sender" }, 400);
 
     const r = await fetch(
       `https://graph.facebook.com/v20.0/${cfg.waba_id}/message_templates?limit=200&fields=name,language,status,category,components`,
-      { headers: { Authorization: `Bearer ${token}` } },
+      { headers: { Authorization: `Bearer ${cfg.access_token}` } },
     );
     const data = await r.json();
     if (!r.ok) return json({ error: data?.error?.message || "Meta API error" }, 500);
