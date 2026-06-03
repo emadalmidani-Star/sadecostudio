@@ -8,12 +8,6 @@ const corsHeaders = {
 };
 
 Deno.serve(async (_req) => {
-  const accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-  if (!accessToken) {
-    return new Response(JSON.stringify({ skipped: "no token" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const nowIso = new Date().toISOString();
 
@@ -78,7 +72,7 @@ Deno.serve(async (_req) => {
     }
     const { data: cfg } = await admin
       .from("whatsapp_sender_config")
-      .select("phone_number_id")
+      .select("phone_number_id, access_token")
       .eq("user_id", run.user_id)
       .maybeSingle();
     const { data: contact } = await admin
@@ -86,7 +80,7 @@ Deno.serve(async (_req) => {
       .select("phone, name, status")
       .eq("id", run.contact_id)
       .maybeSingle();
-    if (!cfg?.phone_number_id || !contact || contact.status !== "subscribed") {
+    if (!cfg?.phone_number_id || !cfg?.access_token || !contact || contact.status !== "subscribed") {
       await admin.from("whatsapp_automation_runs").update({ status: "skipped" }).eq("id", run.id);
       continue;
     }
@@ -98,7 +92,7 @@ Deno.serve(async (_req) => {
       );
       const msgId = await sendWhatsApp({
         phoneNumberId: cfg.phone_number_id,
-        accessToken,
+        accessToken: cfg.access_token,
         to: contact.phone,
         template: { name: step.template_name, language: step.template_language || "en", variables: vars },
       });
