@@ -1887,6 +1887,7 @@ export type Database = {
       }
       whatsapp_sender_config: {
         Row: {
+          access_token: string | null
           created_at: string
           display_name: string | null
           display_phone: string | null
@@ -1900,6 +1901,7 @@ export type Database = {
           waba_id: string | null
         }
         Insert: {
+          access_token?: string | null
           created_at?: string
           display_name?: string | null
           display_phone?: string | null
@@ -1913,6 +1915,7 @@ export type Database = {
           waba_id?: string | null
         }
         Update: {
+          access_token?: string | null
           created_at?: string
           display_name?: string | null
           display_phone?: string | null
