@@ -583,24 +583,29 @@ async function addCategoryCover(doc: jsPDF, type: string, count: number, image: 
     let size = 28;
     let charSpace = 4;
     doc.setFontSize(size);
-    const fits = () => (doc.getTextWidth(title) + charSpace * Math.max(0, title.length - 1)) <= maxW;
+    const widthOf = () => doc.getTextWidth(title) + charSpace * Math.max(0, title.length - 1);
+    const fits = () => widthOf() <= maxW;
     // First: tighten letter spacing all the way to 0.
     while (!fits() && charSpace > 0) { charSpace = Math.max(0, charSpace - 0.5); }
     // Then: shrink font size down to 8pt if still overflowing.
     while (!fits() && size > 8) { size -= 1; doc.setFontSize(size); }
-    // Final safety: clamp negative spacing so very long titles never run off the page.
     if (!fits()) { charSpace = 0; }
-    doc.text(title, W / 2, cy, { align: "center", charSpace, maxWidth: maxW });
 
+    // jsPDF's align:center does NOT account for charSpace, so center manually.
+    const tw = widthOf();
+    doc.text(title, W / 2 - tw / 2, cy, { charSpace });
 
     // Thin accent rule under the title for visual anchor.
     doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.4);
     doc.line(W / 2 - 18, cy + 6, W / 2 + 18, cy + 6);
 
-    // Optional small caption with project count
+    // Optional small caption with project count (also manually centered for charSpace).
     if (count > 0) {
       doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#cccccc");
-      doc.text(`${count} PROJECT${count === 1 ? "" : "S"}`, W / 2, cy + 14, { align: "center", charSpace: 3 });
+      const cap = `${count} PROJECT${count === 1 ? "" : "S"}`;
+      const capCs = 3;
+      const capW = doc.getTextWidth(cap) + capCs * Math.max(0, cap.length - 1);
+      doc.text(cap, W / 2 - capW / 2, cy + 14, { charSpace: capCs });
     }
   }
 }
