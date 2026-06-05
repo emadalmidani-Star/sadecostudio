@@ -447,23 +447,25 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
   addPageHeader(doc, company);
   let y = sectionTitle(doc, "Case Study", "Overview", SECTION_TOP);
 
-  const facts = [
-    ["Type", fmt(p.type)],
-    ["Location", p.location || "-"],
-    ["Area", p.area_sqm ? `${p.area_sqm} sqm` : "-"],
-    ["Status", fmt(p.status)],
-    ["Client", p.client_name || "Confidential"],
-  ];
-  doc.setFontSize(8); doc.setFont("Montserrat", "normal");
-  const colW = (W - 30) / facts.length;
-  facts.forEach((f, i) => {
-    doc.setTextColor(BRAND.muted); doc.text(f[0].toUpperCase(), 15 + i * colW, y, { charSpace: 1.5 });
-    doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold"); doc.setFontSize(11);
-    doc.text(f[1], 15 + i * colW, y + 6);
-    doc.setFont("Montserrat", "normal"); doc.setFontSize(8);
-  });
-  y += 16;
-  doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.2); doc.line(15, y, W - 15, y); y += 10;
+  // Only show facts that have actual values — empty fields are hidden entirely.
+  const facts: [string, string][] = [];
+  if (p.type) facts.push(["Type", fmt(p.type)]);
+  if (p.location) facts.push(["Location", p.location]);
+  if (p.area_sqm) facts.push(["Area", `${p.area_sqm} sqm`]);
+  if (p.status) facts.push(["Status", fmt(p.status)]);
+  if (p.client_name) facts.push(["Client", p.client_name]);
+  if (facts.length) {
+    doc.setFontSize(8); doc.setFont("Montserrat", "normal");
+    const colW = (W - 30) / facts.length;
+    facts.forEach((f, i) => {
+      doc.setTextColor(BRAND.muted); doc.text(f[0].toUpperCase(), 15 + i * colW, y, { charSpace: 1.5 });
+      doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold"); doc.setFontSize(11);
+      doc.text(f[1], 15 + i * colW, y + 6);
+      doc.setFont("Montserrat", "normal"); doc.setFontSize(8);
+    });
+    y += 16;
+    doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.2); doc.line(15, y, W - 15, y); y += 10;
+  }
 
   if (p.description && p.description.trim()) {
     doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor(BRAND.ink);
