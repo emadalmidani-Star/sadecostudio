@@ -345,11 +345,18 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
   doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.4);
   doc.line(W / 2 - 22, H / 2 + 2 + yOffset, W / 2 + 22, H / 2 + 2 + yOffset);
 
+  // Center company name manually (jsPDF's align:center does NOT account for charSpace,
+  // which made "SADECO DECOR LLC" appear visually shifted off-center).
   doc.setFont("Montserrat", "bold"); doc.setFontSize(13); doc.setTextColor(BRAND.paper);
-  doc.text((company?.name || "SADECO Decor").toUpperCase(), W / 2, H / 2 + 14 + yOffset, { align: "center", charSpace: 3 });
+  const brandText = (company?.name || "SADECO Decor").toUpperCase();
+  const brandCharSpace = 3;
+  const brandWidth = doc.getTextWidth(brandText) + brandCharSpace * Math.max(0, brandText.length - 1);
+  doc.text(brandText, W / 2 - brandWidth / 2, H / 2 + 14 + yOffset, { charSpace: brandCharSpace });
 
-  doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor("#cccccc");
-  doc.text("Bridging your ideas into real spaces.", W / 2, H / 2 + 24 + yOffset, { align: "center" });
+  if (company?.tagline || true) {
+    doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor("#cccccc");
+    doc.text(company?.tagline || "Bridging your ideas into real spaces.", W / 2, H / 2 + 24 + yOffset, { align: "center" });
+  }
 
   // Selected contact card — avatar + name + title + their phone/email.
   if (contact && (contact.full_name || contact.email)) {
@@ -374,16 +381,19 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     }
   }
 
-  // Optional minimal company footer (only if any field is enabled and present)
-  const cf: CompanyFooterFields = companyFields || { phone: true, email: true, website: true, address: false };
-  const parts = [
+  // Company footer. If no explicit toggles are provided, fall back to showing every
+  // available company field — this avoids the footer silently disappearing.
+  const cf: CompanyFooterFields = companyFields || { phone: true, email: true, website: true, address: true };
+  const anyToggleOn = !!(cf.phone || cf.email || cf.website || cf.address);
+  const footerPool: Array<string | null | undefined> = anyToggleOn ? [
     cf.phone ? company?.phone : null,
     cf.email ? company?.email : null,
     cf.website ? company?.website : null,
     cf.address ? company?.address : null,
-  ].filter(Boolean).join("   |   ");
+  ] : [company?.phone, company?.email, company?.website, company?.address];
+  const parts = footerPool.filter(Boolean).join("   |   ");
   if (parts) {
-    doc.setFontSize(9); doc.setTextColor("#999999");
+    doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#999999");
     const partLines = doc.splitTextToSize(parts, W - 40);
     partLines.forEach((ln: string, i: number) => {
       doc.text(ln, W / 2, H - 18 + i * 5, { align: "center" });
