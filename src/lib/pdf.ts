@@ -571,12 +571,15 @@ async function addCategoryCover(doc: jsPDF, type: string, count: number, image: 
     let size = 28;
     let charSpace = 4;
     doc.setFontSize(size);
-    while ((doc.getTextWidth(title) + charSpace * (title.length - 1)) > maxW) {
-      if (charSpace > 1) { charSpace -= 0.5; continue; }
-      if (size > 12) { size -= 1; doc.setFontSize(size); continue; }
-      break;
-    }
-    doc.text(title, W / 2, cy, { align: "center", charSpace });
+    const fits = () => (doc.getTextWidth(title) + charSpace * Math.max(0, title.length - 1)) <= maxW;
+    // First: tighten letter spacing all the way to 0.
+    while (!fits() && charSpace > 0) { charSpace = Math.max(0, charSpace - 0.5); }
+    // Then: shrink font size down to 8pt if still overflowing.
+    while (!fits() && size > 8) { size -= 1; doc.setFontSize(size); }
+    // Final safety: clamp negative spacing so very long titles never run off the page.
+    if (!fits()) { charSpace = 0; }
+    doc.text(title, W / 2, cy, { align: "center", charSpace, maxWidth: maxW });
+
 
     // Thin accent rule under the title for visual anchor.
     doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.4);
