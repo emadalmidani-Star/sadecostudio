@@ -401,9 +401,12 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
   const hasInfo = !!(p.description && p.description.trim()) || !!(p.highlights?.length);
   const cover = p.cover_image && hasInfo ? await loadImg(p.cover_image) : null;
 
-  // Hero page (landscape split) — skip when there's no info
-  doc.addPage(); page.n++;
+  // Hero page — only when there's a cover image AND info to pair with it.
+  // When there's no cover image we skip the standalone black "title + facts" page
+  // (those same facts are already shown on the portfolio cover / category divider),
+  // and go straight to the detail or gallery pages. This removes the duplicate page.
   if (cover) {
+    doc.addPage(); page.n++;
     const halfW = W * 0.6;
     // letterbox to preserve aspect ratio (no distortion)
     doc.setFillColor(BRAND.ink); doc.rect(0, 0, halfW, H, "F");
@@ -434,45 +437,9 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     doc.setFontSize(10); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
     const locLines = doc.splitTextToSize(p.location || "", textW);
     doc.text(locLines, tx, afterTitleY + 10);
-  } else {
-    // No description and no highlights: render facts directly on the cover page
-    doc.setFillColor(BRAND.ink); doc.rect(0, 0, W, H, "F");
-    doc.setTextColor(BRAND.paper); doc.setFontSize(10); doc.setFont("Montserrat", "normal");
-    doc.text(fmt(p.type).toUpperCase(), 20, 40, { charSpace: 3 });
-
-    // Auto-shrink title
-    doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.paper);
-    let tSize = 44; let nameLines: string[] = [];
-    while (tSize >= 18) {
-      doc.setFontSize(tSize);
-      nameLines = doc.splitTextToSize(p.name || "", W - 40);
-      if (nameLines.length <= 3) break;
-      tSize -= 2;
-    }
-    const nlh = tSize * 0.42;
-    doc.text(nameLines, 20, 60);
-    const afterName = 60 + nameLines.length * nlh;
-    doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.5); doc.line(20, afterName + 4, 50, afterName + 4);
-
-    // Facts grid at the bottom
-    const facts = [
-      ["Location", p.location || "-"],
-      ["Type", fmt(p.type) || "-"],
-      ["Status", fmt(p.status) || "-"],
-      ["Area", p.area_sqm ? `${p.area_sqm} sqm` : "-"],
-      ["Client", p.client_name || "Confidential"],
-    ];
-    const factsY = H - 45;
-    const colW = (W - 40) / facts.length;
-    facts.forEach((f, i) => {
-      doc.setFont("Montserrat", "normal"); doc.setFontSize(8); doc.setTextColor("#999999");
-      doc.text(f[0].toUpperCase(), 20 + i * colW, factsY, { charSpace: 1.5 });
-      doc.setFont("Montserrat", "bold"); doc.setFontSize(11); doc.setTextColor(BRAND.paper);
-      const v = doc.splitTextToSize(f[1], colW - 4);
-      doc.text(v, 20 + i * colW, factsY + 7);
-    });
+    addPageFooter(doc, company, page.n);
   }
-  addPageFooter(doc, company, page.n);
+
 
   // Detail page — only when there is description or highlights
   if (hasInfo) {
