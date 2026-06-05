@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { CheckCircle2, AlertCircle, MessageCircle } from "lucide-react";
-import { waMeLink, normalizePhone } from "@/lib/whatsapp";
+import { waLink, cleanPhone } from "@/lib/whatsapp";
 
 type Cfg = {
   user_id: string;
