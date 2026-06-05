@@ -374,30 +374,65 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
       doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#bbbbbb");
       doc.text(role, W / 2, textY + 6, { align: "center" });
     }
-    const cParts = [contact.phone, contact.email, contact.whatsapp].filter(Boolean).join("   |   ");
-    if (cParts) {
+    // Render contact line with clickable links (tel:, mailto:, wa.me)
+    const items: Array<{ text: string; url: string }> = [];
+    if (contact.phone) items.push({ text: contact.phone, url: `tel:${String(contact.phone).replace(/[^\d+]/g, "")}` });
+    if (contact.email) items.push({ text: contact.email, url: `mailto:${contact.email}` });
+    if (contact.whatsapp) items.push({ text: `WhatsApp: ${contact.whatsapp}`, url: `https://wa.me/${String(contact.whatsapp).replace(/\D/g, "")}` });
+    if (items.length) {
       doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#cccccc");
-      doc.text(cParts, W / 2, textY + (role ? 13 : 7), { align: "center" });
+      const sep = "   |   ";
+      const widths = items.map(i => doc.getTextWidth(i.text));
+      const sepW = doc.getTextWidth(sep);
+      const totalW = widths.reduce((a, b) => a + b, 0) + sepW * (items.length - 1);
+      let x = W / 2 - totalW / 2;
+      const ly = textY + (role ? 13 : 7);
+      items.forEach((it, i) => {
+        doc.textWithLink(it.text, x, ly, { url: it.url });
+        x += widths[i];
+        if (i < items.length - 1) { doc.text(sep, x, ly); x += sepW; }
+      });
     }
   }
 
-  // Company footer. If no explicit toggles are provided, fall back to showing every
-  // available company field — this avoids the footer silently disappearing.
+  // Company footer — respect user toggles strictly. If nothing toggled, render nothing.
   const cf: CompanyFooterFields = companyFields || { phone: true, email: true, website: true, address: true };
-  const anyToggleOn = !!(cf.phone || cf.email || cf.website || cf.address);
-  const footerPool: Array<string | null | undefined> = anyToggleOn ? [
-    cf.phone ? company?.phone : null,
-    cf.email ? company?.email : null,
-    cf.website ? company?.website : null,
-    cf.address ? company?.address : null,
-  ] : [company?.phone, company?.email, company?.website, company?.address];
-  const parts = footerPool.filter(Boolean).join("   |   ");
-  if (parts) {
+  type FItem = { text: string; url?: string };
+  const fItems: FItem[] = [];
+  if (cf.phone && company?.phone) fItems.push({ text: company.phone, url: `tel:${String(company.phone).replace(/[^\d+]/g, "")}` });
+  if (cf.email && company?.email) fItems.push({ text: company.email, url: `mailto:${company.email}` });
+  if (cf.website && company?.website) {
+    const w = String(company.website);
+    fItems.push({ text: w, url: /^https?:\/\//i.test(w) ? w : `https://${w}` });
+  }
+  if (cf.address && company?.address) fItems.push({ text: company.address });
+  if (fItems.length) {
     doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#999999");
-    const partLines = doc.splitTextToSize(parts, W - 40);
-    partLines.forEach((ln: string, i: number) => {
-      doc.text(ln, W / 2, H - 18 + i * 5, { align: "center" });
-    });
+    const sep = "   |   ";
+    const widths = fItems.map(i => doc.getTextWidth(i.text));
+    const sepW = doc.getTextWidth(sep);
+    const totalW = widths.reduce((a, b) => a + b, 0) + sepW * (fItems.length - 1);
+    const maxW = W - 40;
+    if (totalW <= maxW) {
+      let x = W / 2 - totalW / 2;
+      const ly = H - 18;
+      fItems.forEach((it, i) => {
+        if (it.url) doc.textWithLink(it.text, x, ly, { url: it.url });
+        else doc.text(it.text, x, ly);
+        x += widths[i];
+        if (i < fItems.length - 1) { doc.text(sep, x, ly); x += sepW; }
+      });
+    } else {
+      // Stack each item on its own line, centered & clickable
+      const startY = H - 18 - (fItems.length - 1) * 5;
+      fItems.forEach((it, i) => {
+        const tw = widths[i];
+        const x = W / 2 - tw / 2;
+        const ly = startY + i * 5;
+        if (it.url) doc.textWithLink(it.text, x, ly, { url: it.url });
+        else doc.text(it.text, x, ly);
+      });
+    }
   }
 }
 
