@@ -432,19 +432,23 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
   if (cover) {
     doc.addPage(); page.n++;
     const halfW = W * 0.6;
-    doc.setFillColor(BRAND.ink); doc.rect(0, 0, halfW, H, "F");
+    doc.setFillColor(BRAND.paper); doc.rect(0, 0, halfW, H, "F");
+    // Cover-fit (fill the slot, crop overflow) so there are no black bars.
     const ar = cover.w / cover.h;
     const slotAr = halfW / H;
     let iw = halfW, ih = H;
-    if (ar > slotAr) { ih = halfW / ar; } else { iw = H * ar; }
+    if (ar > slotAr) { iw = H * ar; } else { ih = halfW / ar; }
     doc.addImage(cover.data, "JPEG", (halfW - iw) / 2, (H - ih) / 2, iw, ih);
     doc.setFillColor(BRAND.paper); doc.rect(halfW, 0, W - halfW, H, "F");
-    const tx = halfW + 12;
-    const textW = W - halfW - 20;
-    doc.setFontSize(9); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
-    doc.text(fmt(p.type).toUpperCase(), tx, 30, { charSpace: 2 });
+    const padX = 14;
+    const tx = halfW + padX;
+    const textW = W - halfW - padX * 2;
+    doc.setFontSize(8); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
+    const typeLines = doc.splitTextToSize(fmt(p.type).toUpperCase(), textW);
+    doc.text(typeLines, tx, 30, { charSpace: 1.5 });
+    const titleStartY = 30 + typeLines.length * 5 + 6;
     doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.ink);
-    let titleSize = 28;
+    let titleSize = 26;
     let lines: string[] = [];
     while (titleSize >= 14) {
       doc.setFontSize(titleSize);
@@ -453,12 +457,13 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
       titleSize -= 2;
     }
     const lh = titleSize * 0.42;
-    doc.text(lines, tx, 44);
-    const afterTitleY = 44 + lines.length * lh;
+    doc.text(lines, tx, titleStartY);
+    const afterTitleY = titleStartY + lines.length * lh;
     doc.setDrawColor(BRAND.ink); doc.line(tx, afterTitleY + 2, tx + 25, afterTitleY + 2);
     doc.setFontSize(10); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
     const locLines = doc.splitTextToSize(p.location || "", textW);
     if (p.location) doc.text(locLines, tx, afterTitleY + 10);
+
 
     // Project details stack on the right side of the hero.
     let factsY = afterTitleY + 10 + (p.location ? locLines.length * 5 : 0) + 10;
