@@ -69,7 +69,7 @@ export default function WhatsAppSender() {
     return <div className="p-6 text-sm text-muted-foreground">Loading WhatsApp settings…</div>;
 
   const isConnected = cfg.status === "connected" && !!cfg.display_phone;
-  const preview = cfg.display_phone ? waMeLink(normalizePhone(cfg.display_phone), testMsg) : "";
+  const preview = cfg.display_phone ? waLink(cleanPhone(cfg.display_phone), testMsg) : "";
 
   return (
     <div className="p-6 space-y-6 max-w-3xl">
