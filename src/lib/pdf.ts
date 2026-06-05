@@ -318,7 +318,24 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
   doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor("#cccccc");
   doc.text("Bridging your ideas into real spaces.", W / 2, H / 2 + 24, { align: "center" });
 
-  // Optional minimal contact footer (only if any field is enabled and present)
+  // Selected contact card (name + title + their phone/email) — only when provided.
+  if (contact && (contact.full_name || contact.email)) {
+    const name = contact.full_name || contact.email;
+    const role = contact.job_title || "";
+    doc.setFont("Montserrat", "bold"); doc.setFontSize(11); doc.setTextColor(BRAND.paper);
+    doc.text(name, W / 2, H / 2 + 38, { align: "center" });
+    if (role) {
+      doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#bbbbbb");
+      doc.text(role, W / 2, H / 2 + 44, { align: "center" });
+    }
+    const cParts = [contact.phone, contact.email, contact.whatsapp].filter(Boolean).join("   |   ");
+    if (cParts) {
+      doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#cccccc");
+      doc.text(cParts, W / 2, H / 2 + 51, { align: "center" });
+    }
+  }
+
+  // Optional minimal company footer (only if any field is enabled and present)
   const cf: CompanyFooterFields = companyFields || { phone: true, email: true, website: true, address: false };
   const parts = [
     cf.phone ? company?.phone : null,
