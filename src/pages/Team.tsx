@@ -108,11 +108,16 @@ export default function Team() {
     toast.success("Role updated"); load();
   }
 
-  async function removeMember(roleId: string) {
-    if (!confirm("Revoke this member's access?")) return;
-    const { error } = await supabase.from("user_roles").delete().eq("id", roleId);
-    if (error) return toast.error(error.message);
-    toast.success("Access revoked"); load();
+  async function removeMember(member: any) {
+    if (member.id === user?.id) return toast.error("You can't delete yourself");
+    if (!confirm(`Permanently delete ${member.full_name || member.email}? This removes their account, profile and access.`)) return;
+    const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+      body: { target_user_id: member.id },
+    });
+    if (error || (data as any)?.error) {
+      return toast.error(error?.message || (data as any)?.error || "Delete failed");
+    }
+    toast.success("Member deleted"); load();
   }
 
   async function cancelInvite(id: string) {
@@ -227,7 +232,7 @@ export default function Team() {
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="ghost" size="icon" onClick={() => removeMember(m.role_id)} disabled={m.id === user?.id}>
+              <Button variant="ghost" size="icon" onClick={() => removeMember(m)} disabled={m.id === user?.id}>
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
