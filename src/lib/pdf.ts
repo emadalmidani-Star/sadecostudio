@@ -408,17 +408,30 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     return;
   }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
-  const hasInfo = !!(p.description && p.description.trim()) || !!(p.highlights?.length);
-  const cover = p.cover_image && hasInfo ? await loadImg(p.cover_image) : null;
 
-  // Hero page — only when there's a cover image AND info to pair with it.
-  // When there's no cover image we skip the standalone black "title + facts" page
-  // (those same facts are already shown on the portfolio cover / category divider),
-  // and go straight to the detail or gallery pages. This removes the duplicate page.
+  // Collect every populated project fact once — reused on hero + detail pages.
+  const facts: [string, string][] = [];
+  if (p.type) facts.push(["Type", fmt(p.type)]);
+  if (p.location) facts.push(["Location", p.location]);
+  if (p.client_name) facts.push(["Client", p.client_name]);
+  if (p.area_sqm) facts.push(["Area", `${p.area_sqm} sqm`]);
+  if (p.status) facts.push(["Status", fmt(p.status)]);
+  if (p.phase) facts.push(["Phase", fmt(p.phase)]);
+  if (typeof p.progress_pct === "number" && p.progress_pct > 0) facts.push(["Progress", `${p.progress_pct}%`]);
+  if (p.estimated_completion) {
+    const d = new Date(p.estimated_completion);
+    facts.push(["Est. Completion", isNaN(d.getTime()) ? String(p.estimated_completion) : d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })]);
+  }
+
+  const hasInfo = !!(p.description && p.description.trim()) || !!(p.highlights?.length);
+  const cover = p.cover_image ? await loadImg(p.cover_image) : null;
+
+  // Hero page — render whenever there is a cover image. Right column shows
+  // the title, location and any available project facts (so details are
+  // visible even when there's no description/highlights).
   if (cover) {
     doc.addPage(); page.n++;
     const halfW = W * 0.6;
-    // letterbox to preserve aspect ratio (no distortion)
     doc.setFillColor(BRAND.ink); doc.rect(0, 0, halfW, H, "F");
     const ar = cover.w / cover.h;
     const slotAr = halfW / H;
@@ -430,7 +443,6 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     const textW = W - halfW - 20;
     doc.setFontSize(9); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
     doc.text(fmt(p.type).toUpperCase(), tx, 30, { charSpace: 2 });
-    // Auto-shrink title until it fits in at most 4 lines
     doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.ink);
     let titleSize = 28;
     let lines: string[] = [];
@@ -446,36 +458,52 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
     doc.setDrawColor(BRAND.ink); doc.line(tx, afterTitleY + 2, tx + 25, afterTitleY + 2);
     doc.setFontSize(10); doc.setTextColor(BRAND.muted); doc.setFont("Montserrat", "normal");
     const locLines = doc.splitTextToSize(p.location || "", textW);
-    doc.text(locLines, tx, afterTitleY + 10);
+    if (p.location) doc.text(locLines, tx, afterTitleY + 10);
+
+    // Project details stack on the right side of the hero.
+    let factsY = afterTitleY + 10 + (p.location ? locLines.length * 5 : 0) + 10;
+    facts.filter(([k]) => k !== "Type" && k !== "Location").forEach(([k, v]) => {
+      if (factsY > H - SAFE_BOTTOM - 8) return;
+      doc.setFontSize(8); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.muted);
+      doc.text(k.toUpperCase(), tx, factsY, { charSpace: 1.5 });
+      doc.setFontSize(11); doc.setFont("Montserrat", "bold"); doc.setTextColor(BRAND.ink);
+      const valLines = doc.splitTextToSize(String(v), textW);
+      doc.text(valLines, tx, factsY + 5);
+      factsY += 5 + valLines.length * 5 + 4;
+    });
+
     addPageFooter(doc, company, page.n);
   }
 
 
-  // Detail page — only when there is description or highlights
-  if (hasInfo) {
+  // Detail page — render when there's description/highlights, OR when there
+  // are facts but no cover image to display them on the hero page.
+  const shouldRenderDetail = hasInfo || (!cover && facts.length > 0);
+  if (shouldRenderDetail) {
   doc.addPage(); page.n++;
   addPageHeader(doc, company);
   let y = sectionTitle(doc, "Case Study", "Overview", SECTION_TOP);
 
-  // Only show facts that have actual values — empty fields are hidden entirely.
-  const facts: [string, string][] = [];
-  if (p.type) facts.push(["Type", fmt(p.type)]);
-  if (p.location) facts.push(["Location", p.location]);
-  if (p.area_sqm) facts.push(["Area", `${p.area_sqm} sqm`]);
-  if (p.status) facts.push(["Status", fmt(p.status)]);
-  if (p.client_name) facts.push(["Client", p.client_name]);
   if (facts.length) {
-    doc.setFontSize(8); doc.setFont("Montserrat", "normal");
-    const colW = (W - 30) / facts.length;
-    facts.forEach((f, i) => {
-      doc.setTextColor(BRAND.muted); doc.text(f[0].toUpperCase(), 15 + i * colW, y, { charSpace: 1.5 });
-      doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold"); doc.setFontSize(11);
-      doc.text(f[1], 15 + i * colW, y + 6);
-      doc.setFont("Montserrat", "normal"); doc.setFontSize(8);
+    // Wrap facts into rows of 4 so longer fact sets stay readable.
+    const perRow = Math.min(4, facts.length);
+    const rows: [string, string][][] = [];
+    for (let i = 0; i < facts.length; i += perRow) rows.push(facts.slice(i, i + perRow));
+    const colW = (W - 30) / perRow;
+    rows.forEach((row) => {
+      doc.setFontSize(8); doc.setFont("Montserrat", "normal");
+      row.forEach((f, i) => {
+        doc.setTextColor(BRAND.muted); doc.text(f[0].toUpperCase(), 15 + i * colW, y, { charSpace: 1.5 });
+        doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold"); doc.setFontSize(11);
+        const valLines = doc.splitTextToSize(f[1], colW - 4);
+        doc.text(valLines, 15 + i * colW, y + 6);
+        doc.setFont("Montserrat", "normal"); doc.setFontSize(8);
+      });
+      y += 16;
     });
-    y += 16;
     doc.setDrawColor(BRAND.ink); doc.setLineWidth(0.2); doc.line(15, y, W - 15, y); y += 10;
   }
+
 
   if (p.description && p.description.trim()) {
     doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor(BRAND.ink);
