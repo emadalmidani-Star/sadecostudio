@@ -76,7 +76,8 @@ export async function loadImage(url: string): Promise<{ data: string; w: number;
 function fmt(s?: string | null) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ""; }
 
 function resolveText(field: string, ctx: any): string {
-  const { project: p, company: c, category, count, member: m } = ctx;
+  const { project: p, company: c, category, count, member: m, contact: ct } = ctx;
+  const person = m || ct;
   switch (field) {
     case "company_name": return c?.name || "";
     case "company_website": return (c?.website || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
@@ -93,20 +94,25 @@ function resolveText(field: string, ctx: any): string {
     case "status": return fmt(p?.status) || "";
     case "description": return p?.description || "";
     case "highlights": return (p?.highlights || []).map((h: string) => "• " + h).join("\n");
-    case "contact": return [c?.phone, c?.email, c?.website].filter(Boolean).join("   |   ");
-    case "member_name": return m?.full_name || m?.email || "";
-    case "member_title": return m?.job_title || "";
-    case "member_email": return m?.email || "";
-    case "member_phone": return m?.phone || "";
-    case "member_whatsapp": return m?.whatsapp || "";
+    case "contact": {
+      const top = [person?.full_name, person?.job_title].filter(Boolean).join(" — ");
+      const bottom = [person?.phone || c?.phone, person?.email || c?.email, c?.website].filter(Boolean).join("   |   ");
+      return [top, bottom].filter(Boolean).join("\n");
+    }
+    case "member_name": return person?.full_name || person?.email || "";
+    case "member_title": return person?.job_title || "";
+    case "member_email": return person?.email || c?.email || "";
+    case "member_phone": return person?.phone || c?.phone || "";
+    case "member_whatsapp": return person?.whatsapp || "";
     default: return "";
   }
 }
 
 function resolveImageUrl(field: string, ctx: any): string | null {
-  const { project: p, company: c, member: m } = ctx;
+  const { project: p, company: c, member: m, contact: ct } = ctx;
+  const person = m || ct;
   if (field === "logo" || field === "company_logo") return c?.logo_url || null;
-  if (field === "member_photo" || field === "profile_image") return m?.avatar_url || null;
+  if (field === "member_photo" || field === "profile_image") return person?.avatar_url || null;
   if (field === "qr_code") return ctx.qrDataUrl || null;
   if (field === "cover_image") return p?.cover_image || null;
   if (field === "category_image") return ctx.categoryImageUrl || null;
@@ -151,18 +157,29 @@ export async function renderTemplatePage(
     } else {
       const text = resolveText(slot.field, ctx);
       if (!text) continue;
-      const fs = slot.fontSize || 12;
+      let fs = slot.fontSize || 12;
       doc.setFont("Montserrat", slot.bold ? "bold" : "normal");
-      doc.setFontSize(fs);
       doc.setTextColor(slot.color || "#000000");
       const align = slot.align || "left";
       const tx = align === "center" ? x + w / 2 : align === "right" ? x + w : x;
-      const lines = doc.splitTextToSize(text, w);
-      const lh = fs * 0.45;
+
+      // Shrink font until text fits within slot width (single-line scenarios).
+      // For multi-line text we still wrap, but also shrink if total height overflows.
+      const minSize = Math.max(6, Math.floor(fs * 0.55));
+      doc.setFontSize(fs);
+      let lines = doc.splitTextToSize(text, w);
+      let lh = fs * 0.45;
+      while (fs > minSize && lines.length * lh > h) {
+        fs -= 1;
+        doc.setFontSize(fs);
+        lines = doc.splitTextToSize(text, w);
+        lh = fs * 0.45;
+      }
+      // Vertical center inside slot
+      const blockH = lines.length * lh;
+      const startY = y + (h - blockH) / 2 + lh * 0.75;
       lines.forEach((ln: string, i: number) => {
-        const ty = y + lh + i * lh;
-        if (ty > y + h) return;
-        doc.text(ln, tx, ty, { align });
+        doc.text(ln, tx, startY + i * lh, { align });
       });
     }
   }
