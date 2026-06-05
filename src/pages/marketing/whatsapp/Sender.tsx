@@ -102,7 +102,7 @@ export default function WhatsAppSender() {
               <Label>WhatsApp number (E.164)</Label>
               <Input
                 value={cfg.display_phone || ""}
-                onChange={(e) => setCfg({ ...cfg, display_phone: e.target_value ?? e.target.value })}
+                onChange={(e) => setCfg({ ...cfg, display_phone: e.target.value })}
                 placeholder="+971501234567"
               />
               <p className="text-[11px] text-muted-foreground mt-1">
