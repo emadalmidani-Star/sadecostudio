@@ -305,33 +305,72 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   doc.setFillColor(BRAND.ink); doc.rect(0, 0, W, H, "F");
 
-  // Vertically centered Thank You + brand tagline
+  // Preload contact avatar (circular crop on white) so we can place it above the name.
+  let avatar: { data: string; w: number; h: number } | null = null;
+  if (contact?.avatar_url) {
+    try {
+      const raw = await loadImg(contact.avatar_url, { maxDim: 400, quality: 0.92 });
+      if (raw) {
+        const size = 256;
+        const cnv = document.createElement("canvas");
+        cnv.width = size; cnv.height = size;
+        const ctx = cnv.getContext("2d");
+        if (ctx) {
+          const img = await new Promise<HTMLImageElement | null>((r) => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = raw.data; });
+          if (img) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            // cover-fit
+            const ar = img.width / img.height;
+            let dw = size, dh = size, dx = 0, dy = 0;
+            if (ar > 1) { dw = size * ar; dx = -(dw - size) / 2; }
+            else { dh = size / ar; dy = -(dh - size) / 2; }
+            ctx.drawImage(img, dx, dy, dw, dh);
+            ctx.restore();
+            avatar = { data: cnv.toDataURL("image/png"), w: size, h: size };
+          }
+        }
+      }
+    } catch {}
+  }
+
+  // Vertically centered Thank You + brand tagline (shifted slightly up if avatar present)
+  const yOffset = avatar ? -18 : 0;
   doc.setTextColor(BRAND.paper); doc.setFont("Montserrat", "bold"); doc.setFontSize(72);
-  doc.text("Thank You", W / 2, H / 2 - 6, { align: "center" });
+  doc.text("Thank You", W / 2, H / 2 - 6 + yOffset, { align: "center" });
 
   doc.setDrawColor(BRAND.paper); doc.setLineWidth(0.4);
-  doc.line(W / 2 - 22, H / 2 + 2, W / 2 + 22, H / 2 + 2);
+  doc.line(W / 2 - 22, H / 2 + 2 + yOffset, W / 2 + 22, H / 2 + 2 + yOffset);
 
   doc.setFont("Montserrat", "bold"); doc.setFontSize(13); doc.setTextColor(BRAND.paper);
-  doc.text((company?.name || "SADECO Decor").toUpperCase(), W / 2, H / 2 + 14, { align: "center", charSpace: 3 });
+  doc.text((company?.name || "SADECO Decor").toUpperCase(), W / 2, H / 2 + 14 + yOffset, { align: "center", charSpace: 3 });
 
   doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor("#cccccc");
-  doc.text("Bridging your ideas into real spaces.", W / 2, H / 2 + 24, { align: "center" });
+  doc.text("Bridging your ideas into real spaces.", W / 2, H / 2 + 24 + yOffset, { align: "center" });
 
-  // Selected contact card (name + title + their phone/email) — only when provided.
+  // Selected contact card — avatar + name + title + their phone/email.
   if (contact && (contact.full_name || contact.email)) {
+    const baseY = H / 2 + 32 + yOffset;
+    if (avatar) {
+      const av = 22; // mm
+      doc.addImage(avatar.data, "PNG", W / 2 - av / 2, baseY, av, av);
+    }
+    const textY = baseY + (avatar ? 28 : 6);
     const name = contact.full_name || contact.email;
     const role = contact.job_title || "";
     doc.setFont("Montserrat", "bold"); doc.setFontSize(11); doc.setTextColor(BRAND.paper);
-    doc.text(name, W / 2, H / 2 + 38, { align: "center" });
+    doc.text(name, W / 2, textY, { align: "center" });
     if (role) {
       doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#bbbbbb");
-      doc.text(role, W / 2, H / 2 + 44, { align: "center" });
+      doc.text(role, W / 2, textY + 6, { align: "center" });
     }
     const cParts = [contact.phone, contact.email, contact.whatsapp].filter(Boolean).join("   |   ");
     if (cParts) {
       doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#cccccc");
-      doc.text(cParts, W / 2, H / 2 + 51, { align: "center" });
+      doc.text(cParts, W / 2, textY + (role ? 13 : 7), { align: "center" });
     }
   }
 
