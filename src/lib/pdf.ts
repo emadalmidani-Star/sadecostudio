@@ -111,6 +111,7 @@ function isSvg(url: string, contentType: string, blobText?: string): boolean {
 }
 
 // Load a logo while preserving transparency (PNG output, no white fill).
+// Rasterize *every* format (incl. WebP) through canvas so jsPDF gets a clean PNG with alpha.
 async function loadLogoTransparent(url: string): Promise<{ data: string; w: number; h: number } | null> {
   try {
     const res = await fetch(url, { mode: "cors" });
@@ -126,7 +127,17 @@ async function loadLogoTransparent(url: string): Promise<{ data: string; w: numb
       const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = rawData;
     });
     if (!img) return null;
-    return { data: rawData, w: img.width, h: img.height };
+    const maxDim = 1200;
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return { data: rawData, w: img.width, h: img.height };
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    return { data: canvas.toDataURL("image/png"), w, h };
   } catch { return null; }
 }
 
@@ -485,7 +496,7 @@ async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number
         addPageFooter(doc, company, page.n);
         doc.addPage(); page.n++;
         addPageHeader(doc, company);
-        yy = sectionTitle(doc, "Gallery", "Visual Story (cont.)", SECTION_TOP);
+        yy = sectionTitle(doc, "Gallery", "Visual Story", SECTION_TOP);
       }
 
       const rowItems = valid.slice(i, i + cols);
@@ -623,7 +634,7 @@ async function addClientsPage(doc: jsPDF, company: any, page: { n: number }) {
     addPageFooter(doc, company, page.n);
     doc.addPage(); page.n++;
     addPageHeader(doc, company);
-    y = sectionTitle(doc, "Trusted Partners", "Clients & Partners (cont.)", SECTION_TOP);
+    y = sectionTitle(doc, "Trusted Partners", "Clients & Partners", SECTION_TOP);
   };
 
   let x = 15, col = 0;
