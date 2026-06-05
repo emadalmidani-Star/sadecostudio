@@ -232,7 +232,7 @@ export default function Team() {
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="ghost" size="icon" onClick={() => removeMember(m.role_id)} disabled={m.id === user?.id}>
+              <Button variant="ghost" size="icon" onClick={() => removeMember(m)} disabled={m.id === user?.id}>
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
