@@ -410,6 +410,10 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     fItems.push({ text: w, url: /^https?:\/\//i.test(w) ? w : `https://${w}` });
   }
   if (cf.address && company?.address) fItems.push({ text: company.address });
+  if (company?.linkedin_url) fItems.push({ text: "LinkedIn", url: company.linkedin_url });
+  if (company?.instagram_url) fItems.push({ text: "Instagram", url: company.instagram_url });
+  if (company?.facebook_url) fItems.push({ text: "Facebook", url: company.facebook_url });
+  if (company?.youtube_url) fItems.push({ text: "YouTube", url: company.youtube_url });
   if (fItems.length) {
     doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#999999");
     const sep = "   |   ";
