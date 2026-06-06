@@ -374,11 +374,15 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
       doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#bbbbbb");
       doc.text(role, W / 2, textY + 6, { align: "center" });
     }
-    // Render contact line with clickable links (tel:, mailto:, wa.me)
+    // Render contact line with clickable links (tel:, mailto:, wa.me, social)
     const items: Array<{ text: string; url: string }> = [];
     if (contact.phone) items.push({ text: contact.phone, url: `tel:${String(contact.phone).replace(/[^\d+]/g, "")}` });
     if (contact.email) items.push({ text: contact.email, url: `mailto:${contact.email}` });
     if (contact.whatsapp) items.push({ text: `WhatsApp: ${contact.whatsapp}`, url: `https://wa.me/${String(contact.whatsapp).replace(/\D/g, "")}` });
+    if (company?.linkedin_url) items.push({ text: "LinkedIn", url: company.linkedin_url });
+    if (company?.instagram_url) items.push({ text: "Instagram", url: company.instagram_url });
+    if (company?.facebook_url) items.push({ text: "Facebook", url: company.facebook_url });
+    if (company?.youtube_url) items.push({ text: "YouTube", url: company.youtube_url });
     if (items.length) {
       doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#cccccc");
       const sep = "   |   ";
@@ -406,6 +410,10 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     fItems.push({ text: w, url: /^https?:\/\//i.test(w) ? w : `https://${w}` });
   }
   if (cf.address && company?.address) fItems.push({ text: company.address });
+  if (company?.linkedin_url) fItems.push({ text: "LinkedIn", url: company.linkedin_url });
+  if (company?.instagram_url) fItems.push({ text: "Instagram", url: company.instagram_url });
+  if (company?.facebook_url) fItems.push({ text: "Facebook", url: company.facebook_url });
+  if (company?.youtube_url) fItems.push({ text: "YouTube", url: company.youtube_url });
   if (fItems.length) {
     doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#999999");
     const sep = "   |   ";
