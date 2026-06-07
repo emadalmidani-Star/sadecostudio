@@ -1,113 +1,107 @@
 
-# WhatsApp Messaging Suite
+# Turn Spazio into a multi-tenant SaaS using SADECO's features
 
-A new Marketing → WhatsApp module that mirrors the Email Marketing suite, with two sender modes:
+## Heads-up: the two projects don't share a stack
 
-- **Business** — Meta WhatsApp Cloud API (verified business number). Used for broadcasts, automations, system notifications, and the shared inbox.
-- **Personal** — `wa.me` click-to-chat links. Used when a team member wants to message a client from their own phone (no automation possible, one tap per message).
+This work happens in the **Spazio Design Studio** project, not here. Important differences I have to bridge:
 
-## What you need from Meta (one-time setup)
+| | SADECO (this project) | Spazio (target) |
+|---|---|---|
+| Routing | React Router v6 (`src/pages/*`) | TanStack Router (file-based `src/routes/*`, SSR via TanStack Start) |
+| React | 18 | 19 |
+| Tailwind | v3 (HSL tokens in `index.css`) | v4 (`@tailwindcss/vite`) |
+| Backend | Lovable Cloud + many edge functions | Lovable Cloud + Stripe already enabled |
+| State of features | All built (exports, projects, fitout, marketing, meetings, team) | Mostly empty (auth, billing, index) |
 
-Before automation works, you (or Sadeco) must complete these on Meta:
+So this isn't a copy-paste — each page is re-authored as a TanStack route, Tailwind v4 classes, and a workspace-scoped data model.
 
-1. Create a **Meta Business account** + **Meta App** (type: Business).
-2. Add the **WhatsApp** product, register a **business phone number**, and verify it.
-3. Get a **System User permanent access token** and the **Phone Number ID** + **WhatsApp Business Account ID**.
-4. Approve a few **message templates** (required for sending outside a 24h conversation window — used for marketing/notifications).
-5. Configure the webhook URL (we'll generate it) so inbound messages and delivery statuses flow back.
+## Multi-tenant model
 
-I'll store the access token, phone-number ID, WABA ID, and a webhook verify token as project secrets and walk you through Meta setup step-by-step.
+Every existing single-user table moves to **workspace-scoped**.
 
-## Scope
+```text
+auth.users
+   └── workspace_members (user_id, workspace_id, role)
+          └── workspaces (id, name, slug, plan, stripe_customer_id, stripe_subscription_id, plan_status, trial_ends_at)
+                 └── all feature data: projects, fitout_projects, leads, meetings,
+                     email_*, whatsapp_*, company_profile, partners, pdf_templates,
+                     template_sets, category_covers, etc.
+```
 
-### 1. Sender configuration (`/marketing/whatsapp/sender`)
-- Connect/disconnect Meta Cloud API
-- Show registered phone number, display name, quality rating
-- Webhook URL + verify token to paste into Meta
-- Sync approved templates from Meta (name, language, category, body, variables)
+Rules:
+- A user can belong to multiple workspaces; one is "active" (stored client-side + last-used in profile).
+- `workspace_role` enum: `owner | admin | editor | viewer`. (SADECO's page-level permissions become role-scoped.)
+- All tenant tables get `workspace_id uuid not null` and an RLS policy `is_workspace_member(auth.uid(), workspace_id)` via a `security definer` function. Mutations check `has_workspace_role(...)`.
+- Workspace creation auto-runs on first signup; invite flow seeds `workspace_invitations` (reuses SADECO's invitation pattern, but workspace-scoped).
 
-### 2. Contacts (`/marketing/whatsapp/contacts`)
-- Reuse `email_contacts` + add `whatsapp_contacts` (phone E.164, opt-in status, tags, source)
-- Auto-sync from leads with phone numbers (trigger like the email one)
-- Import CSV, manual add, lists/segments
-- Opt-out tracking (any "STOP" reply marks unsubscribed)
+## Billing (Stripe, already enabled in Spazio)
 
-### 3. Lists & segments (`/marketing/whatsapp/lists`)
-Same model as email lists, separate table.
+Three tiers, gated by plan on the workspace:
 
-### 4. Broadcasts (`/marketing/whatsapp/campaigns`)
-- Pick an **approved template** + fill variables (per-contact merge tags like `{{name}}`)
-- Choose list/segment, schedule send time
-- Test send to your own number
-- Per-recipient status (sent / delivered / read / failed) via webhook
-- Rate-limited send loop (Meta tier-based; start at 250 msgs/24h)
+| Plan | Price | Limits | Features |
+|---|---|---|---|
+| Free | $0 | 1 workspace, 3 members, 10 projects, no marketing sends | Projects, PDF Exports (watermarked), Team |
+| Pro | $29/mo | 10 members, 200 projects, 1k email + 500 WA sends/mo | + Marketing (Email/WhatsApp), Meetings, Fitout tracker, no watermark |
+| Business | $99/mo | Unlimited members/projects, 25k email + 10k WA sends/mo | + Template Designer, LinkedIn scheduler, Lead intake tokens, custom domain |
 
-### 5. Automations (`/marketing/whatsapp/automations`)
-Trigger-based flows, same engine as email automations:
-- Triggers: new lead with phone, meeting booked, meeting accepted (drop-in), project status changed, manual tag added
-- Action: send approved template, wait N hours, send follow-up
-- Per-step delivery log
+Implementation:
+- `subscription_plans` table seeded with the tiers + Stripe price IDs.
+- `workspaces.plan` updated by the `stripe-webhook` edge function on `customer.subscription.*`.
+- Client-side `useEntitlements(workspaceId)` returns flags + counters; gate UI with `<PaywallGate feature="marketing">`. Server-side gate inside each edge function (reject if plan insufficient).
+- Reuse Spazio's existing `billing.tsx` and `checkout.return.tsx`; add a `/billing/plans` page with the three tiers.
 
-### 6. 1-to-1 Inbox (`/marketing/whatsapp/inbox`)
-- Conversations list (last message, unread count)
-- Thread view with full history (in/out, media, status icons)
-- Reply box — free-form text allowed inside 24h customer service window; outside, must pick template
-- Realtime updates via Supabase channel as webhook writes new messages
+## Feature scope ported from SADECO
 
-### 7. Click-to-chat (personal number mode)
-- Each user can set a personal WhatsApp number in **My Profile** (already exists)
-- Anywhere we show a lead/client with a phone, add a "WhatsApp on my phone" button that opens `https://wa.me/<phone>?text=<prefilled>`
-- Optional **personal templates** library (saved snippets) the user can pick before the link opens — no API call, just URL-encoded text
+All four areas you picked, rebuilt as workspace-scoped TanStack routes:
 
-### 8. Notifications wiring (using Business sender)
-Opt-in toggles to auto-send WhatsApp templates for:
-- Booking confirmation to client
-- Drop-in accepted
-- Project status change to client contact
+```text
+/app/$wsSlug
+  /dashboard              → KPIs from SADECO Dashboard
+  /projects               → Projects list + editor + gallery
+  /projects/$id
+  /gallery
+  /exports                → PDF Exports (full profile / portfolio / single)
+  /template-designer      → (Business plan)
+  /company                → Company profile + partners + category covers
+  /team                   → Members, invitations, roles
+  /permissions            → Role page permissions (admin)
+  /fitout                 → Dashboard, Tracker, PMs, Team
+  /marketing
+     /leads, /analytics, /competitors, /connections, /scheduler
+     /email/{campaigns,automations,contacts,lists,sender,templates,analytics}
+     /whatsapp/{campaigns,automations,contacts,lists,sender,templates,snippets,inbox}
+  /meetings
+     /upcoming, /scheduler, /notes, /drop-in
+  /settings
+     /workspace, /billing, /integrations
+```
 
-## Database changes
+Public routes (kept from SADECO): `/auth`, `/p/book/:token`, `/p/dropin/:token`, `/p/lead/:token`, `/p/note/:token`, `/unsubscribe`.
 
-New tables (all with RLS scoped to `user_id`/org):
+Library files migrated 1:1 (they're framework-agnostic): `pdf.ts`, `pdfFonts.ts`, `pdfRasterize.ts`, `emailRender.ts`, `whatsapp.ts`, `fitout.ts`, `meetings.ts`, `projectPhase.ts`, `storagePath.ts`, `flattenImage.ts`, `templateRender.ts`.
 
-- `whatsapp_sender_config` — token ref, phone_number_id, waba_id, display name, verify token, status
-- `whatsapp_templates` — synced from Meta (name, language, category, body, vars, status)
-- `whatsapp_contacts` — phone E.164, name, status (subscribed/unsubscribed/blocked), tags, source, lead_id
-- `whatsapp_lists` + `whatsapp_list_members`
-- `whatsapp_campaigns` — template_id, list_id, variables_map, schedule, status, stats
-- `whatsapp_sends` — per-recipient: campaign_id, contact_id, wa_message_id, status, error, timestamps
-- `whatsapp_automations` + `whatsapp_automation_steps` + `whatsapp_automation_runs`
-- `whatsapp_conversations` + `whatsapp_messages` (for inbox: direction, body, media_url, template_name, status, wa_message_id)
-
-Plus a trigger to mirror leads with phones into `whatsapp_contacts` (parallel to existing email sync).
-
-## Edge functions
-
-- `whatsapp-send` — sends a single template/text message via Meta Cloud API
-- `whatsapp-campaign-tick` — cron every minute; picks scheduled campaigns and dispatches batches respecting tier rate limit
-- `whatsapp-campaign-send` — fans out a campaign across its list
-- `whatsapp-campaign-test` — send to a test number
-- `whatsapp-automation-tick` — cron every 5 min; advances automation runs
-- `whatsapp-webhook` — public endpoint Meta calls:
-  - GET → verify handshake using stored verify token
-  - POST → inbound messages, status updates, opt-outs → write to `whatsapp_messages` / update `whatsapp_sends`
-- `whatsapp-templates-sync` — pulls approved templates from Meta on demand
-
-## Secrets to add (after Meta setup)
-
-`WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_WABA_ID`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` (for webhook signature verification).
-
-## Out of scope (v1)
-
-- Bot/AI auto-replies (can add later via Lovable AI)
-- Voice/video calling
-- Multi-business-number (one WABA number for v1; click-to-chat covers personal mixing)
-- WhatsApp Pay / catalog / flows
+All ~25 edge functions ported as-is to Spazio's `supabase/functions/*`, with two changes:
+1. Resolve `workspace_id` from the authed user + path/header, not just `user_id`.
+2. Plan-check at the top of each marketing-send function.
 
 ## Phased delivery
 
-1. **Phase 1 — foundation**: Sender setup, webhook, template sync, contacts + lists, click-to-chat buttons across leads/projects.
-2. **Phase 2 — broadcasts**: Campaigns + test send + sends log + rate-limited cron.
-3. **Phase 3 — automations + notifications wiring**.
-4. **Phase 4 — 1-to-1 inbox** with realtime.
+Doing this in one go would be a 20+ migration mega-PR. Proposed phases (each is a self-contained shippable step):
 
-Confirm and I'll start with Phase 1 (and walk you through the Meta setup before asking for the secrets).
+1. **Foundation** — workspaces, members, invitations, roles, RLS helper functions, `useWorkspace()` hook, workspace switcher, `/app/$wsSlug` layout. Seed Free plan on signup.
+2. **Billing & plans** — `subscription_plans`, plan gating helpers, `/billing/plans` page, Stripe webhook → workspace.plan, entitlements hook, paywall component.
+3. **Core: Projects + Company + Team + Exports** — ports `projects`, `company_profile`, `partners`, `category_covers`, `pdf_templates`, `template_sets`, `profiles`, `user_roles` → workspace-scoped. PDF library lifted as-is.
+4. **Fitout module** — `fitout_projects`, sheet sync, tracker UI.
+5. **Marketing** — Leads, Email (lists, contacts, templates, campaigns, automations, sender, analytics, webhook, unsubscribe), WhatsApp (same surface), LinkedIn scheduler. All cron tick functions ported. Plan-gated.
+6. **Meetings** — availability, booking tokens, drop-in, notes, public share pages.
+7. **Polish** — empty states, onboarding tour, marketing landing page on `/`, docs, SEO.
+
+I'd ship phase 1 first and pause for review before continuing.
+
+## What I need confirmed before starting
+
+1. **Pricing** — OK with Free / $29 Pro / $99 Business above, or different numbers/tiers?
+2. **Trial** — 14-day Pro trial on signup, or straight to Free?
+3. **Branding** — Keep Spazio's current visual identity, or carry over SADECO's serif/luxury look as the default theme?
+4. **SADECO data** — Migrate SADECO's existing data into a "SADECO" workspace inside Spazio, or start Spazio empty and leave SADECO running separately?
+5. **Start point** — Begin with **Phase 1 (Foundation)** only and review before continuing? (Recommended.)
