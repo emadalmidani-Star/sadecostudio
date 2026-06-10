@@ -428,10 +428,16 @@ export default function Exports() {
               type="button"
               variant="outline"
               onClick={() => {
-                const next = new Set(selected);
-                if (allSelected) filtered.forEach(p => next.delete(p.id));
-                else filtered.forEach(p => next.add(p.id));
-                setSelected(next);
+                if (allSelected) {
+                  const remove = new Set(filtered.map(p => p.id));
+                  setSelectedOrder(prev => prev.filter(id => !remove.has(id)));
+                } else {
+                  setSelectedOrder(prev => {
+                    const has = new Set(prev);
+                    const additions = filtered.map(p => p.id).filter(id => !has.has(id));
+                    return [...prev, ...additions];
+                  });
+                }
               }}
             >
               {allSelected ? "Deselect all" : `Select all${typeFilter !== "all" || query ? " (filtered)" : ""}`}
