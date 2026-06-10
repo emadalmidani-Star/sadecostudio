@@ -421,6 +421,29 @@ export default function Exports() {
             {types.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
           </SelectContent>
         </Select>
+        {filtered.length > 0 && (() => {
+          const allSelected = filtered.every(p => selected.has(p.id));
+          return (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (allSelected) {
+                  const remove = new Set(filtered.map(p => p.id));
+                  setSelectedOrder(prev => prev.filter(id => !remove.has(id)));
+                } else {
+                  setSelectedOrder(prev => {
+                    const has = new Set(prev);
+                    const additions = filtered.map(p => p.id).filter(id => !has.has(id));
+                    return [...prev, ...additions];
+                  });
+                }
+              }}
+            >
+              {allSelected ? "Deselect all" : `Select all${typeFilter !== "all" || query ? " (filtered)" : ""}`}
+            </Button>
+          );
+        })()}
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
