@@ -421,6 +421,23 @@ export default function Exports() {
             {types.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
           </SelectContent>
         </Select>
+        {filtered.length > 0 && (() => {
+          const allSelected = filtered.every(p => selected.has(p.id));
+          return (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                const next = new Set(selected);
+                if (allSelected) filtered.forEach(p => next.delete(p.id));
+                else filtered.forEach(p => next.add(p.id));
+                setSelected(next);
+              }}
+            >
+              {allSelected ? "Deselect all" : `Select all${typeFilter !== "all" || query ? " (filtered)" : ""}`}
+            </Button>
+          );
+        })()}
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
