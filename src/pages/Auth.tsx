@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,11 @@ export default function Auth() {
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div><Label>Email</Label><Input type="email" required value={email} onChange={e => setEmail(e.target.value)} /></div>
                 <div><Label>Password</Label><Input type="password" required value={password} onChange={e => setPassword(e.target.value)} /></div>
+                <div className="flex justify-end">
+                  <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-accent transition-colors">
+                    Forgot password?
+                  </Link>
+                </div>
                 <Button disabled={busy} className="w-full" type="submit">{busy ? "Signing in..." : "Sign In"}</Button>
               </form>
             </TabsContent>

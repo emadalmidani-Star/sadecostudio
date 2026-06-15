@@ -7,6 +7,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import RoleRoute from "@/components/RoleRoute";
 import AppLayout from "@/components/AppLayout";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import Gallery from "./pages/Gallery";
@@ -63,6 +65,8 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/leads/new/:token" element={<PublicLeadForm />} />
             <Route path="/book/:token" element={<PublicBookMeeting />} />
             <Route path="/u/:username" element={<PublicBookMeeting />} />
