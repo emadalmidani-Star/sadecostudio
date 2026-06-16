@@ -1,0 +1,1 @@
+GRANT SELECT ON public.projects TO anon; GRANT SELECT ON public.projects TO authenticated;

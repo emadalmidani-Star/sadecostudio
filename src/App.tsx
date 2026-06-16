@@ -34,6 +34,7 @@ import PublicLeadForm from "./pages/PublicLeadForm";
 import PublicBookMeeting from "./pages/public/BookMeeting";
 import PublicDropIn from "./pages/public/DropInRequest";
 import PublicMeetingNote from "./pages/public/MeetingNoteShare";
+import PublicProjectGallery from "./pages/public/ProjectGallery";
 import MeetingsScheduler from "./pages/meetings/Scheduler";
 import MeetingsDropIn from "./pages/meetings/DropIn";
 import MeetingsNotes from "./pages/meetings/Notes";
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/u/:username" element={<PublicBookMeeting />} />
             <Route path="/dropin/:token" element={<PublicDropIn />} />
             <Route path="/notes/:token" element={<PublicMeetingNote />} />
+            <Route path="/share/gallery/:id" element={<PublicProjectGallery />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/projects" element={<RoleRoute page="projects"><Projects /></RoleRoute>} />
