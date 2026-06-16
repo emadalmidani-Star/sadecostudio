@@ -13,13 +13,33 @@ export default function ResetPassword() {
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
-  const [valid, setValid] = useState(false);
+  const [status, setStatus] = useState<"checking" | "valid" | "invalid">("checking");
 
   useEffect(() => {
     const hash = window.location.hash;
-    if (hash.includes("type=recovery") || hash.includes("access_token")) {
-      setValid(true);
-    }
+    const hasRecoveryHash = hash.includes("type=recovery") || hash.includes("access_token");
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && hasRecoveryHash)) {
+        setStatus("valid");
+      }
+    });
+
+    // Fallback: if already signed in (hash already processed) or has recovery hash, allow reset
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session || hasRecoveryHash) {
+        setStatus("valid");
+      } else {
+        // Give the client a moment to process the URL hash
+        setTimeout(() => {
+          supabase.auth.getSession().then(({ data: { session: s2 } }) => {
+            setStatus(s2 ? "valid" : "invalid");
+          });
+        }, 800);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,7 +63,14 @@ export default function ResetPassword() {
     }
   };
 
-  if (!valid) {
+  if (status === "checking") {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
+        Verifying reset link...
+      </div>
+    );
+  }
+  if (status === "invalid") {
     return <Navigate to="/auth" replace />;
   }
 
