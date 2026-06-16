@@ -6,10 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Search, ChevronLeft, ChevronRight, ExternalLink, X, ArrowLeft, ImageIcon } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, ExternalLink, X, ArrowLeft, ImageIcon, Share2, Link2 } from "lucide-react";
 import LazyImage from "@/components/LazyImage";
 import EmptyState from "@/components/EmptyState";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+function shareLink(projectId: string) {
+  return `${window.location.origin}/share/gallery/${projectId}`;
+}
+async function copyShareLink(projectId: string, name?: string) {
+  const url = shareLink(projectId);
+  try {
+    await navigator.clipboard.writeText(url);
+    toast.success("Share link copied", { description: name ? `${name} — clients can view images only.` : url });
+  } catch {
+    window.prompt("Copy share link:", url);
+  }
+}
 
 type StatusFilter = "all" | "ongoing" | "in_progress" | "completed";
 
@@ -100,11 +114,16 @@ export default function Gallery() {
               {activeProject.location || "—"} · {activeImages.length} {activeImages.length === 1 ? "image" : "images"}
             </p>
           </div>
-          <Button asChild variant="outline">
-            <Link to={`/projects/${activeProject.id}`}>
-              <ExternalLink className="w-3.5 h-3.5 mr-2" />Open project
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => copyShareLink(activeProject.id, activeProject.name)}>
+              <Share2 className="w-3.5 h-3.5 mr-2" />Copy share link
+            </Button>
+            <Button asChild variant="outline">
+              <Link to={`/projects/${activeProject.id}`}>
+                <ExternalLink className="w-3.5 h-3.5 mr-2" />Open project
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-3 [column-fill:_balance]">
@@ -185,28 +204,37 @@ export default function Gallery() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5">
           {filtered.map(p => (
-            <button
-              key={p.id}
-              onClick={() => { setActiveProject(p); setLightboxIdx(null); }}
-              className="text-left"
-            >
-              <Card className="overflow-hidden hover:shadow-elegant transition-all group h-full shadow-card">
-                <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-                  {p._images[0]
-                    ? <LazyImage src={p._images[0]} alt={p.name} className="group-hover:scale-105 transition-transform duration-500" />
-                    : <div className="w-full h-full luxury-gradient" />}
-                  <div className="absolute top-3 right-3 px-2 py-1 text-xs rounded bg-background/85 backdrop-blur inline-flex items-center gap-1.5">
-                    <ImageIcon className="w-3 h-3" />
-                    {p._images.length}
+            <div key={p.id} className="relative group/card">
+              <button
+                onClick={() => { setActiveProject(p); setLightboxIdx(null); }}
+                className="text-left w-full"
+              >
+                <Card className="overflow-hidden hover:shadow-elegant transition-all group h-full shadow-card">
+                  <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+                    {p._images[0]
+                      ? <LazyImage src={p._images[0]} alt={p.name} className="group-hover:scale-105 transition-transform duration-500" />
+                      : <div className="w-full h-full luxury-gradient" />}
+                    <div className="absolute top-3 right-3 px-2 py-1 text-xs rounded bg-background/85 backdrop-blur inline-flex items-center gap-1.5">
+                      <ImageIcon className="w-3 h-3" />
+                      {p._images.length}
+                    </div>
                   </div>
-                </div>
-                <div className="p-5">
-                  <p className="text-xs text-accent uppercase tracking-wider mb-1">{p.client_name || p.type || "Project"}</p>
-                  <h3 className="font-serif text-xl mb-1 truncate">{p.name}</h3>
-                  <p className="text-sm text-muted-foreground truncate">{p.location || "—"}</p>
-                </div>
-              </Card>
-            </button>
+                  <div className="p-5">
+                    <p className="text-xs text-accent uppercase tracking-wider mb-1">{p.client_name || p.type || "Project"}</p>
+                    <h3 className="font-serif text-xl mb-1 truncate">{p.name}</h3>
+                    <p className="text-sm text-muted-foreground truncate">{p.location || "—"}</p>
+                  </div>
+                </Card>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); copyShareLink(p.id, p.name); }}
+                title="Copy share link"
+                aria-label="Copy share link"
+                className="absolute top-3 left-3 px-2 py-1.5 text-xs rounded bg-background/85 backdrop-blur shadow inline-flex items-center gap-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity hover:bg-background"
+              >
+                <Link2 className="w-3.5 h-3.5" />Share
+              </button>
+            </div>
           ))}
         </div>
       )}
