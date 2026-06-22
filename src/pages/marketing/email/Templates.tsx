@@ -195,6 +195,14 @@ export default function EmailTemplates() {
                     )}
                     {b.type === "social" && (
                       <>
+                        <select
+                          className="w-full border rounded h-9 px-2 bg-background text-sm"
+                          value={b.iconStyle || "color"}
+                          onChange={e => updateBlock(i, { iconStyle: e.target.value })}
+                        >
+                          <option value="color">Colored icons</option>
+                          <option value="mono">Monochrome icons</option>
+                        </select>
                         {(b.links || []).map((l: any, k: number) => (
                           <div key={k} className="flex gap-2">
                             <select
