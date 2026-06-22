@@ -35,7 +35,7 @@ const MINIMAL = {
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const SERIF = "Georgia,'Times New Roman',serif";
 
-export function renderBlocks(tpl: tpl: any, ctx: any): string {
+export function renderBlocks(tpl: any, ctx: any): string {
   const p = tpl.preset === "minimal" ? MINIMAL : BRAND;
   const isBrand = tpl.preset !== "minimal";
   const btnText = isBrand ? "#0b0d10" : "#ffffff";
