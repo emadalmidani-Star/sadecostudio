@@ -90,8 +90,8 @@ export function renderBlocks(tpl: EmailTemplate, ctx: RenderContext): string {
         case "video": {
           const altText = b.alt || b.title || "Watch video";
           const playLabel = b.playLabel || "Watch video";
-          const playOverlay = `<div style="position:relative;display:inline-block;max-width:560px;width:100%"><img src="${esc(b.thumbnail)}" alt="${esc(altText)}" style="width:100%;height:auto;border-radius:6px;display:block"/><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:68px;height:68px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:28px;line-height:68px;text-align:center" aria-label="${esc(playLabel)}">&#9658;</div></div>`;
-          return `<div style="margin:20px 0;text-align:center"><a href="${esc(b.url)}" style="text-decoration:none;color:${p.text}">${playOverlay}<div style="margin-top:10px;font-size:14px;color:${p.muted}">${esc(b.title ? `${b.title} — ${playLabel}` : playLabel)}</div></a></div>`;
+          const playOverlay = `<div class="lv-video-wrap" style="position:relative;display:inline-block;max-width:560px;width:100%"><img src="${esc(b.thumbnail)}" alt="${esc(altText)}" style="width:100%;height:auto;border-radius:6px;display:block"/><div class="lv-video-play" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:68px;height:68px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:28px;line-height:68px;text-align:center" aria-label="${esc(playLabel)}">&#9658;</div></div>`;
+          return `<div class="lv-video" style="margin:20px 0;text-align:center"><a href="${esc(b.url)}" style="text-decoration:none;color:${p.text}">${playOverlay}<div style="margin-top:10px;font-size:14px;color:${p.muted}">${esc(b.title ? `${b.title} — ${playLabel}` : playLabel)}</div></a></div>`;
         }
         case "gallery": {
           const imgs = (b.images || []).slice(0, 4);
@@ -99,11 +99,11 @@ export function renderBlocks(tpl: EmailTemplate, ctx: RenderContext): string {
           const layout = b.layout || "side";
           if (layout === "side" && imgs.length >= 2) {
             const two = imgs.slice(0, 2);
-            return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0"><tr>${two.map(im => `<td width="50%" style="padding:4px;vertical-align:top"><img src="${esc(im.url)}" alt="${esc(im.alt || "")}" style="width:100%;height:auto;border-radius:4px;display:block"/>${im.caption ? `<div style="font-size:12px;color:${p.muted};text-align:center;margin-top:6px">${esc(im.caption)}</div>` : ""}</td>`).join("")}</tr></table>`;
+            return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="lv-gallery" style="margin:20px 0"><tr>${two.map(im => `<td class="lv-gallery-cell" width="50%" style="padding:4px;vertical-align:top"><img src="${esc(im.url)}" alt="${esc(im.alt || "")}" style="width:100%;height:auto;border-radius:4px;display:block"/>${im.caption ? `<div style="font-size:12px;color:${p.muted};text-align:center;margin-top:6px">${esc(im.caption)}</div>` : ""}</td>`).join("")}</tr></table>`;
           }
           const rows: typeof imgs[] = [];
           for (let i = 0; i < imgs.length; i += 2) rows.push(imgs.slice(i, i + 2));
-          return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0">${rows.map(r => `<tr>${r.map(im => `<td width="50%" style="padding:4px;vertical-align:top"><img src="${esc(im.url)}" alt="${esc(im.alt || "")}" style="width:100%;height:auto;border-radius:4px;display:block"/>${im.caption ? `<div style="font-size:12px;color:${p.muted};text-align:center;margin-top:6px">${esc(im.caption)}</div>` : ""}</td>`).join("")}${r.length === 1 ? '<td width="50%"></td>' : ""}</tr>`).join("")}</table>`;
+          return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="lv-gallery" style="margin:20px 0">${rows.map(r => `<tr>${r.map(im => `<td class="lv-gallery-cell" width="50%" style="padding:4px;vertical-align:top"><img src="${esc(im.url)}" alt="${esc(im.alt || "")}" style="width:100%;height:auto;border-radius:4px;display:block"/>${im.caption ? `<div style="font-size:12px;color:${p.muted};text-align:center;margin-top:6px">${esc(im.caption)}</div>` : ""}</td>`).join("")}${r.length === 1 ? '<td width="50%"></td>' : ""}</tr>`).join("")}</table>`;
         }
         case "social": {
           const items = (b.links || []).filter(l => l.url);
@@ -112,7 +112,7 @@ export function renderBlocks(tpl: EmailTemplate, ctx: RenderContext): string {
           const slugs: Record<SocialPlatform, string> = { instagram: "instagram-new", facebook: "facebook-new", linkedin: "linkedin", youtube: "youtube-play", tiktok: "tiktok", twitter: "twitterx", website: "domain" };
           const style = b.iconStyle || "color";
           const set = style === "color" ? "color" : (isBrand ? "ios-filled/ffffff" : "ios-filled/222222");
-          return `<div style="margin:24px 0;text-align:center">${items.map(l => `<a href="${esc(l.url)}" style="display:inline-block;margin:0 8px;text-decoration:none" aria-label="${esc(labels[l.platform] || l.platform)}"><img src="https://img.icons8.com/${set}/48/${slugs[l.platform] || "domain"}.png" alt="${esc(labels[l.platform] || l.platform)}" width="28" height="28" style="display:inline-block;border:0;width:28px;height:28px"/></a>`).join("")}</div>`;
+          return `<div class="lv-social" style="margin:24px 0;text-align:center">${items.map(l => `<a href="${esc(l.url)}" class="lv-social-link" style="display:inline-block;margin:0 8px;text-decoration:none" aria-label="${esc(labels[l.platform] || l.platform)}"><img src="https://img.icons8.com/${set}/48/${slugs[l.platform] || "domain"}.png" alt="${esc(labels[l.platform] || l.platform)}" width="28" height="28" style="display:inline-block;border:0;width:28px;height:28px"/></a>`).join("")}</div>`;
         }
         default:
           return "";
@@ -129,14 +129,29 @@ export function renderBlocks(tpl: EmailTemplate, ctx: RenderContext): string {
     ? `<div style="display:none;visibility:hidden;opacity:0;height:0;width:0;overflow:hidden;max-height:0;mso-hide:all">${esc(tpl.preheader)}</div>`
     : "";
 
-  return `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${esc(tpl.subject || "")}</title></head>
+  const responsiveCss = `
+    <style>
+      @media only screen and (max-width:480px) {
+        .lv-container { padding: 16px 8px !important; }
+        .lv-body { padding: 8px 16px 16px !important; }
+        .lv-video { margin: 14px 0 !important; }
+        .lv-video-play { width:54px !important; height:54px !important; line-height:54px !important; font-size:22px !important; }
+        .lv-gallery { margin: 14px 0 !important; }
+        .lv-gallery-cell { display:block !important; width:100% !important; padding:6px 0 !important; }
+        .lv-social { margin: 18px 0 !important; }
+        .lv-social-link { margin: 0 6px !important; }
+        .lv-social-link img { width:24px !important; height:24px !important; }
+      }
+    </style>`;
+
+  return `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${esc(tpl.subject || "")}</title>${responsiveCss}</head>
 <body style="margin:0;padding:0;background:${p.bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
 ${preheader}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${p.bg};padding:32px 16px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="lv-container" style="background:${p.bg};padding:32px 16px">
   <tr><td align="center">
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:${p.card};border:1px solid ${p.border};border-radius:8px;overflow:hidden">
       <tr><td>${header}</td></tr>
-      <tr><td style="padding:8px 32px 24px">${body}</td></tr>
+      <tr><td class="lv-body" style="padding:8px 32px 24px">${body}</td></tr>
       <tr><td>${footer}</td></tr>
     </table>
   </td></tr>
