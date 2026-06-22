@@ -5,7 +5,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, svix-id, svix-timestamp, svix-signature",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const json = (b: any, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+const json = (b: any, s = 200) =>
+  new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+// Verify Svix/Resend webhook signature.
+async function verifySvix(secret: string, id: string, ts: string, body: string, sigHeader: string): Promise<boolean> {
+  try {
+    const key = secret.startsWith("whsec_") ? secret.slice(6) : secret;
+    const keyBytes = Uint8Array.from(atob(key), (c) => c.charCodeAt(0));
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+    );
+    const data = new TextEncoder().encode(`${id}.${ts}.${body}`);
+    const sigBuf = await crypto.subtle.sign("HMAC", cryptoKey, data);
+    const expected = btoa(String.fromCharCode(...new Uint8Array(sigBuf)));
+    // sigHeader format: "v1,<base64> v1,<base64> ..."
+    const provided = sigHeader.split(" ").map((p) => p.split(",")[1]).filter(Boolean);
+    return provided.some((s) => s === expected);
+  } catch {
+    return false;
+  }
+}
 
 // Resend webhook events: email.sent, email.delivered, email.opened, email.clicked,
 //   email.bounced, email.complained, email.delivery_delayed
@@ -13,10 +33,23 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
+  const rawBody = await req.text();
+
+  // Verify signature when secret is configured
+  const secret = Deno.env.get("RESEND_WEBHOOK_SECRET");
+  if (secret) {
+    const svixId = req.headers.get("svix-id") || "";
+    const svixTs = req.headers.get("svix-timestamp") || "";
+    const svixSig = req.headers.get("svix-signature") || "";
+    if (!svixId || !svixTs || !svixSig) return json({ error: "Missing signature headers" }, 401);
+    const ok = await verifySvix(secret, svixId, svixTs, rawBody, svixSig);
+    if (!ok) return json({ error: "Invalid signature" }, 401);
+  }
+
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   let payload: any;
-  try { payload = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+  try { payload = JSON.parse(rawBody); } catch { return json({ error: "Invalid JSON" }, 400); }
 
   const type = String(payload?.type || "");
   const data = payload?.data || {};
