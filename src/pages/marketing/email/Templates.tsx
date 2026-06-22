@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, Upload } from "lucide-react";
 import { renderBlocks, defaultBlocks, type EmailBlock } from "@/lib/emailRender";
 
 export default function EmailTemplates() {
@@ -135,8 +135,33 @@ export default function EmailTemplates() {
                     {b.type === "video" && (
                       <>
                         <Input value={b.url} onChange={e => updateBlock(i, { url: e.target.value })} placeholder="Video URL (YouTube / Vimeo / direct link)" />
-                        <Input value={b.thumbnail} onChange={e => updateBlock(i, { thumbnail: e.target.value })} placeholder="Thumbnail image URL" />
-                        <Input value={b.title || ""} onChange={e => updateBlock(i, { title: e.target.value })} placeholder="Caption (optional)" />
+                        <div className="flex gap-2 items-start">
+                          <Input value={b.thumbnail} onChange={e => updateBlock(i, { thumbnail: e.target.value })} placeholder="Thumbnail image URL" />
+                          <label className="shrink-0">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0]; if (!file || !user) return;
+                                const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+                                const path = `${user.id}/email-thumbs/${crypto.randomUUID()}.${ext}`;
+                                const { error } = await supabase.storage.from("company-assets").upload(path, file, { contentType: file.type, upsert: true });
+                                if (error) return toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+                                const { data } = supabase.storage.from("company-assets").getPublicUrl(path);
+                                updateBlock(i, { thumbnail: data.publicUrl });
+                                toast({ title: "Thumbnail uploaded" });
+                              }}
+                            />
+                            <span className="inline-flex items-center gap-1 h-9 px-3 border rounded-md text-sm cursor-pointer hover:bg-accent">
+                              <Upload className="w-3.5 h-3.5" /> Upload
+                            </span>
+                          </label>
+                        </div>
+                        {b.thumbnail && <img src={b.thumbnail} alt="" className="w-full max-h-32 object-cover rounded border" />}
+                        <Input value={b.alt || ""} onChange={e => updateBlock(i, { alt: e.target.value })} placeholder="Alt text (for accessibility / image blocking)" />
+                        <Input value={b.playLabel || ""} onChange={e => updateBlock(i, { playLabel: e.target.value })} placeholder="Play-button label (e.g. ‘Watch the tour’)" />
+                        <Input value={b.title || ""} onChange={e => updateBlock(i, { title: e.target.value })} placeholder="Caption title (optional)" />
                         <p className="text-[11px] text-muted-foreground">Email clients don't play video inline — this renders a clickable thumbnail that opens the video URL.</p>
                       </>
                     )}
@@ -170,6 +195,14 @@ export default function EmailTemplates() {
                     )}
                     {b.type === "social" && (
                       <>
+                        <select
+                          className="w-full border rounded h-9 px-2 bg-background text-sm"
+                          value={b.iconStyle || "color"}
+                          onChange={e => updateBlock(i, { iconStyle: e.target.value })}
+                        >
+                          <option value="color">Colored icons</option>
+                          <option value="mono">Monochrome icons</option>
+                        </select>
                         {(b.links || []).map((l: any, k: number) => (
                           <div key={k} className="flex gap-2">
                             <select
