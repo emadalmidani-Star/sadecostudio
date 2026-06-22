@@ -20,7 +20,13 @@ export default function EmailCampaigns() {
   const [testEmail, setTestEmail] = useState("");
   const [testing, setTesting] = useState(false);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<any>({ name: "", list_id: "", template_id: "", subject: "" });
+
+  function resetForm() {
+    setForm({ name: "", list_id: "", template_id: "", subject: "" });
+    setEditingId(null);
+  }
 
   async function load() {
     const [{ data: c }, { data: l }, { data: t }] = await Promise.all([
@@ -32,14 +38,21 @@ export default function EmailCampaigns() {
   }
   useEffect(() => { load(); }, [user?.id]);
 
-  async function create() {
+  function openEdit(c: any) {
+    setEditingId(c.id);
+    setForm({ name: c.name || "", list_id: c.list_id || "", template_id: c.template_id || "", subject: c.subject || "" });
+    setOpen(true);
+  }
+
+  async function save() {
     if (!user) return;
     const tpl = templates.find(t => t.id === form.template_id);
-    const { error } = await supabase.from("email_campaigns").insert({
-      user_id: user.id, ...form, subject: form.subject || tpl?.subject || "",
-    });
+    const payload = { ...form, subject: form.subject || tpl?.subject || "" };
+    const { error } = editingId
+      ? await supabase.from("email_campaigns").update(payload).eq("id", editingId)
+      : await supabase.from("email_campaigns").insert({ user_id: user.id, ...payload });
     if (error) toast({ title: "Failed", description: error.message, variant: "destructive" });
-    else { setOpen(false); setForm({ name: "", list_id: "", template_id: "", subject: "" }); load(); }
+    else { setOpen(false); resetForm(); load(); }
   }
 
   async function sendNow(id: string) {
