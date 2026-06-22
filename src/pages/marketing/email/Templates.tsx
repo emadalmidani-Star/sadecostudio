@@ -132,10 +132,70 @@ export default function EmailTemplates() {
                         <Input value={b.url} onChange={e => updateBlock(i, { url: e.target.value })} placeholder="URL" />
                       </>
                     )}
+                    {b.type === "video" && (
+                      <>
+                        <Input value={b.url} onChange={e => updateBlock(i, { url: e.target.value })} placeholder="Video URL (YouTube / Vimeo / direct link)" />
+                        <Input value={b.thumbnail} onChange={e => updateBlock(i, { thumbnail: e.target.value })} placeholder="Thumbnail image URL" />
+                        <Input value={b.title || ""} onChange={e => updateBlock(i, { title: e.target.value })} placeholder="Caption (optional)" />
+                        <p className="text-[11px] text-muted-foreground">Email clients don't play video inline — this renders a clickable thumbnail that opens the video URL.</p>
+                      </>
+                    )}
+                    {b.type === "gallery" && (
+                      <>
+                        <select
+                          className="w-full border rounded h-9 px-2 bg-background text-sm"
+                          value={b.layout || "side"}
+                          onChange={e => updateBlock(i, { layout: e.target.value })}
+                        >
+                          <option value="side">Side by side (2)</option>
+                          <option value="grid">Grid (up to 4)</option>
+                        </select>
+                        {(b.images || []).map((im: any, k: number) => (
+                          <div key={k} className="space-y-1 border-l-2 pl-2">
+                            <Input value={im.url} onChange={e => {
+                              const images = [...b.images]; images[k] = { ...im, url: e.target.value }; updateBlock(i, { images });
+                            }} placeholder="Image URL" />
+                            <Input value={im.caption || ""} onChange={e => {
+                              const images = [...b.images]; images[k] = { ...im, caption: e.target.value }; updateBlock(i, { images });
+                            }} placeholder="Caption (optional)" />
+                            <Button size="sm" variant="ghost" onClick={() => {
+                              const images = b.images.filter((_: any, x: number) => x !== k); updateBlock(i, { images });
+                            }}>Remove image</Button>
+                          </div>
+                        ))}
+                        {(b.images?.length || 0) < 4 && (
+                          <Button size="sm" variant="outline" onClick={() => updateBlock(i, { images: [...(b.images || []), { url: "" }] })}>+ Add image</Button>
+                        )}
+                      </>
+                    )}
+                    {b.type === "social" && (
+                      <>
+                        {(b.links || []).map((l: any, k: number) => (
+                          <div key={k} className="flex gap-2">
+                            <select
+                              className="border rounded h-9 px-2 bg-background text-sm"
+                              value={l.platform}
+                              onChange={e => {
+                                const links = [...b.links]; links[k] = { ...l, platform: e.target.value }; updateBlock(i, { links });
+                              }}
+                            >
+                              {["instagram","facebook","linkedin","youtube","tiktok","twitter","website"].map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                            <Input value={l.url} onChange={e => {
+                              const links = [...b.links]; links[k] = { ...l, url: e.target.value }; updateBlock(i, { links });
+                            }} placeholder="https://" />
+                            <Button size="sm" variant="ghost" onClick={() => {
+                              const links = b.links.filter((_: any, x: number) => x !== k); updateBlock(i, { links });
+                            }}><Trash2 className="w-3 h-3" /></Button>
+                          </div>
+                        ))}
+                        <Button size="sm" variant="outline" onClick={() => updateBlock(i, { links: [...(b.links || []), { platform: "instagram", url: "" }] })}>+ Add link</Button>
+                      </>
+                    )}
                   </div>
                 ))}
                 <div className="flex flex-wrap gap-2 pt-2 border-t">
-                  {(["heading", "text", "image", "button", "divider", "spacer"] as const).map(t => (
+                  {(["heading", "text", "image", "gallery", "video", "button", "social", "divider", "spacer"] as const).map(t => (
                     <Button key={t} size="sm" variant="outline" onClick={() => addBlock(t)}>+ {t}</Button>
                   ))}
                 </div>
