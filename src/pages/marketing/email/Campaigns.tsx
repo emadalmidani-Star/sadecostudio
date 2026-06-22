@@ -136,6 +136,7 @@ export default function EmailCampaigns() {
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => { setTestOpen(c.id); setTestEmail(user?.email || ""); }}><Mail className="w-3.5 h-3.5 mr-1" />Test</Button>
+                {["draft", "failed", "scheduled"].includes(c.status) && <Button size="sm" variant="outline" onClick={() => openEdit(c)}><Pencil className="w-3.5 h-3.5 mr-1" />Edit</Button>}
                 {["draft", "failed"].includes(c.status) && <Button size="sm" onClick={() => sendNow(c.id)}><Send className="w-3.5 h-3.5 mr-1" />Send</Button>}
                 {c.status === "draft" && <Button size="sm" variant="outline" onClick={() => schedule(c.id)}><Calendar className="w-3.5 h-3.5 mr-1" />Schedule</Button>}
                 <Button size="sm" variant="ghost" onClick={() => del(c.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
