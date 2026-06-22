@@ -60,6 +60,16 @@ export default function EmailTemplates() {
       button: { type: "button", text: "Click me", url: "https://" },
       divider: { type: "divider" },
       spacer: { type: "spacer", height: 24 },
+      video: { type: "video", url: "https://youtu.be/", thumbnail: "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=1200&q=60", title: "Watch our video" },
+      gallery: { type: "gallery", layout: "side", images: [
+        { url: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800&q=60", alt: "" },
+        { url: "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800&q=60", alt: "" },
+      ] },
+      social: { type: "social", links: [
+        { platform: "instagram", url: "https://instagram.com/" },
+        { platform: "facebook", url: "https://facebook.com/" },
+        { platform: "linkedin", url: "https://linkedin.com/" },
+      ] },
     };
     setCur({ ...cur, blocks: [...cur.blocks, defaults[type]] });
   }
