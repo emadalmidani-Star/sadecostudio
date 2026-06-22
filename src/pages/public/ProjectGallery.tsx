@@ -33,7 +33,7 @@ export default function PublicProjectGallery() {
       if (!id) { setNotFound(true); setLoading(false); return; }
       const { data, error } = await supabase
         .from("projects")
-        .select("id,name,location,client_name,cover_image,images")
+        .select("id,name,location,cover_image,images")
         .eq("id", id)
         .maybeSingle();
       if (error || !data) setNotFound(true);
