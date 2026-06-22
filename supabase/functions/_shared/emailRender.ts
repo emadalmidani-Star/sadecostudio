@@ -35,7 +35,7 @@ const MINIMAL = {
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const SERIF = "Georgia,'Times New Roman',serif";
 
-export function renderBlocks(tpl: any, ctx: any): string {
+export function renderBlocks(tpl: tpl: any, ctx: any): string {
   const p = tpl.preset === "minimal" ? MINIMAL : BRAND;
   const isBrand = tpl.preset !== "minimal";
   const btnText = isBrand ? "#0b0d10" : "#ffffff";
@@ -54,10 +54,13 @@ export function renderBlocks(tpl: any, ctx: any): string {
         case "heading": {
           const size = b.level === 3 ? 16 : b.level === 2 ? 20 : 26;
           const lh = Math.round(size * 1.25);
-          return `<h${b.level || 1} style="margin:24px 0 12px;font-family:${SERIF};font-weight:600;font-size:${size}px;color:${p.text};mso-line-height-rule:exactly;line-height:${lh}px">${esc(interp(b.text, ctx))}</h${b.level || 1}>`;
+          const align = b.align || "left";
+          return `<h${b.level || 1} style="margin:24px 0 12px;font-family:${SERIF};font-weight:600;font-size:${size}px;color:${p.text};mso-line-height-rule:exactly;line-height:${lh}px;text-align:${align}">${esc(interp(b.text, ctx))}</h${b.level || 1}>`;
         }
-        case "text":
-          return `<p style="margin:0 0 16px;font-family:${SANS};font-size:15px;mso-line-height-rule:exactly;line-height:24px;color:${p.text}">${esc(interp(b.text, ctx)).split("\n").join("<br/>")}</p>`;
+        case "text": {
+          const align = b.align || "left";
+          return `<p style="margin:0 0 16px;font-family:${SANS};font-size:15px;mso-line-height-rule:exactly;line-height:24px;color:${p.text};text-align:${align}">${esc(interp(b.text, ctx)).split("\n").join("<br/>")}</p>`;
+        }
         case "image":
           return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;mso-table-lspace:0;mso-table-rspace:0"><tr><td align="center"><img src="${esc(b.url)}" alt="${esc(b.alt || "")}" width="${b.width || 560}" style="max-width:${b.width || 560}px;width:100%;height:auto;border:0;outline:none;text-decoration:none;display:block" border="0"/></td></tr></table>`;
         case "button": {
@@ -189,4 +192,3 @@ ${preheader}
   </td></tr>
 </table>
 </body></html>`;
-}
