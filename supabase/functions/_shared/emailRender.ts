@@ -1,0 +1,103 @@
+// Shared email renderer — keep in sync with src/lib/emailRender.ts
+export type SocialPlatform = "instagram" | "facebook" | "linkedin" | "youtube" | "tiktok" | "twitter" | "website";
+
+const esc = (s: string) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+const interp = (s: string, ctx: any) =>
+  String(s ?? "")
+    .split("{{name}}").join(esc(ctx.recipientName || "there"))
+    .split("{{site}}").join(esc(ctx.siteName || ""));
+
+const BRAND = { bg: "#0b0d10", card: "#11141a", text: "#e7e4dc", muted: "#9a958a", accent: "#c9a84c", border: "#1f242c" };
+const MINIMAL = { bg: "#ffffff", card: "#ffffff", text: "#222222", muted: "#666666", accent: "#0d0d0d", border: "#e6e6e6" };
+
+export function renderBlocks(tpl: any, ctx: any): string {
+  const p = tpl.preset === "minimal" ? MINIMAL : BRAND;
+  const isBrand = tpl.preset !== "minimal";
+
+  const header = isBrand
+    ? `<div style="padding:24px;text-align:center;background:${p.card};border-bottom:1px solid ${p.border};">
+        ${ctx.logoUrl ? `<img src="${esc(ctx.logoUrl)}" alt="${esc(ctx.siteName || "")}" style="max-height:48px;display:inline-block"/>` : `<div style="font-family:Georgia,serif;font-size:22px;color:${p.accent};letter-spacing:.2em">${esc(ctx.siteName || "")}</div>`}
+      </div>`
+    : `<div style="padding:24px 0;border-bottom:1px solid ${p.border};">
+        <div style="font-family:Georgia,serif;font-size:18px;color:${p.text}">${esc(ctx.siteName || "")}</div>
+      </div>`;
+
+  const body = (tpl.blocks || [])
+    .map((b: any) => {
+      switch (b.type) {
+        case "heading": {
+          const size = b.level === 3 ? 16 : b.level === 2 ? 20 : 26;
+          return `<h${b.level || 1} style="margin:24px 0 12px;font-family:Georgia,serif;font-weight:600;font-size:${size}px;color:${p.text};line-height:1.25">${esc(interp(b.text, ctx))}</h${b.level || 1}>`;
+        }
+        case "text":
+          return `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:${p.text}">${esc(interp(b.text, ctx)).split("\n").join("<br/>")}</p>`;
+        case "image":
+          return `<div style="margin:20px 0;text-align:center"><img src="${esc(b.url)}" alt="${esc(b.alt || "")}" style="max-width:${b.width || 560}px;width:100%;height:auto;border-radius:4px;display:inline-block"/></div>`;
+        case "button":
+          return `<div style="margin:24px 0;text-align:center"><a href="${esc(b.url)}" style="display:inline-block;padding:12px 28px;background:${p.accent};color:${isBrand ? "#0b0d10" : "#ffffff"};text-decoration:none;font-weight:600;font-size:14px;letter-spacing:.05em;border-radius:2px">${esc(interp(b.text, ctx))}</a></div>`;
+        case "divider":
+          return `<hr style="border:none;border-top:1px solid ${p.border};margin:24px 0"/>`;
+        case "spacer":
+          return `<div style="height:${b.height || 24}px"></div>`;
+        case "video": {
+          const altText = b.alt || b.title || "Watch video";
+          const playLabel = b.playLabel || "Watch video";
+          const playOverlay = `<div style="position:relative;display:inline-block;max-width:560px;width:100%"><img src="${esc(b.thumbnail)}" alt="${esc(altText)}" style="width:100%;height:auto;border-radius:6px;display:block"/><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:68px;height:68px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:28px;line-height:68px;text-align:center" aria-label="${esc(playLabel)}">&#9658;</div></div>`;
+          return `<div style="margin:20px 0;text-align:center"><a href="${esc(b.url)}" style="text-decoration:none;color:${p.text}">${playOverlay}<div style="margin-top:10px;font-size:14px;color:${p.muted}">${esc(b.title ? `${b.title} — ${playLabel}` : playLabel)}</div></a></div>`;
+        }
+        case "gallery": {
+          const imgs = (b.images || []).slice(0, 4);
+          if (imgs.length === 0) return "";
+          const layout = b.layout || "side";
+          if (layout === "side" && imgs.length >= 2) {
+            const two = imgs.slice(0, 2);
+            return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0"><tr>${two.map((im: any) => `<td width="50%" style="padding:4px;vertical-align:top"><img src="${esc(im.url)}" alt="${esc(im.alt || "")}" style="width:100%;height:auto;border-radius:4px;display:block"/>${im.caption ? `<div style="font-size:12px;color:${p.muted};text-align:center;margin-top:6px">${esc(im.caption)}</div>` : ""}</td>`).join("")}</tr></table>`;
+          }
+          const rows: any[][] = [];
+          for (let i = 0; i < imgs.length; i += 2) rows.push(imgs.slice(i, i + 2));
+          return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0">${rows.map(r => `<tr>${r.map((im: any) => `<td width="50%" style="padding:4px;vertical-align:top"><img src="${esc(im.url)}" alt="${esc(im.alt || "")}" style="width:100%;height:auto;border-radius:4px;display:block"/>${im.caption ? `<div style="font-size:12px;color:${p.muted};text-align:center;margin-top:6px">${esc(im.caption)}</div>` : ""}</td>`).join("")}${r.length === 1 ? '<td width="50%"></td>' : ""}</tr>`).join("")}</table>`;
+        }
+        case "social": {
+          const items = (b.links || []).filter((l: any) => l.url);
+          if (items.length === 0) return "";
+          const labels: Record<string, string> = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", youtube: "YouTube", tiktok: "TikTok", twitter: "X", website: "Website" };
+          const slugs: Record<string, string> = { instagram: "instagram-new", facebook: "facebook-new", linkedin: "linkedin", youtube: "youtube-play", tiktok: "tiktok", twitter: "twitterx", website: "domain" };
+          const style = b.iconStyle || "color";
+          const set = style === "color" ? "color" : (isBrand ? "ios-filled/ffffff" : "ios-filled/222222");
+          return `<div style="margin:24px 0;text-align:center">${items.map((l: any) => `<a href="${esc(l.url)}" style="display:inline-block;margin:0 8px;text-decoration:none" aria-label="${esc(labels[l.platform] || l.platform)}"><img src="https://img.icons8.com/${set}/48/${slugs[l.platform] || "domain"}.png" alt="${esc(labels[l.platform] || l.platform)}" width="28" height="28" style="display:inline-block;border:0;width:28px;height:28px"/></a>`).join("")}</div>`;
+        }
+        default:
+          return "";
+      }
+    })
+    .join("");
+
+  const footer = `<div style="padding:24px;text-align:center;border-top:1px solid ${p.border};color:${p.muted};font-size:12px;line-height:1.6">
+    ${ctx.physicalAddress ? `<div style="margin-bottom:8px">${esc(ctx.physicalAddress)}</div>` : ""}
+    <div>You received this email because you opted in. <a href="${esc(ctx.unsubscribeUrl)}" style="color:${p.muted};text-decoration:underline">Unsubscribe</a></div>
+  </div>`;
+
+  const preheader = tpl.preheader
+    ? `<div style="display:none;visibility:hidden;opacity:0;height:0;width:0;overflow:hidden;max-height:0;mso-hide:all">${esc(tpl.preheader)}</div>`
+    : "";
+
+  return `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${esc(tpl.subject || "")}</title></head>
+<body style="margin:0;padding:0;background:${p.bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+${preheader}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${p.bg};padding:32px 16px">
+  <tr><td align="center">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:${p.card};border:1px solid ${p.border};border-radius:8px;overflow:hidden">
+      <tr><td>${header}</td></tr>
+      <tr><td style="padding:8px 32px 24px">${body}</td></tr>
+      <tr><td>${footer}</td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
+}
