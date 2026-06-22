@@ -49,7 +49,7 @@ export function renderBlocks(tpl: tpl: any, ctx: any): string {
       </td></tr></table>`;
 
   const body = (tpl.blocks || [])
-    .map((b) => {
+    .map((b: any) => {
       switch (b.type) {
         case "heading": {
           const size = b.level === 3 ? 16 : b.level === 2 ? 20 : 26;
@@ -97,31 +97,31 @@ export function renderBlocks(tpl: tpl: any, ctx: any): string {
           </td></tr></table>`;
         }
         case "gallery": {
-          const imgs = (b.images || []) as any[].slice(0, 4);
+          const imgs = (b.images || []).slice(0, 4);
           if (imgs.length === 0) return "";
           const layout = b.layout || "side";
-          const cell = (im: { url: string; alt?: string; caption?: string }, half = true) =>
+          const cell = (im: any, half = true) =>
             `<td class="lv-gallery-cell" ${half ? 'width="50%"' : ""} valign="top" style="padding:4px;vertical-align:top">
               <img src="${esc(im.url)}" alt="${esc(im.alt || "")}" width="270" style="width:100%;max-width:270px;height:auto;border-radius:4px;display:block;border:0;outline:none;text-decoration:none" border="0"/>
               ${im.caption ? `<div style="font-family:${SANS};font-size:12px;color:${p.muted};text-align:center;margin-top:6px;mso-line-height-rule:exactly;line-height:16px">${esc(im.caption)}</div>` : ""}
             </td>`;
           if (layout === "side" && imgs.length >= 2) {
             const two = imgs.slice(0, 2);
-            return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="lv-gallery" style="margin:20px 0;mso-table-lspace:0;mso-table-rspace:0"><tr>${two.map(im => cell(im)).join("")}</tr></table>`;
+            return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="lv-gallery" style="margin:20px 0;mso-table-lspace:0;mso-table-rspace:0"><tr>${two.map((im: any) => cell(im)).join("")}</tr></table>`;
           }
-          const rows: typeof imgs[] = [];
+          const rows: any[][] = [];
           for (let i = 0; i < imgs.length; i += 2) rows.push(imgs.slice(i, i + 2));
-          return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="lv-gallery" style="margin:20px 0;mso-table-lspace:0;mso-table-rspace:0">${rows.map(r => `<tr>${r.map(im => cell(im)).join("")}${r.length === 1 ? '<td width="50%">&nbsp;</td>' : ""}</tr>`).join("")}</table>`;
+          return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="lv-gallery" style="margin:20px 0;mso-table-lspace:0;mso-table-rspace:0">${rows.map(r => `<tr>${r.map((im: any) => cell(im)).join("")}${r.length === 1 ? '<td width="50%">&nbsp;</td>' : ""}</tr>`).join("")}</table>`;
         }
         case "social": {
-          const items = (b.links || []).filter(l => l.url);
+          const items = (b.links || []).filter((l: any) => l.url);
           if (items.length === 0) return "";
           const labels: Record<string, string> = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", youtube: "YouTube", tiktok: "TikTok", twitter: "X", website: "Website" };
           const slugs: Record<string, string> = { instagram: "instagram-new", facebook: "facebook-new", linkedin: "linkedin", youtube: "youtube-play", tiktok: "tiktok", twitter: "twitterx", website: "domain" };
           const style = b.iconStyle || "color";
           const set = style === "color" ? "color" : (isBrand ? "ios-filled/ffffff" : "ios-filled/222222");
           // Use a table row with cells per icon so Outlook desktop spaces them correctly.
-          return `<table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" class="lv-social" style="margin:24px auto;mso-table-lspace:0;mso-table-rspace:0"><tr>${items.map(l => {
+          return `<table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" class="lv-social" style="margin:24px auto;mso-table-lspace:0;mso-table-rspace:0"><tr>${items.map((l: any) => {
             const label = esc(labels[l.platform] || l.platform);
             return `<td class="lv-social-link" align="center" style="padding:0 8px"><a href="${esc(l.url)}" style="text-decoration:none" aria-label="${label}"><img src="https://img.icons8.com/${set}/48/${slugs[l.platform] || "domain"}.png" alt="${label}" width="28" height="28" style="display:block;border:0;outline:none;text-decoration:none;width:28px;height:28px" border="0"/></a></td>`;
           }).join("")}</tr></table>`;
@@ -190,13 +190,3 @@ ${preheader}
 </table>
 </body></html>`;
 }
-
-export function defaultBlocks(preset: "brand" | "minimal"): EmailBlock[] {
-  if (preset === "minimal") {
-    return [
-      { type: "heading", text: "Hi {{name}},", level: 2 },
-      { type: "text", text: "Quick note from {{site}}. Replace this with whatever you want to say.\n\nKeep it short and personal — text-only emails land in the inbox more reliably than image-heavy ones." },
-      { type: "text", text: "— The {{site}} team" },
-    ];
-  }
-  return [
