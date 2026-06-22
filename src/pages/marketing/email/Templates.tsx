@@ -271,9 +271,3 @@ export default function EmailTemplates() {
     </div>
   );
 }
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
