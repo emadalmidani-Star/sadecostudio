@@ -124,8 +124,18 @@ export default function EmailTemplates() {
                         <Button size="sm" variant="ghost" onClick={() => removeBlock(i)}><Trash2 className="w-3 h-3" /></Button>
                       </div>
                     </div>
-                    {b.type === "heading" && <Input value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} />}
-                    {b.type === "text" && <Textarea rows={3} value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} />}
+                    {b.type === "heading" && (
+                      <div className="space-y-2">
+                        <Input value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} />
+                        <AlignToggle value={b.align || "left"} onChange={v => updateBlock(i, { align: v })} />
+                      </div>
+                    )}
+                    {b.type === "text" && (
+                      <div className="space-y-2">
+                        <Textarea rows={3} value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} />
+                        <AlignToggle value={b.align || "left"} onChange={v => updateBlock(i, { align: v })} />
+                      </div>
+                    )}
                     {b.type === "image" && <Input value={b.url} onChange={e => updateBlock(i, { url: e.target.value })} placeholder="Image URL" />}
                     {b.type === "button" && (
                       <>
