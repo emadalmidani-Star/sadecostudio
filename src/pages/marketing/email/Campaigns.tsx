@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Send, Calendar, Trash2, Mail } from "lucide-react";
+import { Plus, Send, Calendar, Trash2, Mail, Pencil } from "lucide-react";
 
 export default function EmailCampaigns() {
   const { user } = useAuth();
@@ -20,7 +20,13 @@ export default function EmailCampaigns() {
   const [testEmail, setTestEmail] = useState("");
   const [testing, setTesting] = useState(false);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<any>({ name: "", list_id: "", template_id: "", subject: "" });
+
+  function resetForm() {
+    setForm({ name: "", list_id: "", template_id: "", subject: "" });
+    setEditingId(null);
+  }
 
   async function load() {
     const [{ data: c }, { data: l }, { data: t }] = await Promise.all([
@@ -32,14 +38,21 @@ export default function EmailCampaigns() {
   }
   useEffect(() => { load(); }, [user?.id]);
 
-  async function create() {
+  function openEdit(c: any) {
+    setEditingId(c.id);
+    setForm({ name: c.name || "", list_id: c.list_id || "", template_id: c.template_id || "", subject: c.subject || "" });
+    setOpen(true);
+  }
+
+  async function save() {
     if (!user) return;
     const tpl = templates.find(t => t.id === form.template_id);
-    const { error } = await supabase.from("email_campaigns").insert({
-      user_id: user.id, ...form, subject: form.subject || tpl?.subject || "",
-    });
+    const payload = { ...form, subject: form.subject || tpl?.subject || "" };
+    const { error } = editingId
+      ? await supabase.from("email_campaigns").update(payload).eq("id", editingId)
+      : await supabase.from("email_campaigns").insert({ user_id: user.id, ...payload });
     if (error) toast({ title: "Failed", description: error.message, variant: "destructive" });
-    else { setOpen(false); setForm({ name: "", list_id: "", template_id: "", subject: "" }); load(); }
+    else { setOpen(false); resetForm(); load(); }
   }
 
   async function sendNow(id: string) {
@@ -82,10 +95,10 @@ export default function EmailCampaigns() {
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-serif">Campaigns</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-2" />New campaign</Button></DialogTrigger>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
+          <DialogTrigger asChild><Button size="sm" onClick={() => resetForm()}><Plus className="w-4 h-4 mr-2" />New campaign</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>New campaign</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingId ? "Edit campaign" : "New campaign"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Name (internal)</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
               <div><Label>List</Label>
@@ -102,7 +115,7 @@ export default function EmailCampaigns() {
               </div>
               <div><Label>Subject (overrides template)</Label><Input value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} placeholder="Leave blank to use template subject" /></div>
             </div>
-            <DialogFooter><Button onClick={create} disabled={!form.name || !form.list_id || !form.template_id}>Create</Button></DialogFooter>
+            <DialogFooter><Button onClick={save} disabled={!form.name || !form.list_id || !form.template_id}>{editingId ? "Save changes" : "Create"}</Button></DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
@@ -123,6 +136,7 @@ export default function EmailCampaigns() {
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => { setTestOpen(c.id); setTestEmail(user?.email || ""); }}><Mail className="w-3.5 h-3.5 mr-1" />Test</Button>
+                {["draft", "failed", "scheduled"].includes(c.status) && <Button size="sm" variant="outline" onClick={() => openEdit(c)}><Pencil className="w-3.5 h-3.5 mr-1" />Edit</Button>}
                 {["draft", "failed"].includes(c.status) && <Button size="sm" onClick={() => sendNow(c.id)}><Send className="w-3.5 h-3.5 mr-1" />Send</Button>}
                 {c.status === "draft" && <Button size="sm" variant="outline" onClick={() => schedule(c.id)}><Calendar className="w-3.5 h-3.5 mr-1" />Schedule</Button>}
                 <Button size="sm" variant="ghost" onClick={() => del(c.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
