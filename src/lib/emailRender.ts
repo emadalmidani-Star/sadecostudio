@@ -1,13 +1,17 @@
 // Render block-based email templates to HTML.
 // Shared between the in-app preview and the edge-function sender.
 
+export type SocialPlatform = "instagram" | "facebook" | "linkedin" | "youtube" | "tiktok" | "twitter" | "website";
 export type EmailBlock =
   | { type: "heading"; text: string; level?: 1 | 2 | 3 }
   | { type: "text"; text: string }
   | { type: "image"; url: string; alt?: string; width?: number }
   | { type: "button"; text: string; url: string }
   | { type: "divider" }
-  | { type: "spacer"; height?: number };
+  | { type: "spacer"; height?: number }
+  | { type: "video"; url: string; thumbnail: string; title?: string }
+  | { type: "gallery"; images: { url: string; alt?: string; caption?: string }[]; layout?: "grid" | "side" }
+  | { type: "social"; links: { platform: SocialPlatform; url: string }[] };
 
 export type EmailTemplate = {
   preset?: "brand" | "minimal";
