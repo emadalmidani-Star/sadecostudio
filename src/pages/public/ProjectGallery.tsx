@@ -108,7 +108,7 @@ export default function PublicProjectGallery() {
       </main>
 
       <footer className="px-6 py-6 text-center text-xs text-muted-foreground">
-        {project.client_name ? `Shared with ${project.client_name}` : "Shared gallery"}
+        Shared gallery
       </footer>
 
       <Dialog open={idx !== null} onOpenChange={(v) => { if (!v) close(); }}>
