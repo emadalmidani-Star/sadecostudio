@@ -94,7 +94,9 @@ Deno.serve(async (req) => {
     const logoUrl = company?.logo_url || null;
 
     let sent = 0, failed = 0;
-    for (const c of recipients) {
+    const CONCURRENCY = 10; // parallel sends per batch (Resend default ~2/s on free, 10/s on paid)
+
+    async function sendOne(c: any) {
       // ensure unsubscribe token
       let token = randToken();
       const { data: existing } = await admin.from("email_unsubs")
@@ -154,6 +156,12 @@ Deno.serve(async (req) => {
           recipient_email: c.email, status: "failed", error: String(e).slice(0, 500),
         }, { onConflict: "campaign_id,contact_id" });
       }
+    }
+
+    // Process recipients in parallel batches of CONCURRENCY
+    for (let i = 0; i < recipients.length; i += CONCURRENCY) {
+      const batch = recipients.slice(i, i + CONCURRENCY);
+      await Promise.all(batch.map(sendOne));
     }
 
     const stats = {
