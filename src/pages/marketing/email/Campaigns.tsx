@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Send, Calendar, Trash2, Mail } from "lucide-react";
+import { Plus, Send, Calendar, Trash2, Mail, Pencil } from "lucide-react";
 
 export default function EmailCampaigns() {
   const { user } = useAuth();
