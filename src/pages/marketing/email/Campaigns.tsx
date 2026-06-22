@@ -95,10 +95,10 @@ export default function EmailCampaigns() {
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-serif">Campaigns</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-2" />New campaign</Button></DialogTrigger>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
+          <DialogTrigger asChild><Button size="sm" onClick={() => resetForm()}><Plus className="w-4 h-4 mr-2" />New campaign</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>New campaign</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingId ? "Edit campaign" : "New campaign"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Name (internal)</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
               <div><Label>List</Label>
@@ -115,7 +115,7 @@ export default function EmailCampaigns() {
               </div>
               <div><Label>Subject (overrides template)</Label><Input value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} placeholder="Leave blank to use template subject" /></div>
             </div>
-            <DialogFooter><Button onClick={create} disabled={!form.name || !form.list_id || !form.template_id}>Create</Button></DialogFooter>
+            <DialogFooter><Button onClick={save} disabled={!form.name || !form.list_id || !form.template_id}>{editingId ? "Save changes" : "Create"}</Button></DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
