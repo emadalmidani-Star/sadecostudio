@@ -33,7 +33,7 @@ export default function PublicProjectGallery() {
       if (!id) { setNotFound(true); setLoading(false); return; }
       const { data, error } = await supabase
         .from("projects")
-        .select("id,name,location,client_name,cover_image,images")
+        .select("id,name,location,cover_image,images")
         .eq("id", id)
         .maybeSingle();
       if (error || !data) setNotFound(true);
@@ -74,7 +74,7 @@ export default function PublicProjectGallery() {
     <div className="min-h-screen bg-background">
       <header className="px-6 md:px-10 py-8 border-b">
         <div className="max-w-screen-2xl mx-auto">
-          <p className="eyebrow mb-2">{project.client_name || "PROJECT"}</p>
+          <p className="eyebrow mb-2">PROJECT</p>
           <h1 className="page-title">{project.name}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {project.location || "—"} · {images.length} {images.length === 1 ? "image" : "images"}
@@ -108,7 +108,7 @@ export default function PublicProjectGallery() {
       </main>
 
       <footer className="px-6 py-6 text-center text-xs text-muted-foreground">
-        {project.client_name ? `Shared with ${project.client_name}` : "Shared gallery"}
+        Shared gallery
       </footer>
 
       <Dialog open={idx !== null} onOpenChange={(v) => { if (!v) close(); }}>
