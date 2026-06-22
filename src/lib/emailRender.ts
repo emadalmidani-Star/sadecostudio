@@ -9,9 +9,9 @@ export type EmailBlock =
   | { type: "button"; text: string; url: string }
   | { type: "divider" }
   | { type: "spacer"; height?: number }
-  | { type: "video"; url: string; thumbnail: string; title?: string }
+  | { type: "video"; url: string; thumbnail: string; title?: string; playLabel?: string; alt?: string }
   | { type: "gallery"; images: { url: string; alt?: string; caption?: string }[]; layout?: "grid" | "side" }
-  | { type: "social"; links: { platform: SocialPlatform; url: string }[] };
+  | { type: "social"; links: { platform: SocialPlatform; url: string }[]; iconStyle?: "color" | "mono" };
 
 export type EmailTemplate = {
   preset?: "brand" | "minimal";
