@@ -192,3 +192,4 @@ ${preheader}
   </td></tr>
 </table>
 </body></html>`;
+}
