@@ -7,8 +7,32 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, ArrowUp, ArrowDown, Upload, Monitor, Smartphone, ExternalLink } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, Upload, Monitor, Smartphone, ExternalLink, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
 import { renderBlocks, defaultBlocks, type EmailBlock } from "@/lib/emailRender";
+
+type Align = "left" | "center" | "right";
+function AlignToggle({ value, onChange }: { value: Align; onChange: (v: Align) => void }) {
+  const opts: { v: Align; Icon: typeof AlignLeft }[] = [
+    { v: "left", Icon: AlignLeft },
+    { v: "center", Icon: AlignCenter },
+    { v: "right", Icon: AlignRight },
+  ];
+  return (
+    <div className="inline-flex border rounded-md overflow-hidden">
+      {opts.map(({ v, Icon }) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onChange(v)}
+          className={`h-8 w-8 flex items-center justify-center text-xs ${value === v ? "bg-accent text-accent-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+          aria-label={`Align ${v}`}
+        >
+          <Icon className="w-3.5 h-3.5" />
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function EmailTemplates() {
   const { user } = useAuth();
@@ -124,8 +148,18 @@ export default function EmailTemplates() {
                         <Button size="sm" variant="ghost" onClick={() => removeBlock(i)}><Trash2 className="w-3 h-3" /></Button>
                       </div>
                     </div>
-                    {b.type === "heading" && <Input value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} />}
-                    {b.type === "text" && <Textarea rows={3} value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} />}
+                    {b.type === "heading" && (
+                      <div className="space-y-2">
+                        <Input value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} />
+                        <AlignToggle value={b.align || "left"} onChange={v => updateBlock(i, { align: v })} />
+                      </div>
+                    )}
+                    {b.type === "text" && (
+                      <div className="space-y-2">
+                        <Textarea rows={3} value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} />
+                        <AlignToggle value={b.align || "left"} onChange={v => updateBlock(i, { align: v })} />
+                      </div>
+                    )}
                     {b.type === "image" && <Input value={b.url} onChange={e => updateBlock(i, { url: e.target.value })} placeholder="Image URL" />}
                     {b.type === "button" && (
                       <>
