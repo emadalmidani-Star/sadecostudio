@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, ArrowUp, ArrowDown, Upload } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, Upload, Monitor, Smartphone, ExternalLink } from "lucide-react";
 import { renderBlocks, defaultBlocks, type EmailBlock } from "@/lib/emailRender";
 
 export default function EmailTemplates() {
   const { user } = useAuth();
+  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [list, setList] = useState<any[]>([]);
   const [cur, setCur] = useState<any | null>(null);
 
