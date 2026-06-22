@@ -1,13 +1,17 @@
 // Render block-based email templates to HTML.
 // Shared between the in-app preview and the edge-function sender.
 
+export type SocialPlatform = "instagram" | "facebook" | "linkedin" | "youtube" | "tiktok" | "twitter" | "website";
 export type EmailBlock =
   | { type: "heading"; text: string; level?: 1 | 2 | 3 }
   | { type: "text"; text: string }
   | { type: "image"; url: string; alt?: string; width?: number }
   | { type: "button"; text: string; url: string }
   | { type: "divider" }
-  | { type: "spacer"; height?: number };
+  | { type: "spacer"; height?: number }
+  | { type: "video"; url: string; thumbnail: string; title?: string }
+  | { type: "gallery"; images: { url: string; alt?: string; caption?: string }[]; layout?: "grid" | "side" }
+  | { type: "social"; links: { platform: SocialPlatform; url: string }[] };
 
 export type EmailTemplate = {
   preset?: "brand" | "minimal";
@@ -83,6 +87,29 @@ export function renderBlocks(tpl: EmailTemplate, ctx: RenderContext): string {
           return `<hr style="border:none;border-top:1px solid ${p.border};margin:24px 0"/>`;
         case "spacer":
           return `<div style="height:${b.height || 24}px"></div>`;
+        case "video": {
+          const playOverlay = `<div style="position:relative;display:inline-block;max-width:560px;width:100%"><img src="${esc(b.thumbnail)}" alt="${esc(b.title || "Watch video")}" style="width:100%;height:auto;border-radius:6px;display:block"/><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:68px;height:68px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:28px;line-height:68px;text-align:center">&#9658;</div></div>`;
+          return `<div style="margin:20px 0;text-align:center"><a href="${esc(b.url)}" style="text-decoration:none;color:${p.text}">${playOverlay}${b.title ? `<div style="margin-top:10px;font-size:14px;color:${p.muted}">${esc(b.title)} — Watch on web</div>` : `<div style="margin-top:10px;font-size:13px;color:${p.muted}">Click to watch</div>`}</a></div>`;
+        }
+        case "gallery": {
+          const imgs = (b.images || []).slice(0, 4);
+          if (imgs.length === 0) return "";
+          const layout = b.layout || "side";
+          if (layout === "side" && imgs.length >= 2) {
+            const two = imgs.slice(0, 2);
+            return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0"><tr>${two.map(im => `<td width="50%" style="padding:4px;vertical-align:top"><img src="${esc(im.url)}" alt="${esc(im.alt || "")}" style="width:100%;height:auto;border-radius:4px;display:block"/>${im.caption ? `<div style="font-size:12px;color:${p.muted};text-align:center;margin-top:6px">${esc(im.caption)}</div>` : ""}</td>`).join("")}</tr></table>`;
+          }
+          // grid 2-col
+          const rows: typeof imgs[] = [];
+          for (let i = 0; i < imgs.length; i += 2) rows.push(imgs.slice(i, i + 2));
+          return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0">${rows.map(r => `<tr>${r.map(im => `<td width="50%" style="padding:4px;vertical-align:top"><img src="${esc(im.url)}" alt="${esc(im.alt || "")}" style="width:100%;height:auto;border-radius:4px;display:block"/>${im.caption ? `<div style="font-size:12px;color:${p.muted};text-align:center;margin-top:6px">${esc(im.caption)}</div>` : ""}</td>`).join("")}${r.length === 1 ? '<td width="50%"></td>' : ""}</tr>`).join("")}</table>`;
+        }
+        case "social": {
+          const items = (b.links || []).filter(l => l.url);
+          if (items.length === 0) return "";
+          const labels: Record<SocialPlatform, string> = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", youtube: "YouTube", tiktok: "TikTok", twitter: "X", website: "Website" };
+          return `<div style="margin:24px 0;text-align:center">${items.map(l => `<a href="${esc(l.url)}" style="display:inline-block;margin:0 8px;padding:8px 14px;border:1px solid ${p.border};border-radius:999px;color:${p.text};text-decoration:none;font-size:12px;letter-spacing:.04em">${esc(labels[l.platform] || l.platform)}</a>`).join("")}</div>`;
+        }
         default:
           return "";
       }
