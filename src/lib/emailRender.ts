@@ -129,14 +129,29 @@ export function renderBlocks(tpl: EmailTemplate, ctx: RenderContext): string {
     ? `<div style="display:none;visibility:hidden;opacity:0;height:0;width:0;overflow:hidden;max-height:0;mso-hide:all">${esc(tpl.preheader)}</div>`
     : "";
 
-  return `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${esc(tpl.subject || "")}</title></head>
+  const responsiveCss = `
+    <style>
+      @media only screen and (max-width:480px) {
+        .lv-container { padding: 16px 8px !important; }
+        .lv-body { padding: 8px 16px 16px !important; }
+        .lv-video { margin: 14px 0 !important; }
+        .lv-video-play { width:54px !important; height:54px !important; line-height:54px !important; font-size:22px !important; }
+        .lv-gallery { margin: 14px 0 !important; }
+        .lv-gallery-cell { display:block !important; width:100% !important; padding:6px 0 !important; }
+        .lv-social { margin: 18px 0 !important; }
+        .lv-social-link { margin: 0 6px !important; }
+        .lv-social-link img { width:24px !important; height:24px !important; }
+      }
+    </style>`;
+
+  return `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${esc(tpl.subject || "")}</title>${responsiveCss}</head>
 <body style="margin:0;padding:0;background:${p.bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
 ${preheader}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${p.bg};padding:32px 16px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="lv-container" style="background:${p.bg};padding:32px 16px">
   <tr><td align="center">
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:${p.card};border:1px solid ${p.border};border-radius:8px;overflow:hidden">
       <tr><td>${header}</td></tr>
-      <tr><td style="padding:8px 32px 24px">${body}</td></tr>
+      <tr><td class="lv-body" style="padding:8px 32px 24px">${body}</td></tr>
       <tr><td>${footer}</td></tr>
     </table>
   </td></tr>
