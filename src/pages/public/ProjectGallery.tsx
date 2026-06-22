@@ -74,7 +74,7 @@ export default function PublicProjectGallery() {
     <div className="min-h-screen bg-background">
       <header className="px-6 md:px-10 py-8 border-b">
         <div className="max-w-screen-2xl mx-auto">
-          <p className="eyebrow mb-2">{project.client_name || "PROJECT"}</p>
+          <p className="eyebrow mb-2">PROJECT</p>
           <h1 className="page-title">{project.name}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {project.location || "—"} · {images.length} {images.length === 1 ? "image" : "images"}
