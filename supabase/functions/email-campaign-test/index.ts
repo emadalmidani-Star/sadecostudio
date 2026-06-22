@@ -10,47 +10,13 @@ const json = (b: any, s = 200) =>
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 
-const esc = (s: string) =>
-  String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-const interp = (s: string, ctx: any) =>
-  s.replaceAll("{{name}}", esc(ctx.recipientName || "there")).replaceAll("{{site}}", esc(ctx.siteName || ""));
-
-const BRAND = { bg: "#0b0d10", card: "#11141a", text: "#e7e4dc", muted: "#9a958a", accent: "#c9a84c", border: "#1f242c" };
-const MINIMAL = { bg: "#ffffff", card: "#ffffff", text: "#222222", muted: "#666666", accent: "#0d0d0d", border: "#e6e6e6" };
+import { renderBlocks as renderBlocksShared } from "../_shared/emailRender.ts";
 
 function renderBlocks(tpl: any, ctx: any): string {
-  const p = tpl.preset === "minimal" ? MINIMAL : BRAND;
-  const isBrand = tpl.preset !== "minimal";
-  const header = isBrand
-    ? `<div style="padding:24px;text-align:center;background:${p.card};border-bottom:1px solid ${p.border};">
-        ${ctx.logoUrl ? `<img src="${esc(ctx.logoUrl)}" alt="${esc(ctx.siteName || "")}" style="max-height:48px"/>` : `<div style="font-family:Georgia,serif;font-size:22px;color:${p.accent};letter-spacing:.2em">${esc(ctx.siteName || "")}</div>`}
-      </div>`
-    : `<div style="padding:24px 0;border-bottom:1px solid ${p.border};"><div style="font-family:Georgia,serif;font-size:18px;color:${p.text}">${esc(ctx.siteName || "")}</div></div>`;
-  const body = (tpl.blocks || []).map((b: any) => {
-    switch (b.type) {
-      case "heading": {
-        const size = b.level === 3 ? 16 : b.level === 2 ? 20 : 26;
-        return `<h${b.level || 1} style="margin:24px 0 12px;font-family:Georgia,serif;font-weight:600;font-size:${size}px;color:${p.text}">${esc(interp(b.text, ctx))}</h${b.level || 1}>`;
-      }
-      case "text": return `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:${p.text}">${esc(interp(b.text, ctx)).replaceAll("\n", "<br/>")}</p>`;
-      case "image": return `<div style="margin:20px 0;text-align:center"><img src="${esc(b.url)}" alt="${esc(b.alt || "")}" style="max-width:${b.width || 560}px;width:100%;height:auto;border-radius:4px"/></div>`;
-      case "button": return `<div style="margin:24px 0;text-align:center"><a href="${esc(b.url)}" style="display:inline-block;padding:12px 28px;background:${p.accent};color:${isBrand ? "#0b0d10" : "#ffffff"};text-decoration:none;font-weight:600;font-size:14px;letter-spacing:.05em;border-radius:2px">${esc(interp(b.text, ctx))}</a></div>`;
-      case "divider": return `<hr style="border:none;border-top:1px solid ${p.border};margin:24px 0"/>`;
-      case "spacer": return `<div style="height:${b.height || 24}px"></div>`;
-      default: return "";
-    }
-  }).join("");
-  const testBanner = `<div style="padding:10px 16px;background:#fef3c7;color:#92400e;text-align:center;font-size:12px;font-weight:600;letter-spacing:.05em">⚠ TEST EMAIL — not sent to your list</div>`;
-  const footer = `<div style="padding:24px;text-align:center;border-top:1px solid ${p.border};color:${p.muted};font-size:12px;line-height:1.6">
-    ${ctx.physicalAddress ? `<div style="margin-bottom:8px">${esc(ctx.physicalAddress)}</div>` : ""}
-    <div>You received this email because you opted in. <a href="${esc(ctx.unsubscribeUrl)}" style="color:${p.muted};text-decoration:underline">Unsubscribe</a></div>
-  </div>`;
-  return `<!doctype html><html><head><meta charset="utf-8"/><title>[TEST] ${esc(tpl.subject || "")}</title></head>
-<body style="margin:0;padding:0;background:${p.bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${p.bg};padding:32px 16px">
-<tr><td align="center"><table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:${p.card};border:1px solid ${p.border};border-radius:8px;overflow:hidden">
-<tr><td>${testBanner}</td></tr><tr><td>${header}</td></tr><tr><td style="padding:8px 32px 24px">${body}</td></tr><tr><td>${footer}</td></tr>
-</table></td></tr></table></body></html>`;
+  const html = renderBlocksShared(tpl, ctx);
+  const banner = `<div style="padding:10px 16px;background:#fef3c7;color:#92400e;text-align:center;font-size:12px;font-weight:600;letter-spacing:.05em">⚠ TEST EMAIL — not sent to your list</div>`;
+  // Inject banner just after <body...>
+  return html.replace(/(<body[^>]*>)/, `$1${banner}`);
 }
 
 Deno.serve(async (req) => {
