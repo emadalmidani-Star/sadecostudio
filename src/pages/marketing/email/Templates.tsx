@@ -237,9 +237,40 @@ export default function EmailTemplates() {
               <Button onClick={save}>Save template</Button>
             </div>
             <div className="lg:col-span-4">
-              <Label>Preview</Label>
-              <iframe srcDoc={preview} className="w-full h-[700px] border rounded-md bg-white" title="preview" />
+              <div className="sticky top-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="m-0">Live preview</Label>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant={device === "desktop" ? "default" : "outline"} onClick={() => setDevice("desktop")} title="Desktop">
+                      <Monitor className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button size="sm" variant={device === "mobile" ? "default" : "outline"} onClick={() => setDevice("mobile")} title="Mobile">
+                      <Smartphone className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button size="sm" variant="outline" title="Open in new tab" onClick={() => {
+                      const w = window.open("", "_blank"); if (w) { w.document.open(); w.document.write(preview || ""); w.document.close(); }
+                    }}>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground">Updates as you type — video thumbnails, gallery layout and social icons render exactly as they'll be sent.</p>
+                <div className="border rounded-md bg-muted/40 p-3 flex justify-center overflow-auto">
+                  <iframe
+                    srcDoc={preview}
+                    title="preview"
+                    className="bg-white border rounded shadow-sm transition-all"
+                    style={{ width: device === "mobile" ? 380 : "100%", height: 700 }}
+                  />
+                </div>
+              </div>
             </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
           </>
         )}
       </div>
