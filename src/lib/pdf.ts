@@ -224,12 +224,28 @@ const SOCIAL_GLYPH: Record<SocialKind, string> = {
 async function socialBadgePng(kind: SocialKind): Promise<{ data: string; w: number; h: number } | null> {
   const bg = SOCIAL_BG[kind];
   const glyph = SOCIAL_GLYPH[kind];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="64" height="64"><circle cx="12" cy="12" r="12" fill="${bg}"/>${glyph}</svg>`;
-  return rasterizeSvg(svg, 128, false);
+  // Modern badge: soft outer ring + subtle top highlight for a tactile, pressable look.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="96" height="96">
+    <defs>
+      <radialGradient id="hl" cx="50%" cy="30%" r="60%">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
+        <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <circle cx="14" cy="14" r="13.4" fill="${bg}"/>
+    <circle cx="14" cy="14" r="13.4" fill="url(#hl)"/>
+    <circle cx="14" cy="14" r="13.4" fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="0.6"/>
+    <g transform="translate(2 2)">${glyph}</g>
+  </svg>`;
+  return rasterizeSvg(svg, 160, false);
 }
 
+// Standardised sizing/spacing — used for BOTH contact and company icon rows so
+// the Thank-You page reads as one consistent system in preview and PDF.
+const ICON_SIZE = 8;   // mm
+const ICON_GAP = 5;    // mm
 type SocialItem = { kind: SocialKind; url?: string };
-async function drawSocialRow(doc: jsPDF, items: SocialItem[], cx: number, y: number, size = 7, gap = 4) {
+async function drawSocialRow(doc: jsPDF, items: SocialItem[], cx: number, y: number, size = ICON_SIZE, gap = ICON_GAP) {
   if (!items.length) return;
   const totalW = items.length * size + (items.length - 1) * gap;
   let x = cx - totalW / 2;
@@ -546,8 +562,12 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     if (company?.instagram_url) icons.push({ kind: "instagram", url: company.instagram_url });
     if (company?.facebook_url) icons.push({ kind: "facebook", url: company.facebook_url });
     if (company?.youtube_url) icons.push({ kind: "youtube", url: company.youtube_url });
-    await drawSocialRow(doc, icons, W / 2, ly + (contact.phone ? 5 : 0), 7, 4);
+    await drawSocialRow(doc, icons, W / 2, ly + (contact.phone ? 5 : 0));
   }
+
+  // When a personal contact card is shown we hide the company footer entirely —
+  // the recipient already has the human's details and the duplicate block was noisy.
+  if (contact && (contact.full_name || contact.email)) return;
 
   // Company footer — phone/website/address as text, email + socials as modern icons.
   const cf: CompanyFooterFields = companyFields || { phone: true, email: true, website: true, address: true };
@@ -567,8 +587,8 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
   if (company?.facebook_url) footerIcons.push({ kind: "facebook", url: company.facebook_url });
   if (company?.youtube_url) footerIcons.push({ kind: "youtube", url: company.youtube_url });
 
-  const iconsY = H - 26;
-  if (footerIcons.length) await drawSocialRow(doc, footerIcons, W / 2, iconsY, 7, 4);
+  const iconsY = H - 28;
+  if (footerIcons.length) await drawSocialRow(doc, footerIcons, W / 2, iconsY);
 
   if (fItems.length) {
     doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#999999");
