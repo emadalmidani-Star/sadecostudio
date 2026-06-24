@@ -562,8 +562,12 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     if (company?.instagram_url) icons.push({ kind: "instagram", url: company.instagram_url });
     if (company?.facebook_url) icons.push({ kind: "facebook", url: company.facebook_url });
     if (company?.youtube_url) icons.push({ kind: "youtube", url: company.youtube_url });
-    await drawSocialRow(doc, icons, W / 2, ly + (contact.phone ? 5 : 0), 7, 4);
+    await drawSocialRow(doc, icons, W / 2, ly + (contact.phone ? 5 : 0));
   }
+
+  // When a personal contact card is shown we hide the company footer entirely —
+  // the recipient already has the human's details and the duplicate block was noisy.
+  if (contact && (contact.full_name || contact.email)) return;
 
   // Company footer — phone/website/address as text, email + socials as modern icons.
   const cf: CompanyFooterFields = companyFields || { phone: true, email: true, website: true, address: true };
@@ -583,8 +587,8 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
   if (company?.facebook_url) footerIcons.push({ kind: "facebook", url: company.facebook_url });
   if (company?.youtube_url) footerIcons.push({ kind: "youtube", url: company.youtube_url });
 
-  const iconsY = H - 26;
-  if (footerIcons.length) await drawSocialRow(doc, footerIcons, W / 2, iconsY, 7, 4);
+  const iconsY = H - 28;
+  if (footerIcons.length) await drawSocialRow(doc, footerIcons, W / 2, iconsY);
 
   if (fItems.length) {
     doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#999999");
