@@ -180,6 +180,97 @@ async function newDoc() {
   return doc;
 }
 
+// "About Us" cover page, optionally prepended to portfolio / selected-projects exports.
+import type { AboutPageData } from "./aboutPage";
+
+export async function addAboutCover(doc: jsPDF, company: any, logo: any, data: AboutPageData, isFirstPage: boolean) {
+  if (!isFirstPage) doc.addPage();
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  const accent = data.accent || "#c9a84c";
+
+  // Paper
+  doc.setFillColor(BRAND.paper); doc.rect(0, 0, W, H, "F");
+
+  // Left vertical accent band
+  doc.setFillColor(accent); doc.rect(0, 0, 8, H, "F");
+
+  // Top: small label + headline + tagline
+  doc.setTextColor(accent); doc.setFont("Montserrat", "bold"); doc.setFontSize(9);
+  doc.text("ABOUT US", 24, 28, { charSpace: 4 });
+
+  doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold"); doc.setFontSize(34);
+  const headLines = doc.splitTextToSize(data.headline || (company?.name || "About Us"), W - 60);
+  let y = 44;
+  headLines.forEach((ln: string) => { doc.text(ln, 24, y); y += 11; });
+
+  if (data.tagline) {
+    y += 2;
+    doc.setFont("Montserrat", "normal"); doc.setFontSize(13); doc.setTextColor(BRAND.muted);
+    const taglineLines = doc.splitTextToSize(data.tagline, W - 60);
+    taglineLines.forEach((ln: string) => { doc.text(ln, 24, y); y += 7; });
+  }
+
+  // Accent rule
+  y += 4;
+  doc.setDrawColor(accent); doc.setLineWidth(0.8); doc.line(24, y, 24 + 36, y);
+  y += 10;
+
+  // Intro paragraph
+  if (data.intro) {
+    doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor(BRAND.ink);
+    const lines = doc.splitTextToSize(data.intro, W - 60);
+    const maxLines = Math.min(lines.length, 12);
+    for (let i = 0; i < maxLines; i++) { doc.text(lines[i], 24, y); y += 6; }
+    y += 4;
+  }
+
+  // Stats row
+  if (data.stats?.length) {
+    const startY = H - 70;
+    const colW = (W - 48) / Math.min(data.stats.length, 4);
+    data.stats.slice(0, 4).forEach((s, i) => {
+      const x = 24 + i * colW;
+      doc.setFont("Montserrat", "bold"); doc.setFontSize(26); doc.setTextColor(accent);
+      doc.text(s.value || "", x, startY);
+      doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor(BRAND.muted);
+      doc.text((s.label || "").toUpperCase(), x, startY + 6, { charSpace: 2 });
+    });
+  }
+
+  // Services list (right column if room)
+  if (data.services?.length) {
+    const sx = W / 2 + 10;
+    let sy = 80;
+    doc.setFont("Montserrat", "bold"); doc.setFontSize(9); doc.setTextColor(accent);
+    doc.text("WHAT WE DO", sx, sy, { charSpace: 4 }); sy += 8;
+    doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor(BRAND.ink);
+    data.services.slice(0, 6).forEach(s => {
+      const lines = doc.splitTextToSize(s, W / 2 - 30);
+      doc.text("—", sx, sy);
+      doc.text(lines, sx + 6, sy);
+      sy += lines.length * 6 + 1;
+    });
+  }
+
+  // Contact footer
+  const footerY = H - 22;
+  doc.setDrawColor(BRAND.line); doc.setLineWidth(0.2); doc.line(24, footerY - 6, W - 24, footerY - 6);
+  doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor(BRAND.muted);
+  const contactBits: string[] = [];
+  if (data.contactPhone) contactBits.push(data.contactPhone);
+  if (data.contactEmail) contactBits.push(data.contactEmail);
+  if (data.contactWebsite) contactBits.push(data.contactWebsite);
+  if (data.contactAddress) contactBits.push(data.contactAddress);
+  if (contactBits.length) doc.text(contactBits.join("   ·   "), 24, footerY);
+
+  // Logo (top-right)
+  if (logo) {
+    const ratio = logo.w / logo.h;
+    const lw = 32; const lh = lw / ratio;
+    doc.addImage(logo.data, "PNG", W - 24 - lw, 18, lw, lh);
+  }
+}
+
 async function addCover(doc: jsPDF, company: any, subtitle: string, logo: any, tpl?: Template, project?: any) {
   if (tpl) { await renderTemplatePage(doc, tpl, { company, subtitle, project }); return; }
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
