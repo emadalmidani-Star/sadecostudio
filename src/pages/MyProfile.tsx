@@ -20,7 +20,7 @@ export default function MyProfile() {
   useEffect(() => { (async () => {
     if (!user) return;
     const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-    setP(data || { id: user.id, email: user.email, full_name: "", job_title: "", phone: "", whatsapp: "", avatar_url: "" });
+    setP(data || { id: user.id, email: user.email, full_name: "", job_title: "", phone: "", avatar_url: "" });
   })(); }, [user]);
 
   if (!p) return <div className="p-10 text-muted-foreground">Loading…</div>;
