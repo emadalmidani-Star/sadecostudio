@@ -281,6 +281,72 @@ export default function Exports() {
         </Card>
       </div>
 
+      {aboutPage && (
+        <Card className="p-5 mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h2 className="font-serif text-lg mb-1">"About Us" cover page</h2>
+              <p className="text-xs text-muted-foreground">Prepended as the first page of the Selected Projects / Full Profile PDF.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs">Include</Label>
+              <Switch
+                checked={aboutPage.enabled}
+                onCheckedChange={(v) => { const next = { ...aboutPage, enabled: !!v }; setAboutPage(next); saveOverrides(next); }}
+              />
+            </div>
+          </div>
+          {aboutPage.enabled && (
+            <div className="grid md:grid-cols-2 gap-4 mt-3">
+              <div>
+                <Label className="text-xs">Headline</Label>
+                <Input value={aboutPage.headline} onChange={e => { const n = { ...aboutPage, headline: e.target.value }; setAboutPage(n); saveOverrides(n); }} />
+              </div>
+              <div>
+                <Label className="text-xs">Tagline</Label>
+                <Input value={aboutPage.tagline} onChange={e => { const n = { ...aboutPage, tagline: e.target.value }; setAboutPage(n); saveOverrides(n); }} />
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-xs">Intro paragraph</Label>
+                <Textarea rows={4} value={aboutPage.intro} onChange={e => { const n = { ...aboutPage, intro: e.target.value }; setAboutPage(n); saveOverrides(n); }} />
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-xs">Services (one per line, up to 6)</Label>
+                <Textarea
+                  rows={4}
+                  value={(aboutPage.services || []).join("\n")}
+                  onChange={e => { const n = { ...aboutPage, services: e.target.value.split("\n").map(s => s.trim()).filter(Boolean).slice(0, 6) }; setAboutPage(n); saveOverrides(n); }}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-xs">Stats (Label = Value, one per line, up to 4)</Label>
+                <Textarea
+                  rows={3}
+                  value={(aboutPage.stats || []).map(s => `${s.label} = ${s.value}`).join("\n")}
+                  onChange={e => {
+                    const stats = e.target.value.split("\n").map(line => {
+                      const [label, value] = line.split("=").map(s => s.trim());
+                      return { label: label || "", value: value || "" };
+                    }).filter(s => s.label || s.value).slice(0, 4);
+                    const n = { ...aboutPage, stats }; setAboutPage(n); saveOverrides(n);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Accent color</Label>
+                <Input type="color" value={aboutPage.accent} onChange={e => { const n = { ...aboutPage, accent: e.target.value }; setAboutPage(n); saveOverrides(n); }} />
+              </div>
+              <div className="md:col-span-2 pt-2 border-t">
+                <p className="text-xs text-muted-foreground">
+                  Public web version available at <a href="/about" target="_blank" className="underline text-accent">/about</a>.
+                </p>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+
       <Card className="p-5 mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
