@@ -46,14 +46,6 @@ import EmailTemplates from "./pages/marketing/email/Templates";
 import EmailAutomations from "./pages/marketing/email/Automations";
 import EmailAnalytics from "./pages/marketing/email/Analytics";
 import EmailSender from "./pages/marketing/email/Sender";
-import WhatsAppSender from "./pages/marketing/whatsapp/Sender";
-import WhatsAppContacts from "./pages/marketing/whatsapp/Contacts";
-import WhatsAppLists from "./pages/marketing/whatsapp/Lists";
-import WhatsAppTemplates from "./pages/marketing/whatsapp/Templates";
-import WhatsAppCampaigns from "./pages/marketing/whatsapp/Campaigns";
-import WhatsAppAutomations from "./pages/marketing/whatsapp/Automations";
-import WhatsAppInbox from "./pages/marketing/whatsapp/Inbox";
-import WhatsAppSnippets from "./pages/marketing/whatsapp/Snippets";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
