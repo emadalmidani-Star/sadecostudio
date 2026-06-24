@@ -3,8 +3,8 @@
 
 export type SocialPlatform = "instagram" | "facebook" | "linkedin" | "youtube" | "tiktok" | "twitter" | "website";
 export type EmailBlock =
-  | { type: "heading"; text: string; level?: 1 | 2 | 3; align?: "left" | "center" | "right" }
-  | { type: "text"; text: string; align?: "left" | "center" | "right" }
+  | { type: "heading"; text: string; level?: 1 | 2 | 3; align?: "left" | "center" | "right"; fontFamily?: string; fontSize?: number }
+  | { type: "text"; text: string; align?: "left" | "center" | "right"; fontFamily?: string; fontSize?: number }
   | { type: "image"; url: string; alt?: string; width?: number }
   | { type: "button"; text: string; url: string }
   | { type: "divider" }
