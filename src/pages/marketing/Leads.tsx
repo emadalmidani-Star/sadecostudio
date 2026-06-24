@@ -412,7 +412,7 @@ function IntakeSettingsDialog({ open, onOpenChange, userId }: { open: boolean; o
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Intake settings</DialogTitle></DialogHeader>
         <div className="space-y-6">
-          {(["web_form", "email", "whatsapp"] as const).map((kind) => {
+          {(["web_form", "email"] as const).map((kind) => {
             const items = tokens.filter((t) => t.kind === kind);
             const label = kind === "web_form" ? "Public web form" : kind === "email" ? "Email forwarding inbox" : "WhatsApp Business";
             return (
