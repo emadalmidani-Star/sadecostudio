@@ -344,7 +344,22 @@ export default function TemplateDesigner() {
               </div>
               {selectedMeta?.kind === "text" && (
                 <>
-                  <div><Label className="text-xs">Font size (pt)</Label><Input type="number" value={selected.fontSize || 12} onChange={e => updateSlot(selectedIdx!, { fontSize: +e.target.value })} /></div>
+                  <div><Label className="text-xs">Font family</Label>
+                    <Select value={selected.fontFamily || "Montserrat"} onValueChange={v => updateSlot(selectedIdx!, { fontFamily: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {PDF_FONTS.map(f => <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label className="text-xs">Font size (pt)</Label>
+                    <Select value={String(selected.fontSize || 12)} onValueChange={v => updateSlot(selectedIdx!, { fontSize: +v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {FONT_SIZES.map(s => <SelectItem key={s} value={String(s)}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div><Label className="text-xs">Align</Label>
                     <Select value={selected.align || "left"} onValueChange={v => updateSlot(selectedIdx!, { align: v as any })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
