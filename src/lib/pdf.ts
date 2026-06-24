@@ -810,22 +810,35 @@ async function resolveContact(explicit?: any): Promise<any | null> {
 export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}, contact?: any, companyFields?: CompanyFooterFields) {
   const doc = await newDoc();
   const tpls = await loadTemplates("portfolio");
+  const hasCustom = Object.keys(tpls).length > 0;
+  const include = (kind: Template["page_type"]) => !hasCustom || !!tpls[kind];
   const logo = company?.logo_url ? await loadLogoTransparent(company.logo_url) : null;
   const c = await resolveContact(contact);
-  // When the portfolio is a single project, surface its facts directly on the cover
   const coverProject = list.length === 1 ? list[0] : undefined;
-  await addCover(doc, company, `Portfolio - ${list.length} Project${list.length === 1 ? "" : "s"}`, logo, tpls.cover, coverProject);
+  let firstPage = true;
   const page = { n: 1 };
+  if (include("cover")) {
+    await addCover(doc, company, `Portfolio - ${list.length} Project${list.length === 1 ? "" : "s"}`, logo, tpls.cover, coverProject);
+    firstPage = false;
+  }
   const groups = groupByType(list, true);
   for (const g of groups) {
-    const coverUrl = categoryCovers[g.type] || g.items.find(p => p.cover_image)?.cover_image;
-    const img = coverUrl ? await loadImg(coverUrl) : null;
-    await addCategoryCover(doc, g.type, g.items.length, img, tpls.divider, coverUrl);
-    page.n++;
-    for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
+    if (include("divider")) {
+      const coverUrl = categoryCovers[g.type] || g.items.find(p => p.cover_image)?.cover_image;
+      const img = coverUrl ? await loadImg(coverUrl) : null;
+      if (firstPage) { firstPage = false; } else { /* addCategoryCover handles its own addPage internally */ }
+      await addCategoryCover(doc, g.type, g.items.length, img, tpls.divider, coverUrl);
+      page.n++;
+    }
+    if (include("project")) {
+      for (const p of g.items) {
+        await renderProject(doc, p, company, page, tpls.project);
+        firstPage = false;
+      }
+    }
   }
-  await addClientsPage(doc, company, page);
-  await addThankYou(doc, company, logo, tpls.thankyou, c, companyFields);
+  if (include("project")) await addClientsPage(doc, company, page);
+  if (include("thankyou")) await addThankYou(doc, company, logo, tpls.thankyou, c, companyFields);
   doc.save(`SADECO-Portfolio.pdf`);
 }
 
@@ -833,72 +846,84 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
   const tpls = await loadTemplates("profile");
+  const hasCustom = Object.keys(tpls).length > 0;
+  const include = (kind: Template["page_type"]) => !hasCustom || !!tpls[kind];
   const logo = company?.logo_url ? await loadLogoTransparent(company.logo_url) : null;
   const c = await resolveContact(contact);
-  await addCover(doc, company, "Company Profile", logo, tpls.cover);
   const page = { n: 1 };
+  if (include("cover")) await addCover(doc, company, "Company Profile", logo, tpls.cover);
 
-  // About page
-  doc.addPage(); page.n++;
-  addPageHeader(doc, company);
-  const H = doc.internal.pageSize.getHeight();
-  let y = sectionTitle(doc, "Introduction", "About " + (company?.name || "SADECO"), SECTION_TOP);
-  doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.ink);
-  const about = doc.splitTextToSize(company?.about || "", W - 30);
-  for (const ln of about) {
-    if (y > H - SAFE_BOTTOM - 5) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = SECTION_TOP; }
-    doc.text(ln, 15, y); y += 6;
-  }
-  y += 10;
+  // About + Services pages — only include if NO custom template (defaults are skipped when user customized any page)
+  if (!hasCustom) {
+    // About page
+    doc.addPage(); page.n++;
+    addPageHeader(doc, company);
+    const H = doc.internal.pageSize.getHeight();
+    let y = sectionTitle(doc, "Introduction", "About " + (company?.name || "SADECO"), SECTION_TOP);
+    doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.ink);
+    const about = doc.splitTextToSize(company?.about || "", W - 30);
+    for (const ln of about) {
+      if (y > H - SAFE_BOTTOM - 5) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = SECTION_TOP; }
+      doc.text(ln, 15, y); y += 6;
+    }
+    y += 10;
 
-  if (y > H - 50) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = SECTION_TOP; }
-  doc.setFont("Montserrat", "bold"); doc.setFontSize(9); doc.setTextColor(BRAND.muted);
-  doc.text("CONTACT", 15, y, { charSpace: 3 }); y += 7;
-  doc.setFontSize(10); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.ink);
-  ([["Phone", company?.phone], ["Email", company?.email], ["Website", company?.website], ["Address", company?.address]] as [string, string][])
-    .filter(([_, v]) => v).forEach(([k, v]) => {
-      const lines = doc.splitTextToSize(String(v), W - 60);
+    if (y > H - 50) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = SECTION_TOP; }
+    doc.setFont("Montserrat", "bold"); doc.setFontSize(9); doc.setTextColor(BRAND.muted);
+    doc.text("CONTACT", 15, y, { charSpace: 3 }); y += 7;
+    doc.setFontSize(10); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.ink);
+    ([["Phone", company?.phone], ["Email", company?.email], ["Website", company?.website], ["Address", company?.address]] as [string, string][])
+      .filter(([_, v]) => v).forEach(([k, v]) => {
+        const lines = doc.splitTextToSize(String(v), W - 60);
+        if (y + lines.length * 6 > H - 18) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = SECTION_TOP; }
+        doc.setTextColor(BRAND.muted); doc.text(k, 15, y);
+        doc.setTextColor(BRAND.ink); doc.text(lines, 45, y); y += lines.length * 6;
+      });
+    addPageFooter(doc, company, page.n);
+
+    // Services page
+    doc.addPage(); page.n++;
+    addPageHeader(doc, company);
+    y = sectionTitle(doc, "Capabilities", "Our Services", SECTION_TOP);
+    doc.setFontSize(13); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.ink);
+    (company?.services || []).forEach((s: string) => {
+      const lines = doc.splitTextToSize(s, W - 35);
       if (y + lines.length * 6 > H - 18) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = SECTION_TOP; }
-      doc.setTextColor(BRAND.muted); doc.text(k, 15, y);
-      doc.setTextColor(BRAND.ink); doc.text(lines, 45, y); y += lines.length * 6;
+      doc.text(BULLET, 15, y);
+      doc.text(lines, 22, y); y += lines.length * 6 + 3;
     });
-  addPageFooter(doc, company, page.n);
-
-  // Services page
-  doc.addPage(); page.n++;
-  addPageHeader(doc, company);
-  y = sectionTitle(doc, "Capabilities", "Our Services", SECTION_TOP);
-  doc.setFontSize(13); doc.setFont("Montserrat", "normal"); doc.setTextColor(BRAND.ink);
-  (company?.services || []).forEach((s: string) => {
-    const lines = doc.splitTextToSize(s, W - 35);
-    if (y + lines.length * 6 > H - 18) { addPageFooter(doc, company, page.n); doc.addPage(); page.n++; addPageHeader(doc, company); y = SECTION_TOP; }
-    doc.text(BULLET, 15, y);
-    doc.text(lines, 22, y); y += lines.length * 6 + 3;
-  });
-  addPageFooter(doc, company, page.n);
+    addPageFooter(doc, company, page.n);
+  }
 
   const groups = groupByType(projects);
   for (const g of groups) {
-    const coverUrl = categoryCovers[g.type] || g.items.find(p => p.cover_image)?.cover_image;
-    const img = coverUrl ? await loadImg(coverUrl) : null;
-    await addCategoryCover(doc, g.type, g.items.length, img, tpls.divider, coverUrl);
-    page.n++;
-    for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
+    if (include("divider")) {
+      const coverUrl = categoryCovers[g.type] || g.items.find(p => p.cover_image)?.cover_image;
+      const img = coverUrl ? await loadImg(coverUrl) : null;
+      await addCategoryCover(doc, g.type, g.items.length, img, tpls.divider, coverUrl);
+      page.n++;
+    }
+    if (include("project")) {
+      for (const p of g.items) await renderProject(doc, p, company, page, tpls.project);
+    }
   }
 
-  await addClientsPage(doc, company, page);
-  await addThankYou(doc, company, logo, tpls.thankyou, c, companyFields);
+  if (include("project")) await addClientsPage(doc, company, page);
+  if (include("thankyou")) await addThankYou(doc, company, logo, tpls.thankyou, c, companyFields);
   doc.save(`SADECO-Company-Profile.pdf`);
 }
 
 export async function exportProjectPDF(p: any, company: any, contact?: any, companyFields?: CompanyFooterFields) {
   const doc = await newDoc();
   const tpls = await loadTemplates("project");
+  const hasCustom = Object.keys(tpls).length > 0;
+  const include = (kind: Template["page_type"]) => !hasCustom || !!tpls[kind];
   const logo = company?.logo_url ? await loadLogoTransparent(company.logo_url) : null;
   const c = await resolveContact(contact);
-  await addCover(doc, company, "Project Case Study", logo, tpls.cover, p);
+  if (include("cover")) await addCover(doc, company, "Project Case Study", logo, tpls.cover, p);
   const page = { n: 1 };
-  await renderProject(doc, p, company, page, tpls.project);
-  await addThankYou(doc, company, logo, tpls.thankyou, c, companyFields);
+  if (include("project")) await renderProject(doc, p, company, page, tpls.project);
+  if (include("thankyou")) await addThankYou(doc, company, logo, tpls.thankyou, c, companyFields);
   doc.save(`SADECO-${p.name.replace(/\s+/g, "-")}.pdf`);
 }
+
