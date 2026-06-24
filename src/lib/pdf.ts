@@ -224,12 +224,28 @@ const SOCIAL_GLYPH: Record<SocialKind, string> = {
 async function socialBadgePng(kind: SocialKind): Promise<{ data: string; w: number; h: number } | null> {
   const bg = SOCIAL_BG[kind];
   const glyph = SOCIAL_GLYPH[kind];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="64" height="64"><circle cx="12" cy="12" r="12" fill="${bg}"/>${glyph}</svg>`;
-  return rasterizeSvg(svg, 128, false);
+  // Modern badge: soft outer ring + subtle top highlight for a tactile, pressable look.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="96" height="96">
+    <defs>
+      <radialGradient id="hl" cx="50%" cy="30%" r="60%">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
+        <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <circle cx="14" cy="14" r="13.4" fill="${bg}"/>
+    <circle cx="14" cy="14" r="13.4" fill="url(#hl)"/>
+    <circle cx="14" cy="14" r="13.4" fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="0.6"/>
+    <g transform="translate(2 2)">${glyph}</g>
+  </svg>`;
+  return rasterizeSvg(svg, 160, false);
 }
 
+// Standardised sizing/spacing — used for BOTH contact and company icon rows so
+// the Thank-You page reads as one consistent system in preview and PDF.
+const ICON_SIZE = 8;   // mm
+const ICON_GAP = 5;    // mm
 type SocialItem = { kind: SocialKind; url?: string };
-async function drawSocialRow(doc: jsPDF, items: SocialItem[], cx: number, y: number, size = 7, gap = 4) {
+async function drawSocialRow(doc: jsPDF, items: SocialItem[], cx: number, y: number, size = ICON_SIZE, gap = ICON_GAP) {
   if (!items.length) return;
   const totalW = items.length * size + (items.length - 1) * gap;
   let x = cx - totalW / 2;
