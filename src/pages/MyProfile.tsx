@@ -121,7 +121,7 @@ export default function MyProfile() {
           <div><Label>Job title</Label><Input value={p.job_title || ""} onChange={e => set("job_title", e.target.value)} placeholder="Sales Manager" /></div>
           <div><Label>Email</Label><Input value={p.email || ""} disabled /></div>
           <div><Label>Phone</Label><Input value={p.phone || ""} onChange={e => set("phone", e.target.value)} placeholder="+971…" /></div>
-          <div><Label>WhatsApp</Label><Input value={p.whatsapp || ""} onChange={e => set("whatsapp", e.target.value)} placeholder="+971…" /></div>
+          
         </div>
       </Card>
 
