@@ -24,7 +24,6 @@ type Member = {
   avatar_url: string | null;
   job_title: string | null;
   phone: string | null;
-  whatsapp: string | null;
 };
 
 type Company = {
