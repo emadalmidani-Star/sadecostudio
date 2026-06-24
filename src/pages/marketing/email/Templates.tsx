@@ -180,13 +180,31 @@ export default function EmailTemplates() {
                     {b.type === "heading" && (
                       <div className="space-y-2">
                         <Input value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} />
-                        <AlignToggle value={b.align || "left"} onChange={v => updateBlock(i, { align: v })} />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <AlignToggle value={b.align || "left"} onChange={v => updateBlock(i, { align: v })} />
+                          <FontControls
+                            family={b.fontFamily}
+                            size={b.fontSize}
+                            defaultSize={b.level === 3 ? 16 : b.level === 2 ? 20 : 26}
+                            onFamily={(v) => updateBlock(i, { fontFamily: v })}
+                            onSize={(v) => updateBlock(i, { fontSize: v })}
+                          />
+                        </div>
                       </div>
                     )}
                     {b.type === "text" && (
                       <div className="space-y-2">
                         <Textarea rows={3} value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} />
-                        <AlignToggle value={b.align || "left"} onChange={v => updateBlock(i, { align: v })} />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <AlignToggle value={b.align || "left"} onChange={v => updateBlock(i, { align: v })} />
+                          <FontControls
+                            family={b.fontFamily}
+                            size={b.fontSize}
+                            defaultSize={15}
+                            onFamily={(v) => updateBlock(i, { fontFamily: v })}
+                            onSize={(v) => updateBlock(i, { fontSize: v })}
+                          />
+                        </div>
                       </div>
                     )}
                     {b.type === "image" && <Input value={b.url} onChange={e => updateBlock(i, { url: e.target.value })} placeholder="Image URL" />}
