@@ -35,6 +35,27 @@ const MINIMAL = {
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const SERIF = "Georgia,'Times New Roman',serif";
 
+const EMAIL_FONT_STACKS: Record<string, string> = {
+  "system-sans": SANS,
+  "system-serif": SERIF,
+  arial: "Arial,Helvetica,sans-serif",
+  helvetica: "Helvetica,Arial,sans-serif",
+  georgia: "Georgia,'Times New Roman',serif",
+  times: "'Times New Roman',Times,serif",
+  courier: "'Courier New',Courier,monospace",
+  tahoma: "Tahoma,Verdana,sans-serif",
+  verdana: "Verdana,Geneva,sans-serif",
+  trebuchet: "'Trebuchet MS',Tahoma,sans-serif",
+  palatino: "'Palatino Linotype','Book Antiqua',Palatino,serif",
+  garamond: "Garamond,Baskerville,'Times New Roman',serif",
+  inter: "Inter,Helvetica,Arial,sans-serif",
+  playfair: "'Playfair Display',Georgia,serif",
+};
+function resolveEmailStack(id: string | undefined, fallback: string) {
+  if (!id) return fallback;
+  return EMAIL_FONT_STACKS[id] || fallback;
+}
+
 export function renderBlocks(tpl: any, ctx: any): string {
   const p = tpl.preset === "minimal" ? MINIMAL : BRAND;
   const isBrand = tpl.preset !== "minimal";
