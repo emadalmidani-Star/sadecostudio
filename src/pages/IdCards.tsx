@@ -489,7 +489,6 @@ function QrTile({ member, company, canEdit, template, onRegenerate, onSaved }: {
             <div><Label>Job title</Label><Input value={draft.job_title || ""} onChange={e => setDraft({ ...draft, job_title: e.target.value })} /></div>
             <div><Label>Email</Label><Input value={draft.email || ""} onChange={e => setDraft({ ...draft, email: e.target.value })} /></div>
             <div><Label>Phone</Label><Input value={draft.phone || ""} onChange={e => setDraft({ ...draft, phone: e.target.value })} placeholder="+971…" /></div>
-            <div><Label>WhatsApp</Label><Input value={draft.whatsapp || ""} onChange={e => setDraft({ ...draft, whatsapp: e.target.value })} placeholder="+971…" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>Cancel</Button>
