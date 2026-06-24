@@ -49,7 +49,7 @@ export default function MyProfile() {
     setSaving(true);
     const payload = {
       id: user.id, email: user.email, full_name: p.full_name, job_title: p.job_title,
-      phone: p.phone, whatsapp: p.whatsapp, avatar_url: p.avatar_url,
+      phone: p.phone, avatar_url: p.avatar_url,
     };
     const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "id" });
     setSaving(false);
