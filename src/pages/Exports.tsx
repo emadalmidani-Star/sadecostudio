@@ -92,6 +92,7 @@ export default function Exports() {
       supabase.from("category_covers").select("type,image_url"),
     ]);
     setProjects(p || []); setCompany(c);
+    setAboutPage({ ...defaultsFromCompany(c), ...loadOverrides() });
     const map: Record<string, string> = {};
     (cc || []).forEach((r: any) => { if (r.image_url) map[r.type] = r.image_url; });
     setCovers(map);
