@@ -513,7 +513,7 @@ export default function IdCards() {
 
   async function loadAll() {
     const [{ data: profiles }, { data: c }] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, email, avatar_url, job_title, phone, whatsapp"),
+      supabase.from("profiles").select("id, full_name, email, avatar_url, job_title, phone"),
       supabase.from("company_profile").select("*").limit(1).single(),
     ]);
     setMembers((profiles as Member[]) || []);
