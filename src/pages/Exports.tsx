@@ -160,7 +160,7 @@ export default function Exports() {
     setPdfCompression(QUALITY_PRESETS[quality]); setGalleryColumns(galleryCols);
     try {
       const c = await resolveSelectedContact();
-      await exportFullProfilePDF(company, projects, covers, c, companyFields);
+      await exportFullProfilePDF(company, projects, covers, c, companyFields, aboutPage || undefined);
       markGenerated("profile");
       toast.success("Profile PDF generated", {
         action: { label: "Share link", onClick: () => { navigator.clipboard.writeText(window.location.origin); toast.success("Link copied"); } },
