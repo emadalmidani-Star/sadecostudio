@@ -73,10 +73,6 @@ function buildVCard(m: Member, c: Company | null, photo?: string) {
     lines.push(`EMAIL;TYPE=INTERNET,WORK,pref:${escapeVCard(m.email)}`);
   }
   if (m.phone) lines.push(`TEL;TYPE=CELL,VOICE,pref:${escapeVCard(m.phone)}`);
-  if (m.whatsapp) {
-    lines.push(`item0.TEL:${escapeVCard(m.whatsapp)}`);
-    lines.push(`item0.X-ABLabel:WhatsApp`);
-  }
   if (c?.phone) lines.push(`TEL;TYPE=WORK,VOICE:${escapeVCard(c.phone)}`);
   const website = normalizeVCardUrl(c?.website);
   if (website) {
