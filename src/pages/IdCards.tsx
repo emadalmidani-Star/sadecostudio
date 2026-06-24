@@ -148,7 +148,6 @@ function QrTile({ member, company, canEdit, template, onRegenerate, onSaved }: {
       job_title: draft.job_title,
       email: draft.email,
       phone: draft.phone,
-      whatsapp: draft.whatsapp,
     }).eq("id", member.id);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
