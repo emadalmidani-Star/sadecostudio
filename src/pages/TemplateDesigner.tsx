@@ -13,6 +13,7 @@ import { FIELDS_BY_TYPE, type Slot, type Template } from "@/lib/templateRender";
 import { uploadTemplateFiles } from "@/lib/pdfRasterize";
 import { safeStorageFilename } from "@/lib/storagePath";
 import TemplatePagesStrip, { type TemplatePage } from "@/components/TemplatePagesStrip";
+import { PDF_FONTS, FONT_SIZES } from "@/lib/fonts";
 
 type PageType = Template["page_type"];
 type TplSet = { id: string; name: string };
