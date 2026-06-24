@@ -536,7 +536,9 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     const ly = textY + (role ? 13 : 7);
     if (contact.phone) {
       doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#cccccc");
-      doc.textWithLink(String(contact.phone), W / 2, ly, { url: `tel:${String(contact.phone).replace(/[^\d+]/g, "")}`, align: "center" } as any);
+      const phoneText = String(contact.phone);
+      const pw = doc.getTextWidth(phoneText);
+      doc.textWithLink(phoneText, W / 2 - pw / 2, ly, { url: `tel:${phoneText.replace(/[^\d+]/g, "")}` });
     }
     const icons: SocialItem[] = [];
     if (contact.email) icons.push({ kind: "email", url: `mailto:${contact.email}` });
