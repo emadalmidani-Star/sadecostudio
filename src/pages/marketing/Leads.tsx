@@ -441,7 +441,7 @@ function IntakeSettingsDialog({ open, onOpenChange, userId }: { open: boolean; o
                 ) : (
                   <div className="space-y-2">
                     {items.map((t) => {
-                      const webhookUrl = kind === "email" ? `${fnBase}/lead-intake-email` : kind === "whatsapp" ? `${fnBase}/lead-intake-whatsapp` : `${origin}/leads/new/${t.token}`;
+                      const webhookUrl = kind === "email" ? `${fnBase}/lead-intake-email` : `${origin}/leads/new/${t.token}`;
                       const sampleAddr = kind === "email" ? `leads+${t.token}@yourdomain.com` : null;
                       return (
                         <div key={t.id} className="space-y-1 bg-muted/40 rounded p-2">
