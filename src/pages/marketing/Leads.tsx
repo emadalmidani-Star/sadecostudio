@@ -435,9 +435,6 @@ function IntakeSettingsDialog({ open, onOpenChange, userId }: { open: boolean; o
                     </ol>
                   </div>
                 )}
-                {kind === "whatsapp" && (
-                  <p className="text-xs text-muted-foreground mb-3">Paste the callback URL and verify token into your Meta WhatsApp Business app webhook config.</p>
-                )}
 
                 {items.length === 0 ? (
                   <div className="text-xs text-muted-foreground">No tokens yet.</div>
