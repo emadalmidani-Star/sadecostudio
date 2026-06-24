@@ -908,7 +908,12 @@ export async function exportSelectedPDF(company: any, list: any[], categoryCover
   const coverProject = list.length === 1 ? list[0] : undefined;
   let firstPage = true;
   const page = { n: 1 };
+  if (aboutPage?.enabled) {
+    await addAboutCover(doc, company, logo, aboutPage, firstPage);
+    firstPage = false;
+  }
   if (include("cover")) {
+    if (!firstPage) doc.addPage();
     await addCover(doc, company, `Portfolio - ${list.length} Project${list.length === 1 ? "" : "s"}`, logo, tpls.cover, coverProject);
     firstPage = false;
   }
