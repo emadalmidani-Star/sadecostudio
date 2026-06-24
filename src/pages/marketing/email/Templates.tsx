@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Trash2, ArrowUp, ArrowDown, Upload, Monitor, Smartphone, ExternalLink, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
 import { renderBlocks, defaultBlocks, type EmailBlock } from "@/lib/emailRender";
+import { EMAIL_FONTS, FONT_SIZES } from "@/lib/fonts";
 
 type Align = "left" | "center" | "right";
 function AlignToggle({ value, onChange }: { value: Align; onChange: (v: Align) => void }) {
