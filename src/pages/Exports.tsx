@@ -80,6 +80,7 @@ export default function Exports() {
     });
     return out;
   });
+  const [aboutPage, setAboutPage] = useState<AboutPageData | null>(null);
   const selected = useMemo(() => new Set(selectedOrder), [selectedOrder]);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const { isAdmin } = useUserRole();
