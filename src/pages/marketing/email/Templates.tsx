@@ -35,6 +35,34 @@ function AlignToggle({ value, onChange }: { value: Align; onChange: (v: Align) =
   );
 }
 
+function FontControls({ family, size, defaultSize, onFamily, onSize }: {
+  family?: string; size?: number; defaultSize: number;
+  onFamily: (v: string | undefined) => void; onSize: (v: number | undefined) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <select
+        className="border rounded h-8 px-2 bg-background text-xs"
+        value={family || ""}
+        onChange={(e) => onFamily(e.target.value || undefined)}
+        aria-label="Font family"
+      >
+        <option value="">Default font</option>
+        {EMAIL_FONTS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+      </select>
+      <select
+        className="border rounded h-8 px-2 bg-background text-xs"
+        value={size || ""}
+        onChange={(e) => onSize(e.target.value ? Number(e.target.value) : undefined)}
+        aria-label="Font size"
+      >
+        <option value="">{defaultSize}px (default)</option>
+        {FONT_SIZES.map(s => <option key={s} value={s}>{s}px</option>)}
+      </select>
+    </div>
+  );
+}
+
 export default function EmailTemplates() {
   const { user } = useAuth();
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
