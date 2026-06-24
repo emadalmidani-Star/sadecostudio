@@ -21,7 +21,7 @@ export const ALL_PAGES: { key: PageKey; label: string }[] = [
   { key: "leads", label: "Marketing Leads" },
   { key: "meetings", label: "Meetings" },
   { key: "email_marketing", label: "Email Marketing" },
-  { key: "whatsapp", label: "WhatsApp Messaging" },
+  
 ];
 
 type PermRow = { role: AppRole; page: PageKey; allowed: boolean };
