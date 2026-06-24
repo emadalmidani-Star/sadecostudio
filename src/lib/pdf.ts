@@ -898,7 +898,7 @@ async function resolveContact(explicit?: any): Promise<any | null> {
   return data || null;
 }
 
-export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}, contact?: any, companyFields?: CompanyFooterFields) {
+export async function exportSelectedPDF(company: any, list: any[], categoryCovers: Record<string, string> = {}, contact?: any, companyFields?: CompanyFooterFields, aboutPage?: AboutPageData) {
   const doc = await newDoc();
   const tpls = await loadTemplates("portfolio");
   const hasCustom = Object.keys(tpls).length > 0;
