@@ -414,7 +414,7 @@ function IntakeSettingsDialog({ open, onOpenChange, userId }: { open: boolean; o
         <div className="space-y-6">
           {(["web_form", "email"] as const).map((kind) => {
             const items = tokens.filter((t) => t.kind === kind);
-            const label = kind === "web_form" ? "Public web form" : kind === "email" ? "Email forwarding inbox" : "WhatsApp Business";
+            const label = kind === "web_form" ? "Public web form" : "Email forwarding inbox";
             return (
               <div key={kind} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
