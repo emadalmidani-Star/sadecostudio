@@ -35,6 +35,7 @@ import PublicBookMeeting from "./pages/public/BookMeeting";
 import PublicDropIn from "./pages/public/DropInRequest";
 import PublicMeetingNote from "./pages/public/MeetingNoteShare";
 import PublicProjectGallery from "./pages/public/ProjectGallery";
+import PublicAbout from "./pages/public/About";
 import MeetingsScheduler from "./pages/meetings/Scheduler";
 import MeetingsDropIn from "./pages/meetings/DropIn";
 import MeetingsNotes from "./pages/meetings/Notes";
