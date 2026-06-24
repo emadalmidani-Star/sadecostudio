@@ -10,6 +10,10 @@ import { exportFullProfilePDF, exportSelectedPDF, setPdfCompression, setGalleryC
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import { safeStorageFilename } from "@/lib/storagePath";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { defaultsFromCompany, loadOverrides, saveOverrides, resolveAboutPage, type AboutPageData } from "@/lib/aboutPage";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core";
