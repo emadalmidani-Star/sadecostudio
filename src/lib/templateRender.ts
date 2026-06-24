@@ -4,6 +4,7 @@ export type Slot = {
   field: string;
   x: number; y: number; w: number; h: number; // percent of page (0-100)
   fontSize?: number;
+  fontFamily?: string;
   align?: "left" | "center" | "right";
   bold?: boolean;
   color?: string;
