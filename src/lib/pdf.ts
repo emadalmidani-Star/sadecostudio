@@ -1014,8 +1014,8 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   const c = await resolveContact(contact);
   const page = { n: 1 };
   let firstPage = true;
+  if (include("cover")) { await addCover(doc, company, "Company Profile", logo, tpls.cover); firstPage = false; }
   if (aboutPage?.enabled) { await addAboutCover(doc, company, logo, aboutPage, firstPage); firstPage = false; }
-  if (include("cover")) { if (!firstPage) doc.addPage(); await addCover(doc, company, "Company Profile", logo, tpls.cover); firstPage = false; }
 
   // About + Services pages — only include if NO custom template (defaults are skipped when user customized any page)
   if (!hasCustom) {
