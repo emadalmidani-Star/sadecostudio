@@ -532,29 +532,19 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
       doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#bbbbbb");
       doc.text(role, W / 2, textY + 6, { align: "center" });
     }
-    // Render contact line with clickable links (tel:, mailto:, wa.me, social)
-    const items: Array<{ text: string; url: string }> = [];
-    if (contact.phone) items.push({ text: contact.phone, url: `tel:${String(contact.phone).replace(/[^\d+]/g, "")}` });
-    if (contact.email) items.push({ text: contact.email, url: `mailto:${contact.email}` });
-    if (contact.whatsapp) items.push({ text: `WhatsApp: ${contact.whatsapp}`, url: `https://wa.me/${String(contact.whatsapp).replace(/\D/g, "")}` });
-    if (company?.linkedin_url) items.push({ text: "LinkedIn", url: company.linkedin_url });
-    if (company?.instagram_url) items.push({ text: "Instagram", url: company.instagram_url });
-    if (company?.facebook_url) items.push({ text: "Facebook", url: company.facebook_url });
-    if (company?.youtube_url) items.push({ text: "YouTube", url: company.youtube_url });
-    if (items.length) {
+    // Phone (text) stays inline; email + socials render as a modern icon row below.
+    const ly = textY + (role ? 13 : 7);
+    if (contact.phone) {
       doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#cccccc");
-      const sep = "   |   ";
-      const widths = items.map(i => doc.getTextWidth(i.text));
-      const sepW = doc.getTextWidth(sep);
-      const totalW = widths.reduce((a, b) => a + b, 0) + sepW * (items.length - 1);
-      let x = W / 2 - totalW / 2;
-      const ly = textY + (role ? 13 : 7);
-      items.forEach((it, i) => {
-        doc.textWithLink(it.text, x, ly, { url: it.url });
-        x += widths[i];
-        if (i < items.length - 1) { doc.text(sep, x, ly); x += sepW; }
-      });
+      doc.textWithLink(String(contact.phone), W / 2, ly, { url: `tel:${String(contact.phone).replace(/[^\d+]/g, "")}`, align: "center" } as any);
     }
+    const icons: SocialItem[] = [];
+    if (contact.email) icons.push({ kind: "email", url: `mailto:${contact.email}` });
+    if (company?.linkedin_url) icons.push({ kind: "linkedin", url: company.linkedin_url });
+    if (company?.instagram_url) icons.push({ kind: "instagram", url: company.instagram_url });
+    if (company?.facebook_url) icons.push({ kind: "facebook", url: company.facebook_url });
+    if (company?.youtube_url) icons.push({ kind: "youtube", url: company.youtube_url });
+    await drawSocialRow(doc, icons, W / 2, ly + (contact.phone ? 5 : 0), 7, 4);
   }
 
   // Company footer — respect user toggles strictly. If nothing toggled, render nothing.
