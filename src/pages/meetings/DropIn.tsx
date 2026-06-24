@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
-import { Copy, PhoneCall, X, MessageCircle } from "lucide-react";
+import { Copy, PhoneCall, X } from "lucide-react";
 import { randomToken } from "@/lib/meetings";
 
 type Req = { id: string; client_name: string; message: string | null; status: string; created_at: string };
@@ -14,19 +14,15 @@ export default function MeetingsDropIn() {
   const { user } = useAuth();
   const [token, setToken] = useState<{ token: string } | null>(null);
   const [reqs, setReqs] = useState<Req[]>([]);
-  const [waModal, setWaModal] = useState<Req | null>(null);
-  const [whatsapp, setWhatsapp] = useState<string>("");
 
   async function load() {
     if (!user) return;
-    const [t, r, p] = await Promise.all([
+    const [t, r] = await Promise.all([
       supabase.from("dropin_tokens").select("token").eq("user_id", user.id).eq("active", true).limit(1).maybeSingle(),
       supabase.from("dropin_requests").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
-      supabase.from("profiles").select("whatsapp").eq("id", user.id).maybeSingle(),
     ]);
     setToken((t.data as any) || null);
     setReqs((r.data || []) as any);
-    setWhatsapp(p.data?.whatsapp || "");
   }
   useEffect(() => { load(); }, [user?.id]);
 
@@ -58,7 +54,7 @@ export default function MeetingsDropIn() {
 
   async function decide(r: Req, decision: "accepted" | "declined") {
     await supabase.from("dropin_requests").update({ status: decision }).eq("id", r.id);
-    if (decision === "accepted") setWaModal(r);
+    if (decision === "accepted") toast({ title: "Accepted", description: `${r.client_name} marked as accepted.` });
   }
 
   return (
@@ -105,28 +101,6 @@ export default function MeetingsDropIn() {
           })}
         </CardContent>
       </Card>
-
-      {waModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setWaModal(null)}>
-          <Card className="max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-            <CardHeader><CardTitle className="text-lg">Connect via WhatsApp</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              {whatsapp ? (
-                <>
-                  <p className="text-sm text-muted-foreground">Your WhatsApp number to share with {waModal.client_name}:</p>
-                  <div className="flex items-center gap-2 p-3 bg-muted rounded font-mono">{whatsapp}</div>
-                  <a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">
-                    <Button className="w-full"><MessageCircle className="w-4 h-4 mr-2" />Open WhatsApp</Button>
-                  </a>
-                </>
-              ) : (
-                <p className="text-sm">No WhatsApp number set on your profile. Add one in <a href="/me" className="text-accent underline">My Profile</a>.</p>
-              )}
-              <Button variant="ghost" className="w-full" onClick={() => setWaModal(null)}>Close</Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }

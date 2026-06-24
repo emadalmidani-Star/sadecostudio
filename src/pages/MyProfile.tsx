@@ -20,7 +20,7 @@ export default function MyProfile() {
   useEffect(() => { (async () => {
     if (!user) return;
     const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-    setP(data || { id: user.id, email: user.email, full_name: "", job_title: "", phone: "", whatsapp: "", avatar_url: "" });
+    setP(data || { id: user.id, email: user.email, full_name: "", job_title: "", phone: "", avatar_url: "" });
   })(); }, [user]);
 
   if (!p) return <div className="p-10 text-muted-foreground">Loading…</div>;
@@ -49,7 +49,7 @@ export default function MyProfile() {
     setSaving(true);
     const payload = {
       id: user.id, email: user.email, full_name: p.full_name, job_title: p.job_title,
-      phone: p.phone, whatsapp: p.whatsapp, avatar_url: p.avatar_url,
+      phone: p.phone, avatar_url: p.avatar_url,
     };
     const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "id" });
     setSaving(false);
@@ -121,7 +121,7 @@ export default function MyProfile() {
           <div><Label>Job title</Label><Input value={p.job_title || ""} onChange={e => set("job_title", e.target.value)} placeholder="Sales Manager" /></div>
           <div><Label>Email</Label><Input value={p.email || ""} disabled /></div>
           <div><Label>Phone</Label><Input value={p.phone || ""} onChange={e => set("phone", e.target.value)} placeholder="+971…" /></div>
-          <div><Label>WhatsApp</Label><Input value={p.whatsapp || ""} onChange={e => set("whatsapp", e.target.value)} placeholder="+971…" /></div>
+          
         </div>
       </Card>
 

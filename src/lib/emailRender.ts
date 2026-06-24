@@ -3,8 +3,8 @@
 
 export type SocialPlatform = "instagram" | "facebook" | "linkedin" | "youtube" | "tiktok" | "twitter" | "website";
 export type EmailBlock =
-  | { type: "heading"; text: string; level?: 1 | 2 | 3; align?: "left" | "center" | "right" }
-  | { type: "text"; text: string; align?: "left" | "center" | "right" }
+  | { type: "heading"; text: string; level?: 1 | 2 | 3; align?: "left" | "center" | "right"; fontFamily?: string; fontSize?: number }
+  | { type: "text"; text: string; align?: "left" | "center" | "right"; fontFamily?: string; fontSize?: number }
   | { type: "image"; url: string; alt?: string; width?: number }
   | { type: "button"; text: string; url: string }
   | { type: "divider" }
@@ -62,6 +62,28 @@ const MINIMAL = {
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const SERIF = "Georgia,'Times New Roman',serif";
 
+// Mirrors EMAIL_FONTS in src/lib/fonts.ts so the renderer stays standalone (used by both client + edge).
+const EMAIL_FONT_STACKS: Record<string, string> = {
+  "system-sans": SANS,
+  "system-serif": SERIF,
+  arial: "Arial,Helvetica,sans-serif",
+  helvetica: "Helvetica,Arial,sans-serif",
+  georgia: "Georgia,'Times New Roman',serif",
+  times: "'Times New Roman',Times,serif",
+  courier: "'Courier New',Courier,monospace",
+  tahoma: "Tahoma,Verdana,sans-serif",
+  verdana: "Verdana,Geneva,sans-serif",
+  trebuchet: "'Trebuchet MS',Tahoma,sans-serif",
+  palatino: "'Palatino Linotype','Book Antiqua',Palatino,serif",
+  garamond: "Garamond,Baskerville,'Times New Roman',serif",
+  inter: "Inter,Helvetica,Arial,sans-serif",
+  playfair: "'Playfair Display',Georgia,serif",
+};
+function resolveEmailStack(id: string | undefined, fallback: string) {
+  if (!id) return fallback;
+  return EMAIL_FONT_STACKS[id] || fallback;
+}
+
 export function renderBlocks(tpl: EmailTemplate, ctx: RenderContext): string {
   const p = tpl.preset === "minimal" ? MINIMAL : BRAND;
   const isBrand = tpl.preset !== "minimal";
@@ -79,14 +101,18 @@ export function renderBlocks(tpl: EmailTemplate, ctx: RenderContext): string {
     .map((b) => {
       switch (b.type) {
         case "heading": {
-          const size = b.level === 3 ? 16 : b.level === 2 ? 20 : 26;
+          const size = b.fontSize || (b.level === 3 ? 16 : b.level === 2 ? 20 : 26);
           const lh = Math.round(size * 1.25);
           const align = b.align || "left";
-          return `<h${b.level || 1} style="margin:24px 0 12px;font-family:${SERIF};font-weight:600;font-size:${size}px;color:${p.text};mso-line-height-rule:exactly;line-height:${lh}px;text-align:${align}">${esc(interp(b.text, ctx))}</h${b.level || 1}>`;
+          const family = resolveEmailStack(b.fontFamily, SERIF);
+          return `<h${b.level || 1} style="margin:24px 0 12px;font-family:${family};font-weight:600;font-size:${size}px;color:${p.text};mso-line-height-rule:exactly;line-height:${lh}px;text-align:${align}">${esc(interp(b.text, ctx))}</h${b.level || 1}>`;
         }
         case "text": {
           const align = b.align || "left";
-          return `<p style="margin:0 0 16px;font-family:${SANS};font-size:15px;mso-line-height-rule:exactly;line-height:24px;color:${p.text};text-align:${align}">${esc(interp(b.text, ctx)).split("\n").join("<br/>")}</p>`;
+          const size = b.fontSize || 15;
+          const lh = Math.round(size * 1.6);
+          const family = resolveEmailStack(b.fontFamily, SANS);
+          return `<p style="margin:0 0 16px;font-family:${family};font-size:${size}px;mso-line-height-rule:exactly;line-height:${lh}px;color:${p.text};text-align:${align}">${esc(interp(b.text, ctx)).split("\n").join("<br/>")}</p>`;
         }
         case "image":
           return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;mso-table-lspace:0;mso-table-rspace:0"><tr><td align="center"><img src="${esc(b.url)}" alt="${esc(b.alt || "")}" width="${b.width || 560}" style="max-width:${b.width || 560}px;width:100%;height:auto;border:0;outline:none;text-decoration:none;display:block" border="0"/></td></tr></table>`;

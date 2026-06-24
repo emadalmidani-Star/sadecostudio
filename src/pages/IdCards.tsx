@@ -24,7 +24,6 @@ type Member = {
   avatar_url: string | null;
   job_title: string | null;
   phone: string | null;
-  whatsapp: string | null;
 };
 
 type Company = {
@@ -74,10 +73,6 @@ function buildVCard(m: Member, c: Company | null, photo?: string) {
     lines.push(`EMAIL;TYPE=INTERNET,WORK,pref:${escapeVCard(m.email)}`);
   }
   if (m.phone) lines.push(`TEL;TYPE=CELL,VOICE,pref:${escapeVCard(m.phone)}`);
-  if (m.whatsapp) {
-    lines.push(`item0.TEL:${escapeVCard(m.whatsapp)}`);
-    lines.push(`item0.X-ABLabel:WhatsApp`);
-  }
   if (c?.phone) lines.push(`TEL;TYPE=WORK,VOICE:${escapeVCard(c.phone)}`);
   const website = normalizeVCardUrl(c?.website);
   if (website) {
@@ -153,7 +148,6 @@ function QrTile({ member, company, canEdit, template, onRegenerate, onSaved }: {
       job_title: draft.job_title,
       email: draft.email,
       phone: draft.phone,
-      whatsapp: draft.whatsapp,
     }).eq("id", member.id);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
@@ -295,7 +289,6 @@ function QrTile({ member, company, canEdit, template, onRegenerate, onSaved }: {
       case "member_title": return member.job_title || "";
       case "member_email": return member.email || "";
       case "member_phone": return member.phone || "";
-      case "member_whatsapp": return member.whatsapp || "";
       case "company_name": return company?.name || "";
       case "company_website": return (company?.website || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
       case "company_phone": return company?.phone || "";
@@ -496,7 +489,6 @@ function QrTile({ member, company, canEdit, template, onRegenerate, onSaved }: {
             <div><Label>Job title</Label><Input value={draft.job_title || ""} onChange={e => setDraft({ ...draft, job_title: e.target.value })} /></div>
             <div><Label>Email</Label><Input value={draft.email || ""} onChange={e => setDraft({ ...draft, email: e.target.value })} /></div>
             <div><Label>Phone</Label><Input value={draft.phone || ""} onChange={e => setDraft({ ...draft, phone: e.target.value })} placeholder="+971…" /></div>
-            <div><Label>WhatsApp</Label><Input value={draft.whatsapp || ""} onChange={e => setDraft({ ...draft, whatsapp: e.target.value })} placeholder="+971…" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>Cancel</Button>
@@ -521,7 +513,7 @@ export default function IdCards() {
 
   async function loadAll() {
     const [{ data: profiles }, { data: c }] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, email, avatar_url, job_title, phone, whatsapp"),
+      supabase.from("profiles").select("id, full_name, email, avatar_url, job_title, phone"),
       supabase.from("company_profile").select("*").limit(1).single(),
     ]);
     setMembers((profiles as Member[]) || []);

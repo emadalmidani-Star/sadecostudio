@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Trash2, ArrowUp, ArrowDown, Upload, Monitor, Smartphone, ExternalLink, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
 import { renderBlocks, defaultBlocks, type EmailBlock } from "@/lib/emailRender";
+import { EMAIL_FONTS, FONT_SIZES } from "@/lib/fonts";
 
 type Align = "left" | "center" | "right";
 function AlignToggle({ value, onChange }: { value: Align; onChange: (v: Align) => void }) {
@@ -30,6 +31,34 @@ function AlignToggle({ value, onChange }: { value: Align; onChange: (v: Align) =
           <Icon className="w-3.5 h-3.5" />
         </button>
       ))}
+    </div>
+  );
+}
+
+function FontControls({ family, size, defaultSize, onFamily, onSize }: {
+  family?: string; size?: number; defaultSize: number;
+  onFamily: (v: string | undefined) => void; onSize: (v: number | undefined) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <select
+        className="border rounded h-8 px-2 bg-background text-xs"
+        value={family || ""}
+        onChange={(e) => onFamily(e.target.value || undefined)}
+        aria-label="Font family"
+      >
+        <option value="">Default font</option>
+        {EMAIL_FONTS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+      </select>
+      <select
+        className="border rounded h-8 px-2 bg-background text-xs"
+        value={size || ""}
+        onChange={(e) => onSize(e.target.value ? Number(e.target.value) : undefined)}
+        aria-label="Font size"
+      >
+        <option value="">{defaultSize}px (default)</option>
+        {FONT_SIZES.map(s => <option key={s} value={s}>{s}px</option>)}
+      </select>
     </div>
   );
 }
@@ -151,13 +180,31 @@ export default function EmailTemplates() {
                     {b.type === "heading" && (
                       <div className="space-y-2">
                         <Input value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} />
-                        <AlignToggle value={b.align || "left"} onChange={v => updateBlock(i, { align: v })} />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <AlignToggle value={b.align || "left"} onChange={v => updateBlock(i, { align: v })} />
+                          <FontControls
+                            family={b.fontFamily}
+                            size={b.fontSize}
+                            defaultSize={b.level === 3 ? 16 : b.level === 2 ? 20 : 26}
+                            onFamily={(v) => updateBlock(i, { fontFamily: v })}
+                            onSize={(v) => updateBlock(i, { fontSize: v })}
+                          />
+                        </div>
                       </div>
                     )}
                     {b.type === "text" && (
                       <div className="space-y-2">
                         <Textarea rows={3} value={b.text} onChange={e => updateBlock(i, { text: e.target.value })} />
-                        <AlignToggle value={b.align || "left"} onChange={v => updateBlock(i, { align: v })} />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <AlignToggle value={b.align || "left"} onChange={v => updateBlock(i, { align: v })} />
+                          <FontControls
+                            family={b.fontFamily}
+                            size={b.fontSize}
+                            defaultSize={15}
+                            onFamily={(v) => updateBlock(i, { fontFamily: v })}
+                            onSize={(v) => updateBlock(i, { fontSize: v })}
+                          />
+                        </div>
                       </div>
                     )}
                     {b.type === "image" && <Input value={b.url} onChange={e => updateBlock(i, { url: e.target.value })} placeholder="Image URL" />}

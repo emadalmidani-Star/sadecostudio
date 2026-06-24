@@ -1,107 +1,68 @@
+## 1. "About Us" company profile page (PDF export + public web page)
 
-# Turn Spazio into a multi-tenant SaaS using SADECO's features
+A reusable About page driven by `company_profile` + featured project selection, surfaced two ways:
 
-## Heads-up: the two projects don't share a stack
+**a) PDF export cover** — in `src/pages/Exports.tsx`, when the user picks projects to export, prepend an editable "About Us" cover page before the project pages. New panel above the project picker:
+- Toggle: "Include About Us page" (default on)
+- Editable fields: headline, intro paragraph, services list, contact (phone/email/website), stats (years, projects, clients), accent color
+- Live preview thumbnail
+- Defaults pulled from `company_profile` table; overrides stored per-export in localStorage (no schema changes needed)
+- Renderer added to `src/lib/pdf.ts` as `renderAboutPage(doc, profile, opts)` — full-page layout: logo top, big serif headline, intro, 3-column services, stats row, contact footer.
 
-This work happens in the **Spazio Design Studio** project, not here. Important differences I have to bridge:
+**b) Public web page** at `/about` (and shareable `/about/:slug?` for selected project sets):
+- New `src/pages/public/About.tsx` route
+- New "About page" editor at `/settings/about` (`src/pages/AboutEditor.tsx`) — same fields as the PDF cover, plus pick featured projects from `projects` table to show in a grid below the bio.
+- Stored in a new table `about_pages` (id, user_id, slug, headline, intro, services jsonb, stats jsonb, contact jsonb, featured_project_ids uuid[], accent, updated_at) with RLS + GRANTs.
+- Shared `AboutContent` component used by both the public page and the PDF preview to guarantee parity.
 
-| | SADECO (this project) | Spazio (target) |
-|---|---|---|
-| Routing | React Router v6 (`src/pages/*`) | TanStack Router (file-based `src/routes/*`, SSR via TanStack Start) |
-| React | 18 | 19 |
-| Tailwind | v3 (HSL tokens in `index.css`) | v4 (`@tailwindcss/vite`) |
-| Backend | Lovable Cloud + many edge functions | Lovable Cloud + Stripe already enabled |
-| State of features | All built (exports, projects, fitout, marketing, meetings, team) | Mostly empty (auth, billing, index) |
+## 2. Template Designer: don't regenerate untouched pages
 
-So this isn't a copy-paste — each page is re-authored as a TanStack route, Tailwind v4 classes, and a workspace-scoped data model.
+Currently `TemplateDesigner.tsx` auto-seeds a full set of pages (cover/first/last) whenever a set is loaded or any page changes, so editing one page rewrites siblings.
 
-## Multi-tenant model
+Fix:
+- Remove the auto-seed on load. Only seed when the user explicitly clicks "Add cover page" / "Add closing page".
+- Save touches **only the page currently being edited** — strip the bulk upsert of all pages.
+- Add a `last_edited_at` on each `template_pages` row (already present via `updated_at`) and surface "Last saved" per page in the sidebar.
+- Exports/preview read whatever rows exist; missing pages are simply skipped instead of being generated on the fly.
 
-Every existing single-user table moves to **workspace-scoped**.
+## 3. Font family + size controls (email templates + PDF Template Designer)
 
-```text
-auth.users
-   └── workspace_members (user_id, workspace_id, role)
-          └── workspaces (id, name, slug, plan, stripe_customer_id, stripe_subscription_id, plan_status, trial_ends_at)
-                 └── all feature data: projects, fitout_projects, leads, meetings,
-                     email_*, whatsapp_*, company_profile, partners, pdf_templates,
-                     template_sets, category_covers, etc.
-```
+Add a shared font registry `src/lib/fonts.ts` exporting:
+- `EMAIL_FONTS` — email-safe stacks (Georgia/Serif, Helvetica/Sans, Inter, Playfair, Cormorant, Outfit; Google fallbacks for client previews)
+- `PDF_FONTS` — fonts already bundled in `src/lib/pdfFonts.ts` (add 2–3 more if missing)
+- `FONT_SIZES` — preset sizes (12, 14, 16, 18, 20, 24, 28, 32, 40, 56)
 
-Rules:
-- A user can belong to multiple workspaces; one is "active" (stored client-side + last-used in profile).
-- `workspace_role` enum: `owner | admin | editor | viewer`. (SADECO's page-level permissions become role-scoped.)
-- All tenant tables get `workspace_id uuid not null` and an RLS policy `is_workspace_member(auth.uid(), workspace_id)` via a `security definer` function. Mutations check `has_workspace_role(...)`.
-- Workspace creation auto-runs on first signup; invite flow seeds `workspace_invitations` (reuses SADECO's invitation pattern, but workspace-scoped).
+**Email templates** (`src/pages/marketing/email/Templates.tsx` + `src/lib/emailRender.ts` + `supabase/functions/_shared/emailRender.ts`):
+- Add `fontFamily` and `fontSize` to `heading` and `text` block schemas (optional, falls back to current SANS/SERIF + computed sizes).
+- Block editor: two new selects per text/heading block — Font family, Font size.
+- Renderer uses inline `font-family` + `font-size` when provided.
+- Template-level defaults: heading font, body font, base size — picker in the template settings panel.
 
-## Billing (Stripe, already enabled in Spazio)
+**PDF Template Designer** (`src/pages/TemplateDesigner.tsx` + `src/lib/templateRender.ts` + `src/lib/pdf.ts`):
+- Each text element gains `fontFamily` and `fontSize` controls in the inspector.
+- Page-level defaults (title font, body font, base size) editable from the page settings panel.
+- `pdf.ts` already supports font registration via `pdfFonts.ts`; wire the new fields into the text-drawing helpers.
 
-Three tiers, gated by plan on the workspace:
+## 4. Full WhatsApp removal (UI + backend)
 
-| Plan | Price | Limits | Features |
-|---|---|---|---|
-| Free | $0 | 1 workspace, 3 members, 10 projects, no marketing sends | Projects, PDF Exports (watermarked), Team |
-| Pro | $29/mo | 10 members, 200 projects, 1k email + 500 WA sends/mo | + Marketing (Email/WhatsApp), Meetings, Fitout tracker, no watermark |
-| Business | $99/mo | Unlimited members/projects, 25k email + 10k WA sends/mo | + Template Designer, LinkedIn scheduler, Lead intake tokens, custom domain |
+**Frontend deletions:**
+- `src/components/WhatsAppButton.tsx`
+- `src/lib/whatsapp.ts`
+- `src/pages/marketing/whatsapp/` (entire folder: Automations, Campaigns, Contacts, Inbox, Lists, Sender, Snippets, Templates)
+- Remove WhatsApp routes from `src/App.tsx`
+- Remove the WhatsApp section from `src/components/AppLayout.tsx` sidebar
+- Strip WhatsApp UI from `src/pages/marketing/Leads.tsx`, `src/pages/meetings/DropIn.tsx`, `src/pages/MyProfile.tsx`, `src/pages/IdCards.tsx` (the WhatsApp button + the `whatsapp` profile field input)
 
-Implementation:
-- `subscription_plans` table seeded with the tiers + Stripe price IDs.
-- `workspaces.plan` updated by the `stripe-webhook` edge function on `customer.subscription.*`.
-- Client-side `useEntitlements(workspaceId)` returns flags + counters; gate UI with `<PaywallGate feature="marketing">`. Server-side gate inside each edge function (reject if plan insufficient).
-- Reuse Spazio's existing `billing.tsx` and `checkout.return.tsx`; add a `/billing/plans` page with the three tiers.
+**Backend deletions:**
+- Delete edge functions: `whatsapp-webhook`, `whatsapp-send`, `whatsapp-templates-sync`, `whatsapp-campaign-send`, `whatsapp-campaign-test`, `whatsapp-campaign-tick`, `whatsapp-automation-tick`, `lead-intake-whatsapp`
+- Migration to DROP: `whatsapp_messages`, `whatsapp_conversations`, `whatsapp_sends`, `whatsapp_campaigns`, `whatsapp_automation_runs`, `whatsapp_automation_steps`, `whatsapp_automations`, `whatsapp_list_members`, `whatsapp_lists`, `whatsapp_contacts`, `whatsapp_snippets`, `whatsapp_templates`, `whatsapp_sender_config`, `whatsapp_notification_settings`
+- Drop `sync_lead_to_whatsapp_contact()` function and its trigger on `leads`
+- Drop `whatsapp` column from `profiles`
 
-## Feature scope ported from SADECO
+**Confirmed destructive** — all WhatsApp data will be permanently lost.
 
-All four areas you picked, rebuilt as workspace-scoped TanStack routes:
+## Technical notes
 
-```text
-/app/$wsSlug
-  /dashboard              → KPIs from SADECO Dashboard
-  /projects               → Projects list + editor + gallery
-  /projects/$id
-  /gallery
-  /exports                → PDF Exports (full profile / portfolio / single)
-  /template-designer      → (Business plan)
-  /company                → Company profile + partners + category covers
-  /team                   → Members, invitations, roles
-  /permissions            → Role page permissions (admin)
-  /fitout                 → Dashboard, Tracker, PMs, Team
-  /marketing
-     /leads, /analytics, /competitors, /connections, /scheduler
-     /email/{campaigns,automations,contacts,lists,sender,templates,analytics}
-     /whatsapp/{campaigns,automations,contacts,lists,sender,templates,snippets,inbox}
-  /meetings
-     /upcoming, /scheduler, /notes, /drop-in
-  /settings
-     /workspace, /billing, /integrations
-```
-
-Public routes (kept from SADECO): `/auth`, `/p/book/:token`, `/p/dropin/:token`, `/p/lead/:token`, `/p/note/:token`, `/unsubscribe`.
-
-Library files migrated 1:1 (they're framework-agnostic): `pdf.ts`, `pdfFonts.ts`, `pdfRasterize.ts`, `emailRender.ts`, `whatsapp.ts`, `fitout.ts`, `meetings.ts`, `projectPhase.ts`, `storagePath.ts`, `flattenImage.ts`, `templateRender.ts`.
-
-All ~25 edge functions ported as-is to Spazio's `supabase/functions/*`, with two changes:
-1. Resolve `workspace_id` from the authed user + path/header, not just `user_id`.
-2. Plan-check at the top of each marketing-send function.
-
-## Phased delivery
-
-Doing this in one go would be a 20+ migration mega-PR. Proposed phases (each is a self-contained shippable step):
-
-1. **Foundation** — workspaces, members, invitations, roles, RLS helper functions, `useWorkspace()` hook, workspace switcher, `/app/$wsSlug` layout. Seed Free plan on signup.
-2. **Billing & plans** — `subscription_plans`, plan gating helpers, `/billing/plans` page, Stripe webhook → workspace.plan, entitlements hook, paywall component.
-3. **Core: Projects + Company + Team + Exports** — ports `projects`, `company_profile`, `partners`, `category_covers`, `pdf_templates`, `template_sets`, `profiles`, `user_roles` → workspace-scoped. PDF library lifted as-is.
-4. **Fitout module** — `fitout_projects`, sheet sync, tracker UI.
-5. **Marketing** — Leads, Email (lists, contacts, templates, campaigns, automations, sender, analytics, webhook, unsubscribe), WhatsApp (same surface), LinkedIn scheduler. All cron tick functions ported. Plan-gated.
-6. **Meetings** — availability, booking tokens, drop-in, notes, public share pages.
-7. **Polish** — empty states, onboarding tour, marketing landing page on `/`, docs, SEO.
-
-I'd ship phase 1 first and pause for review before continuing.
-
-## What I need confirmed before starting
-
-1. **Pricing** — OK with Free / $29 Pro / $99 Business above, or different numbers/tiers?
-2. **Trial** — 14-day Pro trial on signup, or straight to Free?
-3. **Branding** — Keep Spazio's current visual identity, or carry over SADECO's serif/luxury look as the default theme?
-4. **SADECO data** — Migrate SADECO's existing data into a "SADECO" workspace inside Spazio, or start Spazio empty and leave SADECO running separately?
-5. **Start point** — Begin with **Phase 1 (Foundation)** only and review before continuing? (Recommended.)
+- Order of work: WhatsApp removal first (clears noise) → Template Designer stickiness → font controls → About page (largest).
+- New `about_pages` table follows the existing RLS pattern (`user_id = auth.uid()`), with `GRANT SELECT, INSERT, UPDATE, DELETE … TO authenticated`, `GRANT ALL … TO service_role`, and `GRANT SELECT TO anon` only for the public-share read path scoped by slug.
+- No new external dependencies; fonts piggyback on the existing `@fontsource/*` packages plus the PDF font loader.

@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Settings, MessageCircle, Mail, Globe, PenLine, Copy, Trash2, FolderPlus, Loader2, Share2, ExternalLink } from "lucide-react";
-import WhatsAppButton from "@/components/WhatsAppButton";
+
 
 type Lead = {
   id: string;
@@ -148,7 +148,7 @@ export default function MarketingLeads() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-serif text-4xl">Leads</h1>
-          <p className="text-muted-foreground mt-1">Capture leads from WhatsApp, email, web form, or add them manually.</p>
+          <p className="text-muted-foreground mt-1">Capture leads from email, web form, or add them manually.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={shareForm}><Share2 className="w-4 h-4 mr-2" />Share public form</Button>
@@ -337,7 +337,7 @@ function LeadDetail({ lead, onClose, onChangeStage, onDelete, onConvert }: {
           </div>
           {lead.company && <div><Label className="text-xs">Company</Label><div className="text-sm">{lead.company}</div></div>}
           {lead.email && <div><Label className="text-xs">Email</Label><div className="text-sm"><a className="text-accent underline" href={`mailto:${lead.email}`}>{lead.email}</a></div></div>}
-          {lead.phone && <div><Label className="text-xs">Phone</Label><div className="text-sm flex items-center gap-2"><span>{lead.phone}</span><WhatsAppButton phone={lead.phone} contactName={lead.name} /></div></div>}
+          {lead.phone && <div><Label className="text-xs">Phone</Label><div className="text-sm">{lead.phone}</div></div>}
           {lead.message && <div><Label className="text-xs">Message</Label><div className="text-sm whitespace-pre-wrap bg-muted/40 p-3 rounded">{lead.message}</div></div>}
           <div>
             <Label className="text-xs">Stage</Label>
@@ -412,9 +412,9 @@ function IntakeSettingsDialog({ open, onOpenChange, userId }: { open: boolean; o
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Intake settings</DialogTitle></DialogHeader>
         <div className="space-y-6">
-          {(["web_form", "email", "whatsapp"] as const).map((kind) => {
+          {(["web_form", "email"] as const).map((kind) => {
             const items = tokens.filter((t) => t.kind === kind);
-            const label = kind === "web_form" ? "Public web form" : kind === "email" ? "Email forwarding inbox" : "WhatsApp Business";
+            const label = kind === "web_form" ? "Public web form" : "Email forwarding inbox";
             return (
               <div key={kind} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
@@ -435,16 +435,13 @@ function IntakeSettingsDialog({ open, onOpenChange, userId }: { open: boolean; o
                     </ol>
                   </div>
                 )}
-                {kind === "whatsapp" && (
-                  <p className="text-xs text-muted-foreground mb-3">Paste the callback URL and verify token into your Meta WhatsApp Business app webhook config.</p>
-                )}
 
                 {items.length === 0 ? (
                   <div className="text-xs text-muted-foreground">No tokens yet.</div>
                 ) : (
                   <div className="space-y-2">
                     {items.map((t) => {
-                      const webhookUrl = kind === "email" ? `${fnBase}/lead-intake-email` : kind === "whatsapp" ? `${fnBase}/lead-intake-whatsapp` : `${origin}/leads/new/${t.token}`;
+                      const webhookUrl = kind === "email" ? `${fnBase}/lead-intake-email` : `${origin}/leads/new/${t.token}`;
                       const sampleAddr = kind === "email" ? `leads+${t.token}@yourdomain.com` : null;
                       return (
                         <div key={t.id} className="space-y-1 bg-muted/40 rounded p-2">
