@@ -67,6 +67,7 @@ const App = () => (
             <Route path="/dropin/:token" element={<PublicDropIn />} />
             <Route path="/notes/:token" element={<PublicMeetingNote />} />
             <Route path="/share/gallery/:id" element={<PublicProjectGallery />} />
+            <Route path="/about" element={<PublicAbout />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/projects" element={<RoleRoute page="projects"><Projects /></RoleRoute>} />
