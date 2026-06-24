@@ -100,14 +100,6 @@ const App = () => (
               <Route path="/marketing/email/automations" element={<RoleRoute page="email_marketing"><EmailAutomations /></RoleRoute>} />
               <Route path="/marketing/email/analytics" element={<RoleRoute page="email_marketing"><EmailAnalytics /></RoleRoute>} />
               <Route path="/marketing/email/sender" element={<RoleRoute page="email_marketing"><EmailSender /></RoleRoute>} />
-              <Route path="/marketing/whatsapp/sender" element={<RoleRoute page="whatsapp"><WhatsAppSender /></RoleRoute>} />
-              <Route path="/marketing/whatsapp/contacts" element={<RoleRoute page="whatsapp"><WhatsAppContacts /></RoleRoute>} />
-              <Route path="/marketing/whatsapp/lists" element={<RoleRoute page="whatsapp"><WhatsAppLists /></RoleRoute>} />
-              <Route path="/marketing/whatsapp/templates" element={<RoleRoute page="whatsapp"><WhatsAppTemplates /></RoleRoute>} />
-              <Route path="/marketing/whatsapp/campaigns" element={<RoleRoute page="whatsapp"><WhatsAppCampaigns /></RoleRoute>} />
-              <Route path="/marketing/whatsapp/automations" element={<RoleRoute page="whatsapp"><WhatsAppAutomations /></RoleRoute>} />
-              <Route path="/marketing/whatsapp/inbox" element={<RoleRoute page="whatsapp"><WhatsAppInbox /></RoleRoute>} />
-              <Route path="/marketing/whatsapp/snippets" element={<RoleRoute page="whatsapp"><WhatsAppSnippets /></RoleRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
