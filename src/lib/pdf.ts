@@ -595,11 +595,6 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
       });
     }
   }
-        if (it.url) doc.textWithLink(it.text, x, ly, { url: it.url });
-        else doc.text(it.text, x, ly);
-      });
-    }
-  }
 }
 
 async function renderProject(doc: jsPDF, p: any, company: any, page: { n: number }, tpl?: Template) {
