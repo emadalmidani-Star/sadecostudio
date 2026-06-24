@@ -177,7 +177,7 @@ export default function Exports() {
       const byId = new Map(projects.map(p => [p.id, p]));
       const list = selectedOrder.map(id => byId.get(id)).filter(Boolean);
       const c = await resolveSelectedContact();
-      await exportSelectedPDF(company, list, covers, c, companyFields);
+      await exportSelectedPDF(company, list, covers, c, companyFields, aboutPage || undefined);
       markGenerated("portfolio");
       toast.success("Portfolio PDF generated", {
         action: { label: "Share link", onClick: () => { navigator.clipboard.writeText(window.location.origin); toast.success("Link copied"); } },
