@@ -183,6 +183,66 @@ async function newDoc() {
 // "About Us" cover page, optionally prepended to portfolio / selected-projects exports.
 import type { AboutPageData } from "./aboutPage";
 
+// Recolor a transparent logo so every opaque pixel becomes solid black —
+// used on the light "About Us" page where the original gold/white logo would vanish.
+async function tintLogoBlack(logo: { data: string; w: number; h: number } | null): Promise<{ data: string; w: number; h: number } | null> {
+  if (!logo) return null;
+  try {
+    const img = await new Promise<HTMLImageElement | null>((r) => {
+      const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = logo.data;
+    });
+    if (!img) return logo;
+    const cnv = document.createElement("canvas");
+    cnv.width = img.width; cnv.height = img.height;
+    const ctx = cnv.getContext("2d");
+    if (!ctx) return logo;
+    ctx.drawImage(img, 0, 0);
+    ctx.globalCompositeOperation = "source-in";
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, img.width, img.height);
+    return { data: cnv.toDataURL("image/png"), w: img.width, h: img.height };
+  } catch { return logo; }
+}
+
+// Build a brand-coloured circular icon for a social/contact kind and rasterise to PNG.
+type SocialKind = "linkedin" | "instagram" | "facebook" | "youtube" | "email" | "phone" | "whatsapp" | "website";
+const SOCIAL_BG: Record<SocialKind, string> = {
+  linkedin: "#0A66C2", instagram: "#E1306C", facebook: "#1877F2", youtube: "#FF0000",
+  email: "#4B5563", phone: "#10B981", whatsapp: "#25D366", website: "#6366F1",
+};
+const SOCIAL_GLYPH: Record<SocialKind, string> = {
+  linkedin: '<path fill="#fff" d="M20.5 20.5h-3.6v-5.6c0-1.3-.5-2.2-1.7-2.2-1 0-1.5.6-1.7 1.3-.1.2-.1.6-.1.9v5.6H9.8s.1-9.1 0-10h3.6v1.4c.5-.7 1.3-1.7 3.2-1.7 2.3 0 4 1.5 4 4.8v5.5zM5.9 8.6c-1.2 0-2-.8-2-1.8s.8-1.8 2-1.8 2 .8 2 1.8-.8 1.8-2 1.8zm1.8 11.9H4.1v-10h3.6v10z"/>',
+  instagram: '<path fill="#fff" d="M8 3h8a5 5 0 0 1 5 5v8a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H8zm9 1.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2zM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>',
+  facebook: '<path fill="#fff" d="M13.5 21v-7.5h2.5l.4-3h-2.9V8.6c0-.9.3-1.5 1.5-1.5h1.6V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2.3H8v3h2.5V21h3z"/>',
+  youtube: '<path fill="#fff" d="M21.6 8.2c-.2-1-.9-1.7-1.9-2C18 6 12 6 12 6s-6 0-7.7.2c-1 .3-1.7 1-1.9 2C2.2 9.9 2.2 12 2.2 12s0 2.1.2 3.8c.2 1 .9 1.7 1.9 2 1.7.2 7.7.2 7.7.2s6 0 7.7-.2c1-.3 1.7-1 1.9-2 .2-1.7.2-3.8.2-3.8s0-2.1-.2-3.8zM10 15.3V8.7l5.2 3.3-5.2 3.3z"/>',
+  email: '<path fill="#fff" d="M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zm1 2.3v8.7h14V8.3l-7 4.5-7-4.5zm.7-.3L12 12l6.3-4H5.7z"/>',
+  phone: '<path fill="#fff" d="M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.4c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.5.1.4 0 .8-.2 1.1l-2.2 2.2z"/>',
+  whatsapp: '<path fill="#fff" d="M12 3a9 9 0 0 0-7.7 13.7L3 21l4.4-1.2A9 9 0 1 0 12 3zm5.2 12.7c-.2.6-1.3 1.2-1.8 1.2-.5.1-1.1.1-1.8-.1a10 10 0 0 1-5.4-4.7c-.4-.7-.7-1.5-.7-2.3 0-.8.4-1.2.6-1.4.2-.2.4-.2.5-.2h.4c.1 0 .3 0 .5.4.2.5.7 1.6.7 1.7.1.1.1.3 0 .4 0 .1-.1.2-.2.4l-.3.4c-.1.1-.2.2-.1.4.2.4.7 1.1 1.4 1.7.9.8 1.6 1 1.9 1.2.2.1.4.1.5-.1l.7-.8c.1-.2.3-.2.5-.1.2.1 1.3.6 1.5.7.2.1.4.2.4.3.1.1.1.5-.1 1z"/>',
+  website: '<path fill="#fff" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 2c1.1 0 2.4 1.3 3 3.5H9c.6-2.2 1.9-3.5 3-3.5zM5.1 11h2.7c-.1.7-.1 1.3 0 2H5.1a7 7 0 0 1 0-2zm1 4h2c.4 1.4 1 2.6 1.6 3.5A7 7 0 0 1 6.1 15zm5.9 4c-1.1 0-2.4-1.3-3-3.5h6c-.6 2.2-1.9 3.5-3 3.5zm-3.4-5.5a13 13 0 0 1 0-3h6.8a13 13 0 0 1 0 3H8.6zM18 15a7 7 0 0 1-3.6 3.5c.6-.9 1.2-2.1 1.6-3.5H18zm1-2h-2.8c.1-.7.1-1.3 0-2H19a7 7 0 0 1 0 2zm-1-4h-1.4c-.4-1.4-1-2.6-1.6-3.5A7 7 0 0 1 18 9zM9.4 5.5c-.6.9-1.2 2.1-1.6 3.5H6a7 7 0 0 1 3.4-3.5z"/>',
+};
+
+async function socialBadgePng(kind: SocialKind): Promise<{ data: string; w: number; h: number } | null> {
+  const bg = SOCIAL_BG[kind];
+  const glyph = SOCIAL_GLYPH[kind];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="64" height="64"><circle cx="12" cy="12" r="12" fill="${bg}"/>${glyph}</svg>`;
+  return rasterizeSvg(svg, 128, false);
+}
+
+type SocialItem = { kind: SocialKind; url?: string };
+async function drawSocialRow(doc: jsPDF, items: SocialItem[], cx: number, y: number, size = 7, gap = 4) {
+  if (!items.length) return;
+  const totalW = items.length * size + (items.length - 1) * gap;
+  let x = cx - totalW / 2;
+  for (const it of items) {
+    const png = await socialBadgePng(it.kind);
+    if (png) {
+      doc.addImage(png.data, "PNG", x, y, size, size);
+      if (it.url) doc.link(x, y, size, size, { url: it.url });
+    }
+    x += size + gap;
+  }
+}
+
 export async function addAboutCover(doc: jsPDF, company: any, logo: any, data: AboutPageData, isFirstPage: boolean) {
   if (!isFirstPage) doc.addPage();
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
@@ -194,42 +254,63 @@ export async function addAboutCover(doc: jsPDF, company: any, logo: any, data: A
   // Left vertical accent band
   doc.setFillColor(accent); doc.rect(0, 0, 8, H, "F");
 
-  // Top: small label + headline + tagline
+  // Two-column layout: text on the left half, services on the right half.
+  const LEFT_X = 24;
+  const LEFT_W = W / 2 - 32;          // safe width for the left text column
+  const RIGHT_X = W / 2 + 12;
+  const RIGHT_W = W / 2 - 36;
+
+  // Top label
   doc.setTextColor(accent); doc.setFont("Montserrat", "bold"); doc.setFontSize(9);
-  doc.text("ABOUT US", 24, 28, { charSpace: 4 });
+  doc.text("ABOUT US", LEFT_X, 28, { charSpace: 4 });
 
-  doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold"); doc.setFontSize(34);
-  const headLines = doc.splitTextToSize(data.headline || (company?.name || "About Us"), W - 60);
+  // Headline
+  doc.setTextColor(BRAND.ink); doc.setFont("Montserrat", "bold"); doc.setFontSize(32);
+  const headLines = doc.splitTextToSize(data.headline || (company?.name || "About Us"), LEFT_W);
   let y = 44;
-  headLines.forEach((ln: string) => { doc.text(ln, 24, y); y += 11; });
+  headLines.forEach((ln: string) => { doc.text(ln, LEFT_X, y); y += 11; });
 
+  // Tagline
   if (data.tagline) {
     y += 2;
-    doc.setFont("Montserrat", "normal"); doc.setFontSize(13); doc.setTextColor(BRAND.muted);
-    const taglineLines = doc.splitTextToSize(data.tagline, W - 60);
-    taglineLines.forEach((ln: string) => { doc.text(ln, 24, y); y += 7; });
+    doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.muted);
+    const taglineLines = doc.splitTextToSize(data.tagline, LEFT_W);
+    taglineLines.forEach((ln: string) => { doc.text(ln, LEFT_X, y); y += 6.5; });
   }
 
   // Accent rule
   y += 4;
-  doc.setDrawColor(accent); doc.setLineWidth(0.8); doc.line(24, y, 24 + 36, y);
+  doc.setDrawColor(accent); doc.setLineWidth(0.8); doc.line(LEFT_X, y, LEFT_X + 36, y);
   y += 10;
 
-  // Intro paragraph
+  // Intro paragraph (constrained to left column)
   if (data.intro) {
     doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor(BRAND.ink);
-    const lines = doc.splitTextToSize(data.intro, W - 60);
-    const maxLines = Math.min(lines.length, 12);
-    for (let i = 0; i < maxLines; i++) { doc.text(lines[i], 24, y); y += 6; }
-    y += 4;
+    const lines = doc.splitTextToSize(data.intro, LEFT_W);
+    const maxLines = Math.min(lines.length, 14);
+    for (let i = 0; i < maxLines; i++) { doc.text(lines[i], LEFT_X, y); y += 6; }
   }
 
-  // Stats row
+  // Services list (right column, aligned with headline baseline)
+  if (data.services?.length) {
+    let sy = 44;
+    doc.setFont("Montserrat", "bold"); doc.setFontSize(9); doc.setTextColor(accent);
+    doc.text("WHAT WE DO", RIGHT_X, sy, { charSpace: 4 }); sy += 10;
+    doc.setFont("Montserrat", "normal"); doc.setFontSize(12); doc.setTextColor(BRAND.ink);
+    data.services.slice(0, 8).forEach(s => {
+      const lines = doc.splitTextToSize(s, RIGHT_W - 8);
+      doc.text("—", RIGHT_X, sy);
+      doc.text(lines, RIGHT_X + 6, sy);
+      sy += lines.length * 6.5 + 2;
+    });
+  }
+
+  // Stats row (bottom)
   if (data.stats?.length) {
-    const startY = H - 70;
+    const startY = H - 50;
     const colW = (W - 48) / Math.min(data.stats.length, 4);
     data.stats.slice(0, 4).forEach((s, i) => {
-      const x = 24 + i * colW;
+      const x = LEFT_X + i * colW;
       doc.setFont("Montserrat", "bold"); doc.setFontSize(26); doc.setTextColor(accent);
       doc.text(s.value || "", x, startY);
       doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor(BRAND.muted);
@@ -237,37 +318,23 @@ export async function addAboutCover(doc: jsPDF, company: any, logo: any, data: A
     });
   }
 
-  // Services list (right column if room)
-  if (data.services?.length) {
-    const sx = W / 2 + 10;
-    let sy = 80;
-    doc.setFont("Montserrat", "bold"); doc.setFontSize(9); doc.setTextColor(accent);
-    doc.text("WHAT WE DO", sx, sy, { charSpace: 4 }); sy += 8;
-    doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.setTextColor(BRAND.ink);
-    data.services.slice(0, 6).forEach(s => {
-      const lines = doc.splitTextToSize(s, W / 2 - 30);
-      doc.text("—", sx, sy);
-      doc.text(lines, sx + 6, sy);
-      sy += lines.length * 6 + 1;
-    });
-  }
-
   // Contact footer
   const footerY = H - 22;
-  doc.setDrawColor(BRAND.line); doc.setLineWidth(0.2); doc.line(24, footerY - 6, W - 24, footerY - 6);
+  doc.setDrawColor(BRAND.line); doc.setLineWidth(0.2); doc.line(LEFT_X, footerY - 6, W - 24, footerY - 6);
   doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor(BRAND.muted);
   const contactBits: string[] = [];
   if (data.contactPhone) contactBits.push(data.contactPhone);
   if (data.contactEmail) contactBits.push(data.contactEmail);
   if (data.contactWebsite) contactBits.push(data.contactWebsite);
   if (data.contactAddress) contactBits.push(data.contactAddress);
-  if (contactBits.length) doc.text(contactBits.join("   ·   "), 24, footerY);
+  if (contactBits.length) doc.text(contactBits.join("   ·   "), LEFT_X, footerY);
 
-  // Logo (top-right)
-  if (logo) {
-    const ratio = logo.w / logo.h;
+  // Logo (top-right) — recoloured solid black so it's visible on the light paper
+  const blackLogo = await tintLogoBlack(logo);
+  if (blackLogo) {
+    const ratio = blackLogo.w / blackLogo.h;
     const lw = 32; const lh = lw / ratio;
-    doc.addImage(logo.data, "PNG", W - 24 - lw, 18, lw, lh);
+    doc.addImage(blackLogo.data, "PNG", W - 24 - lw, 18, lw, lh);
   }
 }
 
