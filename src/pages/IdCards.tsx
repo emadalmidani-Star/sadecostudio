@@ -289,7 +289,6 @@ function QrTile({ member, company, canEdit, template, onRegenerate, onSaved }: {
       case "member_title": return member.job_title || "";
       case "member_email": return member.email || "";
       case "member_phone": return member.phone || "";
-      case "member_whatsapp": return member.whatsapp || "";
       case "company_name": return company?.name || "";
       case "company_website": return (company?.website || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
       case "company_phone": return company?.phone || "";
