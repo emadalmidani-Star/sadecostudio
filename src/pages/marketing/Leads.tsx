@@ -337,7 +337,7 @@ function LeadDetail({ lead, onClose, onChangeStage, onDelete, onConvert }: {
           </div>
           {lead.company && <div><Label className="text-xs">Company</Label><div className="text-sm">{lead.company}</div></div>}
           {lead.email && <div><Label className="text-xs">Email</Label><div className="text-sm"><a className="text-accent underline" href={`mailto:${lead.email}`}>{lead.email}</a></div></div>}
-          {lead.phone && <div><Label className="text-xs">Phone</Label><div className="text-sm flex items-center gap-2"><span>{lead.phone}</span><WhatsAppButton phone={lead.phone} contactName={lead.name} /></div></div>}
+          {lead.phone && <div><Label className="text-xs">Phone</Label><div className="text-sm">{lead.phone}</div></div>}
           {lead.message && <div><Label className="text-xs">Message</Label><div className="text-sm whitespace-pre-wrap bg-muted/40 p-3 rounded">{lead.message}</div></div>}
           <div>
             <Label className="text-xs">Stage</Label>
