@@ -547,21 +547,27 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     await drawSocialRow(doc, icons, W / 2, ly + (contact.phone ? 5 : 0), 7, 4);
   }
 
-  // Company footer — respect user toggles strictly. If nothing toggled, render nothing.
+  // Company footer — phone/website/address as text, email + socials as modern icons.
   const cf: CompanyFooterFields = companyFields || { phone: true, email: true, website: true, address: true };
   type FItem = { text: string; url?: string };
   const fItems: FItem[] = [];
   if (cf.phone && company?.phone) fItems.push({ text: company.phone, url: `tel:${String(company.phone).replace(/[^\d+]/g, "")}` });
-  if (cf.email && company?.email) fItems.push({ text: company.email, url: `mailto:${company.email}` });
   if (cf.website && company?.website) {
     const w = String(company.website);
     fItems.push({ text: w, url: /^https?:\/\//i.test(w) ? w : `https://${w}` });
   }
   if (cf.address && company?.address) fItems.push({ text: company.address });
-  if (company?.linkedin_url) fItems.push({ text: "LinkedIn", url: company.linkedin_url });
-  if (company?.instagram_url) fItems.push({ text: "Instagram", url: company.instagram_url });
-  if (company?.facebook_url) fItems.push({ text: "Facebook", url: company.facebook_url });
-  if (company?.youtube_url) fItems.push({ text: "YouTube", url: company.youtube_url });
+
+  const footerIcons: SocialItem[] = [];
+  if (cf.email && company?.email) footerIcons.push({ kind: "email", url: `mailto:${company.email}` });
+  if (company?.linkedin_url) footerIcons.push({ kind: "linkedin", url: company.linkedin_url });
+  if (company?.instagram_url) footerIcons.push({ kind: "instagram", url: company.instagram_url });
+  if (company?.facebook_url) footerIcons.push({ kind: "facebook", url: company.facebook_url });
+  if (company?.youtube_url) footerIcons.push({ kind: "youtube", url: company.youtube_url });
+
+  const iconsY = H - 26;
+  if (footerIcons.length) await drawSocialRow(doc, footerIcons, W / 2, iconsY, 7, 4);
+
   if (fItems.length) {
     doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.setTextColor("#999999");
     const sep = "   |   ";
@@ -571,7 +577,7 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
     const maxW = W - 40;
     if (totalW <= maxW) {
       let x = W / 2 - totalW / 2;
-      const ly = H - 18;
+      const ly = H - 14;
       fItems.forEach((it, i) => {
         if (it.url) doc.textWithLink(it.text, x, ly, { url: it.url });
         else doc.text(it.text, x, ly);
@@ -579,12 +585,16 @@ async function addThankYou(doc: jsPDF, company: any, logo: any, tpl?: Template, 
         if (i < fItems.length - 1) { doc.text(sep, x, ly); x += sepW; }
       });
     } else {
-      // Stack each item on its own line, centered & clickable
-      const startY = H - 18 - (fItems.length - 1) * 5;
+      const startY = H - 14 - (fItems.length - 1) * 5;
       fItems.forEach((it, i) => {
         const tw = widths[i];
         const x = W / 2 - tw / 2;
         const ly = startY + i * 5;
+        if (it.url) doc.textWithLink(it.text, x, ly, { url: it.url });
+        else doc.text(it.text, x, ly);
+      });
+    }
+  }
         if (it.url) doc.textWithLink(it.text, x, ly, { url: it.url });
         else doc.text(it.text, x, ly);
       });
