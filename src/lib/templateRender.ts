@@ -166,7 +166,9 @@ export async function renderTemplatePage(
       const text = resolveText(slot.field, ctx);
       if (!text) continue;
       let fs = slot.fontSize || 12;
-      doc.setFont("Montserrat", slot.bold ? "bold" : "normal");
+      const fontName = slot.fontFamily || "Montserrat";
+      try { doc.setFont(fontName, slot.bold ? "bold" : "normal"); }
+      catch { doc.setFont("Montserrat", slot.bold ? "bold" : "normal"); }
       doc.setTextColor(slot.color || "#000000");
       const align = slot.align || "left";
       const tx = align === "center" ? x + w / 2 : align === "right" ? x + w : x;
