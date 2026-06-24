@@ -938,7 +938,7 @@ export async function exportSelectedPDF(company: any, list: any[], categoryCover
   doc.save(`SADECO-Portfolio.pdf`);
 }
 
-export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}, contact?: any, companyFields?: CompanyFooterFields) {
+export async function exportFullProfilePDF(company: any, projects: any[], categoryCovers: Record<string, string> = {}, contact?: any, companyFields?: CompanyFooterFields, aboutPage?: AboutPageData) {
   const doc = await newDoc();
   const W = doc.internal.pageSize.getWidth();
   const tpls = await loadTemplates("profile");
@@ -947,7 +947,9 @@ export async function exportFullProfilePDF(company: any, projects: any[], catego
   const logo = company?.logo_url ? await loadLogoTransparent(company.logo_url) : null;
   const c = await resolveContact(contact);
   const page = { n: 1 };
-  if (include("cover")) await addCover(doc, company, "Company Profile", logo, tpls.cover);
+  let firstPage = true;
+  if (aboutPage?.enabled) { await addAboutCover(doc, company, logo, aboutPage, firstPage); firstPage = false; }
+  if (include("cover")) { if (!firstPage) doc.addPage(); await addCover(doc, company, "Company Profile", logo, tpls.cover); firstPage = false; }
 
   // About + Services pages — only include if NO custom template (defaults are skipped when user customized any page)
   if (!hasCustom) {
